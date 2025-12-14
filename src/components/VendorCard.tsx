@@ -1,0 +1,1 @@
+export default function VendorCard(){return <div>Vendor</div>}
