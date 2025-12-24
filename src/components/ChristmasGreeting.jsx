@@ -13,7 +13,7 @@ const ChristmasGreeting = () => {
   const playlist = [
   {
     title: 'Jingle Bells (Upbeat Instrumental)',
-    url: 'https://www.singing-bell.com/wp-content/uploads/2013/10/Jingle-Bells.mp3', // Direct free instrumental MP3 from Singing Bell
+    url: 'https://pixabay.com/music/search/jingle%20bells%20instrumental/', // Direct free instrumental MP3 from Singing Bell
   },
   {
     title: 'We Wish You a Merry Christmas (Orchestral Instrumental)',
