@@ -5,16 +5,13 @@ const ChristmasGreeting = () => {
   const [sparkles, setSparkles] = useState([]);
   const [hearts, setHearts] = useState([]);
   const [stars, setStars] = useState([]);
-  const [fireworks, setFireworks] = useState([]);
-  const [showFireworks, setShowFireworks] = useState(false);
-
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTrack, setCurrentTrack] = useState(0);
   const [countdown, setCountdown] = useState("");
 
   const audioRef = useRef(null);
 
-  /* 🎵 PLAYLIST */
+  /* 🎵 Playlist */
   const playlist = [
     {
       title: "Feliz Navidad – Instrumental",
@@ -22,11 +19,11 @@ const ChristmasGreeting = () => {
     },
   ];
 
-  /* ❄ ✨ ❤️ BACKGROUND EFFECTS */
+  /* ❄ Snow, ✨ Sparkles, ❤️ Hearts */
   useEffect(() => {
-    const snow = setInterval(() => {
-      setSnowflakes((p) => [
-        ...p.slice(-30),
+    const snowInterval = setInterval(() => {
+      setSnowflakes((prev) => [
+        ...prev.slice(-30),
         {
           id: Date.now() + Math.random(),
           left: Math.random() * 100,
@@ -36,9 +33,9 @@ const ChristmasGreeting = () => {
       ]);
     }, 250);
 
-    const sparkle = setInterval(() => {
-      setSparkles((p) => [
-        ...p.slice(-12),
+    const sparkleInterval = setInterval(() => {
+      setSparkles((prev) => [
+        ...prev.slice(-12),
         {
           id: Date.now() + Math.random(),
           left: Math.random() * 100,
@@ -48,9 +45,9 @@ const ChristmasGreeting = () => {
       ]);
     }, 700);
 
-    const heart = setInterval(() => {
-      setHearts((p) => [
-        ...p.slice(-6),
+    const heartInterval = setInterval(() => {
+      setHearts((prev) => [
+        ...prev.slice(-6),
         {
           id: Date.now() + Math.random(),
           left: Math.random() * 80 + 10,
@@ -60,13 +57,13 @@ const ChristmasGreeting = () => {
     }, 1600);
 
     return () => {
-      clearInterval(snow);
-      clearInterval(sparkle);
-      clearInterval(heart);
+      clearInterval(snowInterval);
+      clearInterval(sparkleInterval);
+      clearInterval(heartInterval);
     };
   }, []);
 
-  /* ⭐ CLICK BURST */
+  /* ⭐ Click burst */
   const handleClick = (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -74,15 +71,15 @@ const ChristmasGreeting = () => {
 
     for (let i = 0; i < 8; i++) {
       const id = Date.now() + Math.random() + i;
-      setStars((p) => [...p, { id, x, y }]);
+      setStars((prev) => [...prev, { id, x, y }]);
       setTimeout(
-        () => setStars((p) => p.filter((s) => s.id !== id)),
+        () => setStars((prev) => prev.filter((s) => s.id !== id)),
         1200
       );
     }
   };
 
-  /* 🎶 AUTOPLAY + STOP ON TAB CLOSE */
+  /* 🎶 AUTOPLAY + STOP WHEN PAGE HIDDEN */
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -90,7 +87,7 @@ const ChristmasGreeting = () => {
     audio.src = playlist[currentTrack].url;
     audio.volume = 0.6;
 
-    const play = async () => {
+    const autoPlay = async () => {
       try {
         await audio.play();
         setIsPlaying(true);
@@ -99,21 +96,26 @@ const ChristmasGreeting = () => {
       }
     };
 
-    play();
+    autoPlay();
 
-    const visibility = () => {
-      document.hidden ? audio.pause() : audio.play().catch(() => {});
+    const handleVisibility = () => {
+      if (document.hidden) {
+        audio.pause();
+      } else {
+        audio.play().catch(() => {});
+      }
     };
 
-    document.addEventListener("visibilitychange", visibility);
+    document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
       audio.pause();
       audio.currentTime = 0;
-      document.removeEventListener("visibilitychange", visibility);
+      document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, [currentTrack]);
 
+  /* ▶ / ⏸ */
   const togglePlay = async () => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -127,18 +129,27 @@ const ChristmasGreeting = () => {
     }
   };
 
+  /* ⏭ */
+  const nextTrack = () => {
+    setCurrentTrack((p) => (p + 1) % playlist.length);
+  };
+
+  /* ⏮ */
+  const prevTrack = () => {
+    setCurrentTrack((p) => (p - 1 + playlist.length) % playlist.length);
+  };
+
   /* ⏳ COUNTDOWN TO 2026 */
   useEffect(() => {
     const target = new Date("January 1, 2026 00:00:00").getTime();
 
     const timer = setInterval(() => {
-      const diff = target - Date.now();
+      const now = Date.now();
+      const diff = target - now;
 
       if (diff <= 0) {
         setCountdown("🎆 Welcome to 2026! 🎆");
-        setShowFireworks(true);
         clearInterval(timer);
-        setTimeout(() => setShowFireworks(false), 8000);
         return;
       }
 
@@ -153,63 +164,14 @@ const ChristmasGreeting = () => {
     return () => clearInterval(timer);
   }, []);
 
-  /* 🎆 FIREWORKS */
-  useEffect(() => {
-    if (!showFireworks) return;
-
-    const interval = setInterval(() => {
-      const x = Math.random() * window.innerWidth;
-      const y = Math.random() * window.innerHeight * 0.5;
-
-      const particles = Array.from({ length: 18 }).map((_, i) => ({
-        id: Date.now() + Math.random() + i,
-        x,
-        y,
-        angle: (360 / 18) * i,
-        distance: Math.random() * 120 + 80,
-        color: ["#ff004f", "#ffd700", "#00ffcc", "#ffffff"][
-          Math.floor(Math.random() * 4)
-        ],
-      }));
-
-      setFireworks((p) => [...p, ...particles]);
-
-      setTimeout(() => {
-        setFireworks((p) =>
-          p.filter((f) => !particles.some((n) => n.id === f.id))
-        );
-      }, 1200);
-    }, 600);
-
-    return () => clearInterval(interval);
-  }, [showFireworks]);
-
   return (
     <div className="min-h-screen relative overflow-hidden flex items-center justify-center bg-gradient-to-br from-[#071b14] via-[#0b3d2e] to-[#14532d]">
 
-      {/* 🎆 FIREWORKS */}
-      {fireworks.map((f) => (
-        <div
-          key={f.id}
-          className="fixed pointer-events-none"
-          style={{
-            left: f.x,
-            top: f.y,
-            width: 6,
-            height: 6,
-            borderRadius: "50%",
-            backgroundColor: f.color,
-            animation: "firework 1.2s ease-out forwards",
-            transform: `rotate(${f.angle}deg) translateY(-${f.distance}px)`,
-          }}
-        />
-      ))}
-
-      {/* ❄ SNOW */}
+      {/* ❄ Snow */}
       {snowflakes.map((f) => (
         <div
           key={f.id}
-          className="absolute text-white"
+          className="absolute text-white pointer-events-none"
           style={{
             left: `${f.left}%`,
             fontSize: `${f.size}px`,
@@ -220,7 +182,7 @@ const ChristmasGreeting = () => {
         </div>
       ))}
 
-      {/* ✨ SPARKLES */}
+      {/* ✨ Sparkles */}
       {sparkles.map((s) => (
         <div
           key={s.id}
@@ -264,7 +226,8 @@ const ChristmasGreeting = () => {
         </h1>
 
         <p className="text-center text-xl mb-8 text-gray-700">
-          Thank you for trusting <strong>AquaGas Delivery-App</strong> 🔥
+          Thank you for trusting <strong>AquaGas Delivery-App</strong> to keep
+          your home warm and safe 🔥
         </p>
 
         <div className="text-center p-6 rounded-2xl bg-green-50 mb-8">
@@ -287,15 +250,15 @@ const ChristmasGreeting = () => {
       </div>
 
       {/* 🎵 MUSIC BAR */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur shadow-lg p-4 flex justify-center gap-8 z-30">
-        <button onClick={() => setCurrentTrack((p) => (p - 1 + playlist.length) % playlist.length)} className="text-3xl">⏮</button>
+      <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur shadow-lg p-4 flex items-center justify-between z-30">
+        <button onClick={prevTrack} className="text-3xl">⏮</button>
         <button onClick={togglePlay} className="text-4xl">
           {isPlaying ? "⏸" : "▶"}
         </button>
-        <button onClick={() => setCurrentTrack((p) => (p + 1) % playlist.length)} className="text-3xl">⏭</button>
+        <button onClick={nextTrack} className="text-3xl">⏭</button>
       </div>
 
-      <audio ref={audioRef} onEnded={() => setCurrentTrack((p) => (p + 1) % playlist.length)} />
+      <audio ref={audioRef} onEnded={nextTrack} />
 
       <style>{`
         @keyframes fall {
@@ -304,10 +267,6 @@ const ChristmasGreeting = () => {
         @keyframes rise-heart {
           from { opacity: 0; transform: translateY(0) scale(.5); }
           to { opacity: 0; transform: translateY(-300px) scale(1); }
-        }
-        @keyframes firework {
-          0% { opacity: 1; transform: scale(.2); }
-          100% { opacity: 0; transform: scale(1); }
         }
       `}</style>
     </div>
