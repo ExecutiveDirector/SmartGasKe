@@ -13,7 +13,7 @@ const ChristmasGreeting = () => {
   const playlist = [
     {
       title: 'Jingle Bells (Upbeat Instrumental)',
-      url: 'https://www.fesliyanstudios.com/play-mp3/6871', // Direct MP3 from Fesliyan Studios (royalty-free with credit)
+      url: 'https://pixabay.com/music/search/jingle%20bells%20instrumental/', // Direct MP3 from Fesliyan Studios (royalty-free with credit)
     },
     {
       title: 'We Wish You a Merry Christmas',
@@ -21,7 +21,7 @@ const ChristmasGreeting = () => {
     },
     {
       title: 'Deck the Halls (Festive)',
-      url: 'https://www.fesliyanstudios.com/play-mp3/6872', // Another from Fesliyan
+      url: 'https://pixabay.com/music/search/feliz%20navidad/', // Another from Fesliyan
     },
   ];
 
