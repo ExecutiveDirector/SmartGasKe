@@ -202,7 +202,7 @@ const ChristmasGreeting = () => {
         {/* CTA */}
         <div className="text-center mb-10">
           <a
-            href="https://aquagas.co.ke"
+            href="https://www.aquagas.co.ke"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-block px-12 py-5 text-xl font-bold text-white rounded-full shadow-2xl transition-all hover:scale-110 hover:shadow-3xl bg-gradient-to-r from-blue-600 to-cyan-500"
