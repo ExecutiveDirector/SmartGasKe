@@ -4,44 +4,48 @@ const ChristmasGreeting = () => {
   const [sparkles, setSparkles] = useState([]);
   const [hearts, setHearts] = useState([]);
   const [snowflakes, setSnowflakes] = useState([]);
+  const [stars, setStars] = useState([]); // New: Click stars
 
   useEffect(() => {
-    // Generate snowflakes
+    // Snowflakes
     const snowInterval = setInterval(() => {
       setSnowflakes(prev => {
-        const newSnowflake = {
+        const newFlake = {
           id: Date.now() + Math.random(),
           left: Math.random() * 100,
-          duration: Math.random() * 3 + 4,
-          opacity: Math.random() * 0.5 + 0.5,
-          size: Math.random() * 15 + 10
+          duration: Math.random() * 5 + 5,
+          delay: Math.random() * 5,
+          size: Math.random() * 20 + 15,
+          sway: Math.random() * 20 - 10,
         };
-        return [...prev.slice(-20), newSnowflake];
+        return [...prev.slice(-30), newFlake]; // More snowflakes
       });
-    }, 250);
+    }, 200);
 
-    // Generate sparkles
+    // Sparkles
     const sparkleInterval = setInterval(() => {
       setSparkles(prev => {
         const newSparkle = {
           id: Date.now() + Math.random(),
           left: Math.random() * 100,
-          top: Math.random() * 100
+          top: Math.random() * 100,
+          size: Math.random() * 8 + 4,
         };
-        return [...prev.slice(-5), newSparkle];
+        return [...prev.slice(-10), newSparkle]; // More sparkles
       });
-    }, 800);
+    }, 600);
 
-    // Generate hearts
+    // Floating hearts
     const heartInterval = setInterval(() => {
       setHearts(prev => {
         const newHeart = {
           id: Date.now() + Math.random(),
-          left: Math.random() * 90 + 5
+          left: Math.random() * 80 + 10,
+          duration: Math.random() * 4 + 6,
         };
-        return [...prev.slice(-3), newHeart];
+        return [...prev.slice(-6), newHeart];
       });
-    }, 2000);
+    }, 1500);
 
     return () => {
       clearInterval(snowInterval);
@@ -54,359 +58,236 @@ const ChristmasGreeting = () => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    
-    for (let i = 0; i < 5; i++) {
+
+    for (let i = 0; i < 8; i++) { // More stars on click
+      const newStar = {
+        id: Date.now() + Math.random() + i,
+        x,
+        y,
+        angle: (i / 8) * 360 + Math.random() * 30,
+        distance: Math.random() * 100 + 50,
+      };
+      setStars(prev => [...prev, newStar]);
       setTimeout(() => {
-        const star = document.createElement('div');
-        star.innerHTML = '⭐';
-        star.style.position = 'absolute';
-        star.style.left = x + 'px';
-        star.style.top = y + 'px';
-        star.style.fontSize = '20px';
-        star.style.pointerEvents = 'none';
-        star.style.zIndex = '9999';
-        star.className = 'animate-float-away';
-        e.currentTarget.appendChild(star);
-        
-        setTimeout(() => star.remove(), 2000);
-      }, i * 100);
+        setStars(prev => prev.filter(s => s.id !== newStar.id));
+      }, 1500);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden" 
-         style={{background: 'linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)'}}>
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-[#0a1a2f] via-[#1e3a5f] to-[#2c5282]">
       
-      {/* Background Shapes */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute w-[300px] h-[300px] rounded-full opacity-10 animate-float"
-             style={{background: '#ff6b6b', top: '10%', left: '-10%'}} />
-        <div className="absolute w-[200px] h-[200px] rounded-full opacity-10 animate-float"
-             style={{background: '#4ecdc4', bottom: '20%', right: '-5%', animationDelay: '5s'}} />
-        <div className="absolute w-[250px] h-[250px] rounded-full opacity-10 animate-float"
-             style={{background: '#ffe66d', top: '50%', left: '50%', animationDelay: '10s'}} />
+      {/* Enhanced Background Blobs */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute w-96 h-96 rounded-full bg-red-500/20 blur-3xl animate-float-slow" style={{ top: '5%', left: '-10%' }} />
+        <div className="absolute w-80 h-80 rounded-full bg-green-500/20 blur-3xl animate-float-slow" style={{ bottom: '10%', right: '-5%', animationDelay: '4s' }} />
+        <div className="absolute w-72 h-72 rounded-full bg-gold-400/20 blur-3xl animate-float-slow" style={{ top: '40%', left: '60%', animationDelay: '8s' }} />
       </div>
 
-      {/* Snowflakes */}
+      {/* Snowflakes with sway */}
       {snowflakes.map(flake => (
         <div
           key={flake.id}
-          className="absolute pointer-events-none"
+          className="absolute text-white pointer-events-none"
           style={{
             left: `${flake.left}%`,
-            top: '-10px',
             fontSize: `${flake.size}px`,
-            opacity: flake.opacity,
-            animation: `fall ${flake.duration}s linear`,
-            textShadow: '0 0 5px rgba(255, 255, 255, 0.5)'
+            animation: `fall ${flake.duration}s linear infinite`,
+            animationDelay: `${flake.delay}s`,
           }}
         >
-          ❄
+          <span style={{ display: 'inline-block', animation: `sway ${flake.duration}s ease-in-out infinite` }}>❄️</span>
         </div>
       ))}
 
-      {/* Main Container */}
-      <div 
+      {/* Random Sparkles */}
+      {sparkles.map(sparkle => (
+        <div
+          key={sparkle.id}
+          className="absolute rounded-full bg-yellow-300 animate-ping"
+          style={{
+            left: `${sparkle.left}%`,
+            top: `${sparkle.top}%`,
+            width: `${sparkle.size}px`,
+            height: `${sparkle.size}px`,
+            boxShadow: '0 0 20px #ffdd00',
+          }}
+        />
+      ))}
+
+      {/* Main Card */}
+      <div
         onClick={handleClick}
-        className="relative z-10 w-full max-w-2xl rounded-[30px] p-10 shadow-2xl animate-slide-in overflow-hidden"
-        style={{
-          background: 'linear-gradient(135deg, #ffffff 0%, #fef9f3 100%)',
-          boxShadow: '0 30px 80px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8)'
-        }}
+        className="relative z-10 w-full max-w-3xl mx-4 rounded-3xl p-12 shadow-2xl cursor-pointer backdrop-blur-lg bg-white/80 border border-white/30"
       >
-        {/* Top Border Animation */}
-        <div className="absolute top-0 left-0 right-0 h-1.5 animate-shimmer"
-             style={{background: 'linear-gradient(90deg, #c41e3a, #2c5f2d, #c41e3a)', backgroundSize: '200% 100%'}} />
+        {/* Shimmer Border Top */}
+        <div className="absolute top-0 left-0 right-0 h-2 rounded-t-3xl animate-shimmer bg-gradient-to-r from-red-600 via-green-600 to-red-600" />
 
-        {/* Sparkles */}
-        {sparkles.map(sparkle => (
-          <div
-            key={sparkle.id}
-            className="absolute w-1.5 h-1.5 rounded-full animate-sparkle"
-            style={{
-              left: `${sparkle.left}%`,
-              top: `${sparkle.top}%`,
-              background: '#ffd700',
-              boxShadow: '0 0 15px #ffd700'
-            }}
-          />
-        ))}
-
-        {/* Hearts */}
+        {/* Floating Hearts */}
         {hearts.map(heart => (
           <div
             key={heart.id}
-            className="absolute bottom-0 text-xl animate-float-heart pointer-events-none"
-            style={{left: `${heart.left}%`}}
+            className="absolute text-3xl pointer-events-none animate-rise-heart"
+            style={{
+              left: `${heart.left}%`,
+              bottom: '-50px',
+              animationDuration: `${heart.duration}s`,
+            }}
           >
             ❤️
           </div>
         ))}
 
+        {/* Click Stars Burst */}
+        {stars.map(star => (
+          <div
+            key={star.id}
+            className="absolute text-2xl pointer-events-none animate-star-burst"
+            style={{
+              left: `${star.x}px`,
+              top: `${star.y}px`,
+              animation: `starBurst 1.5s ease-out forwards`,
+              transform: `rotate(\( {star.angle}deg) translateY(- \){star.distance}px)`,
+            }}
+          >
+            ✨
+          </div>
+        ))}
+
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-4 mb-5 animate-fade-in" style={{animationDelay: '0.3s'}}>
-            <span className="text-4xl animate-bounce-slow">🔵</span>
-            <span className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">
+        <div className="text-center mb-10">
+          <div className="flex justify-center items-center gap-6 mb-6">
+            <span className="text-5xl animate-bounce-slow">🔵</span>
+            <h2 className="text-4xl font-bold bg-gradient-to-r from-blue-700 to-cyan-500 bg-clip-text text-transparent">
               AquaGas
-            </span>
+            </h2>
+            <span className="text-5xl animate-bounce-slow" style={{animationDelay: '0.3s'}}>🔵</span>
           </div>
-          
-          <div className="text-7xl mb-5 inline-block animate-sway" style={{filter: 'drop-shadow(0 5px 15px rgba(0, 0, 0, 0.2))'}}>
-            🎄
-          </div>
-          
-          <h1 className="text-5xl font-bold mb-3 animate-fade-in" 
-              style={{
-                fontFamily: 'Dancing Script, cursive',
-                color: '#c41e3a',
-                textShadow: '3px 3px 6px rgba(196, 30, 58, 0.2)',
-                animationDelay: '0.5s'
-              }}>
+
+          <div className="text-8xl mb-6 animate-sway-slow drop-shadow-2xl">🎄</div>
+
+          <h1 className="text-6xl font-extrabold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-green-700"
+              style={{ fontFamily: '"Dancing Script", cursive', textShadow: '0 4px 10px rgba(0,0,0,0.2)' }}>
             Merry Christmas!
           </h1>
-          
-          <p className="text-lg font-semibold animate-fade-in" 
-             style={{color: '#2c5f2d', animationDelay: '0.7s'}}>
+
+          <p className="text-xl font-medium text-green-700">
             From Your Trusted Gas Delivery Partner
           </p>
         </div>
 
-        {/* Message */}
-        <p className="text-center text-gray-700 leading-relaxed mb-6 animate-fade-in" style={{animationDelay: '0.9s'}}>
-          As we celebrate this joyful season, we'd like to thank you for trusting{' '}
-          <strong className="text-blue-600">AquaGas Delivery-App</strong> to keep your home warm and your kitchen running. 🏠💙
+        {/* Warm Message */}
+        <p className="text-center text-lg text-gray-800 leading-relaxed mb-8">
+          This festive season, we extend our heartfelt gratitude for choosing <strong className="text-blue-600">AquaGas Delivery-App</strong> to keep your homes warm, cozy, and full of delicious meals. 🏠💙🔥
         </p>
 
-        {/* Highlight Box */}
-        <div className="rounded-2xl p-5 mb-6 border-l-4 animate-fade-in shadow-lg"
-             style={{
-               background: 'linear-gradient(135deg, #fff5f5 0%, #ffe8e8 100%)',
-               borderColor: '#c41e3a',
-               animationDelay: '1.1s'
-             }}>
-          <div className="flex items-center justify-center text-gray-700">
-            <span className="text-3xl mr-3 animate-pulse-slow">✨</span>
-            <span>May your Christmas be filled with peace, happiness, and plenty of warmth</span>
-          </div>
+        {/* Highlight Wish */}
+        <div className="rounded-3xl p-8 mb-10 bg-gradient-to-br from-red-50 to-pink-50 border-l-8 border-red-600 shadow-xl">
+          <p className="text-center text-xl font-medium text-gray-800 flex items-center justify-center gap-4">
+            <span className="text-4xl animate-pulse">✨</span>
+            May your Christmas sparkle with moments of love, laughter, and goodwill — filled with peace, joy, and endless warmth.
+            <span className="text-4xl animate-pulse" style={{animationDelay: '0.5s'}}>❤️</span>
+          </p>
         </div>
 
-        {/* Gas Section */}
-        <div className="text-center my-6 p-6 rounded-2xl animate-fade-in"
-             style={{
-               background: 'linear-gradient(135deg, #e8f4f8 0%, #d4e9f7 100%)',
-               animationDelay: '1.5s'
-             }}>
-          <div className="text-6xl mb-2 animate-bounce-slow" 
-               style={{filter: 'drop-shadow(0 5px 15px rgba(0, 102, 204, 0.3))'}}>
-            🔵
-          </div>
-          <div className="text-blue-600 font-semibold">Always Ready to Serve You</div>
+        {/* Service Reminder */}
+        <div className="text-center py-8 rounded-3xl bg-gradient-to-br from-blue-50 to-cyan-50 mb-8">
+          <div className="text-7xl mb-4 animate-bounce-slow">🔵</div>
+          <p className="text-2xl font-bold text-blue-700">Always Here, Always Ready</p>
+          <p className="text-lg text-blue-600 mt-2 flex items-center justify-center gap-3">
+            <span className="animate-flicker">🔥</span> Safe • Fast • Reliable Delivery to Your Doorstep
+          </p>
         </div>
 
-        {/* Fire Icon Line */}
-        <div className="flex items-center justify-center text-gray-700 mb-6 animate-fade-in" style={{animationDelay: '1.3s'}}>
-          <span className="text-3xl mr-3 animate-flicker">🔥</span>
-          <span>We're always here to deliver safe, fast, and reliable gas right to your doorstep</span>
-        </div>
-
-        {/* CTA Button */}
-        <div className="text-center mb-6 animate-fade-in" style={{animationDelay: '1.9s'}}>
-          <a 
-            href="https://www.aquagas.co.ke" 
-            className="inline-block px-10 py-4 rounded-full text-white font-semibold text-base transition-all hover:-translate-y-1 hover:shadow-2xl active:translate-y-0"
-            style={{
-              background: 'linear-gradient(135deg, #0066cc, #0099ff)',
-              boxShadow: '0 10px 30px rgba(0, 102, 204, 0.3)'
-            }}
+        {/* CTA */}
+        <div className="text-center mb-10">
+          <a
+            href="https://aquagas.co.ke"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block px-12 py-5 text-xl font-bold text-white rounded-full shadow-2xl transition-all hover:scale-110 hover:shadow-3xl bg-gradient-to-r from-blue-600 to-cyan-500"
           >
-            Visit AquaGas.co.ke
+            Visit AquaGas.co.ke 🎁
           </a>
         </div>
 
         {/* Footer */}
-        <div className="text-center pt-8 mt-8 border-t-2 border-dashed animate-fade-in" 
-             style={{borderColor: 'rgba(196, 30, 58, 0.2)', animationDelay: '1.7s'}}>
-          <div className="text-4xl font-bold mb-3" 
-               style={{
-                 fontFamily: 'Dancing Script, cursive',
-                 color: '#c41e3a',
-                 textShadow: '2px 2px 4px rgba(196, 30, 58, 0.2)'
-               }}>
-            Merry Christmas & Happy New Year!
-          </div>
-          
-          <div className="text-4xl my-4 animate-swing">🎅🎁❤️</div>
-          
-          <div className="text-lg font-semibold mb-4" style={{color: '#2c5f2d'}}>
-            — The AquaGas Delivery-App Team
-          </div>
-          
-          <div className="text-sm text-gray-600">
+        <div className="text-center pt-10 border-t-4 border-dashed border-red-200/50">
+          <h3 className="text-5xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-green-700"
+              style={{ fontFamily: '"Dancing Script", cursive' }}>
+            Merry Christmas & A Happy New Year!
+          </h3>
+          <div className="text-5xl mb-6 animate-swing">🎅🎄🎁✨❤️</div>
+          <p className="text-xl font-semibold text-green-700 mb-4">— The AquaGas Delivery-App Team</p>
+          <p className="text-lg text-gray-600 flex items-center justify-center gap-2">
             🌟 Thank you for being part of our family 🌟
-          </div>
+          </p>
         </div>
       </div>
 
       <style jsx>{`
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Dancing+Script:wght@700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Dancing+Script:wght@700&display=swap');
+
+        body { font-family: 'Poppins', sans-serif; }
 
         @keyframes fall {
-          to {
-            transform: translateY(100vh) rotate(360deg);
-          }
-        }
-
-        @keyframes slide-in {
-          from {
-            opacity: 0;
-            transform: translateY(50px) scale(0.9);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
-        }
-
-        @keyframes fade-in {
-          from {
-            opacity: 0;
-            transform: translateY(-15px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+          to { transform: translateY(110vh); }
         }
 
         @keyframes sway {
-          0%, 100% { transform: rotate(0deg); }
-          25% { transform: rotate(-5deg); }
-          75% { transform: rotate(5deg); }
+          0%, 100% { transform: translateX(0); }
+          50% { transform: translateX(20px); }
+        }
+
+        @keyframes rise-heart {
+          0% { opacity: 0; transform: translateY(0) scale(0.5); }
+          20% { opacity: 1; transform: translateY(-30px) scale(1.2); }
+          80% { opacity: 1; transform: translateY(-300px) scale(1); }
+          100% { opacity: 0; transform: translateY(-350px) scale(0.8); }
+        }
+
+        @keyframes starBurst {
+          0% { opacity: 1; transform: scale(0); }
+          50% { opacity: 1; transform: scale(1.5); }
+          100% { opacity: 0; transform: scale(0); }
+        }
+
+        @keyframes float-slow {
+          0% { transform: translate(0, 0) rotate(0deg); }
+          50% { transform: translate(50px, -50px) rotate(10deg); }
+          100% { transform: translate(0, 0) rotate(0deg); }
+        }
+
+        @keyframes sway-slow {
+          0%, 100% { transform: rotate(-8deg); }
+          50% { transform: rotate(8deg); }
         }
 
         @keyframes bounce-slow {
           0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-8px); }
-        }
-
-        @keyframes pulse-slow {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.15); }
-        }
-
-        @keyframes flicker {
-          0%, 100% { opacity: 1; filter: brightness(1); }
-          50% { opacity: 0.85; filter: brightness(1.2); }
+          50% { transform: translateY(-15px); }
         }
 
         @keyframes swing {
-          0%, 100% { transform: rotate(0deg); }
-          25% { transform: rotate(-10deg); }
-          75% { transform: rotate(10deg); }
+          0%, 100% { transform: rotate(0); }
+          25% { transform: rotate(-15deg); }
+          75% { transform: rotate(15deg); }
         }
 
-        @keyframes sparkle {
-          0%, 100% { opacity: 0; transform: scale(0); }
-          50% { opacity: 1; transform: scale(1); }
-        }
-
-        @keyframes float {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          33% { transform: translate(30px, -30px) scale(1.1); }
-          66% { transform: translate(-20px, 20px) scale(0.9); }
-        }
-
-        @keyframes float-heart {
-          0% { 
-            opacity: 0;
-            transform: translateY(0) scale(0);
-          }
-          10% {
-            opacity: 0.8;
-            transform: translateY(-20px) scale(1);
-          }
-          90% {
-            opacity: 0.8;
-            transform: translateY(-100px) scale(1);
-          }
-          100% {
-            opacity: 0;
-            transform: translateY(-120px) scale(0);
-          }
-        }
-
-        @keyframes float-away {
-          0% { 
-            opacity: 0;
-            transform: translateY(0) scale(0);
-          }
-          10% {
-            opacity: 0.8;
-            transform: translateY(-20px) scale(1);
-          }
-          90% {
-            opacity: 0.8;
-            transform: translateY(-100px) scale(1);
-          }
-          100% {
-            opacity: 0;
-            transform: translateY(-120px) scale(0);
-          }
+        @keyframes flicker {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.7; filter: brightness(1.5); }
         }
 
         @keyframes shimmer {
-          0% { background-position: -200% 0; }
-          100% { background-position: 200% 0; }
+          0% { background-position: -400% center; }
+          100% { background-position: 400% center; }
         }
 
-        .animate-slide-in {
-          animation: slide-in 1s ease-out;
-        }
-
-        .animate-fade-in {
-          animation: fade-in 1s ease-out both;
-        }
-
-        .animate-sway {
-          animation: sway 4s ease-in-out infinite;
-        }
-
-        .animate-bounce-slow {
-          animation: bounce-slow 2.5s ease-in-out infinite;
-        }
-
-        .animate-pulse-slow {
-          animation: pulse-slow 2s ease-in-out infinite;
-        }
-
-        .animate-flicker {
-          animation: flicker 1.5s ease-in-out infinite;
-        }
-
-        .animate-swing {
-          animation: swing 2s ease-in-out infinite;
-        }
-
-        .animate-sparkle {
-          animation: sparkle 2s ease-in-out infinite;
-        }
-
-        .animate-float {
-          animation: float 20s infinite ease-in-out;
-        }
-
-        .animate-float-heart {
-          animation: float-heart 4s ease-in-out forwards;
-        }
-
-        .animate-float-away {
-          animation: float-away 2s ease-out forwards;
-        }
-
-        .animate-shimmer {
-          animation: shimmer 3s linear infinite;
-        }
+        .animate-float-slow { animation: float-slow 25s infinite ease-in-out; }
+        .animate-sway-slow { animation: sway-slow 6s ease-in-out infinite; }
+        .animate-rise-heart { animation: rise-heart linear forwards; }
+        .animate-star-burst { animation: starBurst 1.5s ease-out forwards; }
       `}</style>
     </div>
   );
