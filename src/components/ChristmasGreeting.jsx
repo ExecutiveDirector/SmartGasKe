@@ -213,7 +213,7 @@ const ChristmasGreeting = () => {
         {/* CTA Button */}
         <div className="text-center mb-6 animate-fade-in" style={{animationDelay: '1.9s'}}>
           <a 
-            href="https://aquagas.co.ke" 
+            href="https://www.aquagas.co.ke" 
             className="inline-block px-10 py-4 rounded-full text-white font-semibold text-base transition-all hover:-translate-y-1 hover:shadow-2xl active:translate-y-0"
             style={{
               background: 'linear-gradient(135deg, #0066cc, #0099ff)',
