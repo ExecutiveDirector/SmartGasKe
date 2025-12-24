@@ -1,357 +1,314 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from "react";
 
 const ChristmasGreeting = () => {
+  const [snowflakes, setSnowflakes] = useState([]);
   const [sparkles, setSparkles] = useState([]);
   const [hearts, setHearts] = useState([]);
-  const [snowflakes, setSnowflakes] = useState([]);
   const [stars, setStars] = useState([]);
+  const [fireworks, setFireworks] = useState([]);
+  const [showFireworks, setShowFireworks] = useState(false);
+
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTrack, setCurrentTrack] = useState(0);
+  const [countdown, setCountdown] = useState("");
 
   const audioRef = useRef(null);
 
+  /* 🎵 PLAYLIST */
   const playlist = [
-  {
-    
-    title: 'Feliz Navidad (Festive Instrumental)',
-    url: 'https://www.singing-bell.com/wp-content/uploads/2014/11/Feliz-Navidad.mp3', // Direct free instrumental MP3 from Singing Bell (joyful guitar/percussion version)
-  },
+    {
+      title: "Feliz Navidad – Instrumental",
+      url: "https://www.singing-bell.com/wp-content/uploads/2014/11/Feliz-Navidad.mp3",
+    },
+  ];
 
-];
-
+  /* ❄ ✨ ❤️ BACKGROUND EFFECTS */
   useEffect(() => {
-    // Generate snowflakes
-    const snowInterval = setInterval(() => {
-      setSnowflakes(prev => {
-        const newFlake = {
+    const snow = setInterval(() => {
+      setSnowflakes((p) => [
+        ...p.slice(-30),
+        {
           id: Date.now() + Math.random(),
           left: Math.random() * 100,
-          duration: Math.random() * 5 + 5,
-          delay: Math.random() * 5,
-          size: Math.random() * 20 + 15,
-        };
-        return [...prev.slice(-30), newFlake];
-      });
-    }, 200);
+          size: Math.random() * 18 + 14,
+          duration: Math.random() * 6 + 6,
+        },
+      ]);
+    }, 250);
 
-    // Generate sparkles
-    const sparkleInterval = setInterval(() => {
-      setSparkles(prev => {
-        const newSparkle = {
+    const sparkle = setInterval(() => {
+      setSparkles((p) => [
+        ...p.slice(-12),
+        {
           id: Date.now() + Math.random(),
           left: Math.random() * 100,
           top: Math.random() * 100,
-          size: Math.random() * 8 + 4,
-        };
-        return [...prev.slice(-10), newSparkle];
-      });
-    }, 600);
+          size: Math.random() * 6 + 4,
+        },
+      ]);
+    }, 700);
 
-    // Generate floating hearts
-    const heartInterval = setInterval(() => {
-      setHearts(prev => {
-        const newHeart = {
+    const heart = setInterval(() => {
+      setHearts((p) => [
+        ...p.slice(-6),
+        {
           id: Date.now() + Math.random(),
           left: Math.random() * 80 + 10,
           duration: Math.random() * 4 + 6,
-        };
-        return [...prev.slice(-6), newHeart];
-      });
-    }, 1500);
+        },
+      ]);
+    }, 1600);
 
     return () => {
-      clearInterval(snowInterval);
-      clearInterval(sparkleInterval);
-      clearInterval(heartInterval);
+      clearInterval(snow);
+      clearInterval(sparkle);
+      clearInterval(heart);
     };
   }, []);
 
+  /* ⭐ CLICK BURST */
   const handleClick = (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
     for (let i = 0; i < 8; i++) {
-      const newStar = {
+      const id = Date.now() + Math.random() + i;
+      setStars((p) => [...p, { id, x, y }]);
+      setTimeout(
+        () => setStars((p) => p.filter((s) => s.id !== id)),
+        1200
+      );
+    }
+  };
+
+  /* 🎶 AUTOPLAY + STOP ON TAB CLOSE */
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    audio.src = playlist[currentTrack].url;
+    audio.volume = 0.6;
+
+    const play = async () => {
+      try {
+        await audio.play();
+        setIsPlaying(true);
+      } catch {
+        setIsPlaying(false);
+      }
+    };
+
+    play();
+
+    const visibility = () => {
+      document.hidden ? audio.pause() : audio.play().catch(() => {});
+    };
+
+    document.addEventListener("visibilitychange", visibility);
+
+    return () => {
+      audio.pause();
+      audio.currentTime = 0;
+      document.removeEventListener("visibilitychange", visibility);
+    };
+  }, [currentTrack]);
+
+  const togglePlay = async () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (isPlaying) {
+      audio.pause();
+      setIsPlaying(false);
+    } else {
+      await audio.play().catch(() => {});
+      setIsPlaying(true);
+    }
+  };
+
+  /* ⏳ COUNTDOWN TO 2026 */
+  useEffect(() => {
+    const target = new Date("January 1, 2026 00:00:00").getTime();
+
+    const timer = setInterval(() => {
+      const diff = target - Date.now();
+
+      if (diff <= 0) {
+        setCountdown("🎆 Welcome to 2026! 🎆");
+        setShowFireworks(true);
+        clearInterval(timer);
+        setTimeout(() => setShowFireworks(false), 8000);
+        return;
+      }
+
+      const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
+      const m = Math.floor((diff / (1000 * 60)) % 60);
+      const s = Math.floor((diff / 1000) % 60);
+
+      setCountdown(`${d}d ${h}h ${m}m ${s}s`);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  /* 🎆 FIREWORKS */
+  useEffect(() => {
+    if (!showFireworks) return;
+
+    const interval = setInterval(() => {
+      const x = Math.random() * window.innerWidth;
+      const y = Math.random() * window.innerHeight * 0.5;
+
+      const particles = Array.from({ length: 18 }).map((_, i) => ({
         id: Date.now() + Math.random() + i,
         x,
         y,
-        angle: (i / 8) * 360 + Math.random() * 30,
-        distance: Math.random() * 100 + 50,
-      };
-      setStars(prev => [...prev, newStar]);
+        angle: (360 / 18) * i,
+        distance: Math.random() * 120 + 80,
+        color: ["#ff004f", "#ffd700", "#00ffcc", "#ffffff"][
+          Math.floor(Math.random() * 4)
+        ],
+      }));
+
+      setFireworks((p) => [...p, ...particles]);
+
       setTimeout(() => {
-        setStars(prev => prev.filter(s => s.id !== newStar.id));
-      }, 1500);
-    }
-  };
+        setFireworks((p) =>
+          p.filter((f) => !particles.some((n) => n.id === f.id))
+        );
+      }, 1200);
+    }, 600);
 
-  const togglePlay = () => {
-    setIsPlaying(!isPlaying);
-    if (audioRef.current) {
-      if (!isPlaying) {
-        audioRef.current.play();
-      } else {
-        audioRef.current.pause();
-      }
-    }
-  };
-
-  const nextTrack = () => {
-    setCurrentTrack((prev) => (prev + 1) % playlist.length);
-    setIsPlaying(true);
-  };
-
-  const prevTrack = () => {
-    setCurrentTrack((prev) => (prev - 1 + playlist.length) % playlist.length);
-    setIsPlaying(true);
-  };
-
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.src = playlist[currentTrack].url;
-      if (isPlaying) {
-        audioRef.current.play();
-      }
-    }
-  }, [currentTrack]);
+    return () => clearInterval(interval);
+  }, [showFireworks]);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden bg-gradient-to-br from-[#0a1a2f] via-[#1e3a5f] to-[#2c5282]">
-      
-      {/* Background Glow Blobs */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute w-96 h-96 rounded-full bg-red-500/20 blur-3xl animate-float-slow" style={{ top: '5%', left: '-10%' }} />
-        <div className="absolute w-80 h-80 rounded-full bg-green-500/20 blur-3xl animate-float-slow" style={{ bottom: '10%', right: '-5%', animationDelay: '4s' }} />
-        <div className="absolute w-72 h-72 rounded-full bg-yellow-400/20 blur-3xl animate-float-slow" style={{ top: '40%', left: '60%', animationDelay: '8s' }} />
-      </div>
+    <div className="min-h-screen relative overflow-hidden flex items-center justify-center bg-gradient-to-br from-[#071b14] via-[#0b3d2e] to-[#14532d]">
 
-      {/* Snowflakes with gentle sway */}
-      {snowflakes.map(flake => (
+      {/* 🎆 FIREWORKS */}
+      {fireworks.map((f) => (
         <div
-          key={flake.id}
-          className="absolute text-white/90 pointer-events-none"
+          key={f.id}
+          className="fixed pointer-events-none"
           style={{
-            left: `${flake.left}%`,
-            fontSize: `${flake.size}px`,
-            animation: `fall ${flake.duration}s linear infinite`,
-            animationDelay: `${flake.delay}s`,
-          }}
-        >
-          <span style={{ display: 'inline-block', animation: `sway ${flake.duration}s ease-in-out infinite alternate` }}>❄️</span>
-        </div>
-      ))}
-
-      {/* Random Sparkles */}
-      {sparkles.map(sparkle => (
-        <div
-          key={sparkle.id}
-          className="absolute rounded-full bg-yellow-300 animate-ping"
-          style={{
-            left: `${sparkle.left}%`,
-            top: `${sparkle.top}%`,
-            width: `${sparkle.size}px`,
-            height: `${sparkle.size}px`,
-            boxShadow: '0 0 20px #ffdd00',
+            left: f.x,
+            top: f.y,
+            width: 6,
+            height: 6,
+            borderRadius: "50%",
+            backgroundColor: f.color,
+            animation: "firework 1.2s ease-out forwards",
+            transform: `rotate(${f.angle}deg) translateY(-${f.distance}px)`,
           }}
         />
       ))}
 
-      {/* Main Greeting Card */}
+      {/* ❄ SNOW */}
+      {snowflakes.map((f) => (
+        <div
+          key={f.id}
+          className="absolute text-white"
+          style={{
+            left: `${f.left}%`,
+            fontSize: `${f.size}px`,
+            animation: `fall ${f.duration}s linear infinite`,
+          }}
+        >
+          ❄
+        </div>
+      ))}
+
+      {/* ✨ SPARKLES */}
+      {sparkles.map((s) => (
+        <div
+          key={s.id}
+          className="absolute bg-yellow-300 rounded-full animate-ping"
+          style={{
+            left: `${s.left}%`,
+            top: `${s.top}%`,
+            width: s.size,
+            height: s.size,
+          }}
+        />
+      ))}
+
+      {/* 🎄 CARD */}
       <div
         onClick={handleClick}
-        className="relative z-10 w-full max-w-3xl mx-4 rounded-3xl p-12 shadow-2xl cursor-pointer backdrop-blur-lg bg-white/85 border border-white/40"
+        className="relative z-10 max-w-3xl mx-4 p-12 rounded-3xl bg-white/90 backdrop-blur-xl shadow-2xl"
       >
-        {/* Top Shimmer Border */}
-        <div className="absolute top-0 left-0 right-0 h-2 rounded-t-3xl animate-shimmer bg-gradient-to-r from-red-600 via-green-600 to-red-600" />
-
-        {/* Floating Hearts from bottom */}
-        {hearts.map(heart => (
+        {hearts.map((h) => (
           <div
-            key={heart.id}
-            className="absolute text-3xl pointer-events-none animate-rise-heart"
-            style={{
-              left: `${heart.left}%`,
-              bottom: '-50px',
-              animationDuration: `${heart.duration}s`,
-            }}
+            key={h.id}
+            className="absolute bottom-0 text-3xl animate-rise-heart"
+            style={{ left: `${h.left}%`, animationDuration: `${h.duration}s` }}
           >
             ❤️
           </div>
         ))}
 
-        {/* Click Burst Stars */}
-        {stars.map(star => (
+        {stars.map((s) => (
           <div
-            key={star.id}
-            className="absolute text-2xl pointer-events-none"
-            style={{
-              left: `${star.x}px`,
-              top: `${star.y}px`,
-              animation: `starBurst 1.5s ease-out forwards`,
-              transform: `rotate(\( {star.angle}deg) translateY(- \){star.distance}px)`,
-            }}
+            key={s.id}
+            className="absolute text-xl animate-ping"
+            style={{ left: s.x, top: s.y }}
           >
             ✨
           </div>
         ))}
 
-        {/* Header */}
-        <div className="text-center mb-10">
-          <div className="flex justify-center items-center gap-6 mb-6">
-            <span className="text-5xl animate-bounce-slow">🔵</span>
-            <h2 className="text-4xl font-bold bg-gradient-to-r from-blue-700 to-cyan-500 bg-clip-text text-transparent">
-              AquaGas
-            </h2>
-            <span className="text-5xl animate-bounce-slow" style={{animationDelay: '0.3s'}}>🔵</span>
-          </div>
+        <h1 className="text-6xl font-extrabold text-center bg-gradient-to-r from-red-600 to-green-700 bg-clip-text text-transparent mb-6">
+          Merry Christmas 🎄
+        </h1>
 
-          <div className="text-8xl mb-6 animate-sway-slow drop-shadow-2xl">🎄</div>
-
-          <h1 className="text-6xl font-extrabold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-green-700"
-              style={{ fontFamily: '"Dancing Script", cursive', textShadow: '0 4px 10px rgba(0,0,0,0.2)' }}>
-            Merry Christmas!
-          </h1>
-
-          <p className="text-xl font-medium text-green-700">
-            From Your Trusted Gas Delivery Partner
-          </p>
-        </div>
-
-        {/* Warm Message */}
-        <p className="text-center text-lg text-gray-800 leading-relaxed mb-8">
-          This festive season, we extend our heartfelt gratitude for choosing <strong className="text-blue-600">AquaGas Delivery-App</strong> to keep your homes warm, cozy, and full of delicious meals. 🏠💙🔥
+        <p className="text-center text-xl mb-8 text-gray-700">
+          Thank you for trusting <strong>AquaGas Delivery-App</strong> 🔥
         </p>
 
-        {/* Highlight Wish */}
-        <div className="rounded-3xl p-8 mb-10 bg-gradient-to-br from-red-50 to-pink-50 border-l-8 border-red-600 shadow-xl">
-          <p className="text-center text-xl font-medium text-gray-800 flex items-center justify-center gap-4">
-            <span className="text-4xl animate-pulse">✨</span>
-            May your Christmas sparkle with moments of love, laughter, and goodwill — filled with peace, joy, and endless warmth.
-            <span className="text-4xl animate-pulse" style={{animationDelay: '0.5s'}}>❤️</span>
+        <div className="text-center p-6 rounded-2xl bg-green-50 mb-8">
+          <p className="text-2xl font-bold text-green-700">
+            Countdown to 2026 🎆
           </p>
+          <p className="text-3xl mt-3 font-mono text-red-600">{countdown}</p>
         </div>
 
-        {/* Service Reminder */}
-        <div className="text-center py-8 rounded-3xl bg-gradient-to-br from-blue-50 to-cyan-50 mb-8">
-          <div className="text-7xl mb-4 animate-bounce-slow">🔵</div>
-          <p className="text-2xl font-bold text-blue-700">Always Here, Always Ready</p>
-          <p className="text-lg text-blue-600 mt-2 flex items-center justify-center gap-3">
-            <span className="animate-flicker">🔥</span> Safe • Fast • Reliable Delivery to Your Doorstep
-          </p>
-        </div>
-
-        {/* Call to Action */}
-        <div className="text-center mb-10">
+        <div className="text-center">
           <a
             href="https://www.aquagas.co.ke"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-block px-12 py-5 text-xl font-bold text-white rounded-full shadow-2xl transition-all hover:scale-110 hover:shadow-3xl bg-gradient-to-r from-blue-600 to-cyan-500"
+            className="inline-block px-10 py-4 rounded-full text-white font-bold text-xl bg-gradient-to-r from-green-600 to-emerald-500 hover:scale-105 transition"
           >
-            Visit AquaGas.co.ke 🎁
+            Visit AquaGas 🎁
           </a>
         </div>
-
-        {/* Footer */}
-        <div className="text-center pt-10 border-t-4 border-dashed border-red-200/50">
-          <h3 className="text-5xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-green-700"
-              style={{ fontFamily: '"Dancing Script", cursive' }}>
-            Merry Christmas & A Happy New Year!
-          </h3>
-          <div className="text-5xl mb-6 animate-swing">🎅🎄🎁✨❤️</div>
-          <p className="text-xl font-semibold text-green-700 mb-4">— The AquaGas Delivery-App Team</p>
-          <p className="text-lg text-gray-600 flex items-center justify-center gap-2">
-            🌟 Thank you for being part of our family 🌟
-          </p>
-        </div>
       </div>
 
-      {/* Fixed Bottom Music Player */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 bg-white/90 backdrop-blur-lg shadow-2xl border-t border-gray-300">
-        <div className="max-w-4xl mx-auto p-4 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <button onClick={prevTrack} className="text-3xl text-gray-700 hover:text-red-600 transition">⏮</button>
-            <button onClick={togglePlay} className="text-5xl text-red-600 hover:scale-110 transition">
-              {isPlaying ? '⏸' : '▶'}
-            </button>
-            <button onClick={nextTrack} className="text-3xl text-gray-700 hover:text-red-600 transition">⏭</button>
-          </div>
-
-          <div className="flex-1 text-center">
-            <div className="text-lg font-semibold text-gray-800">{playlist[currentTrack].title}</div>
-            <div className="text-sm text-gray-600">Festive Christmas Instrumental 🎵</div>
-          </div>
-
-          <div className="text-4xl animate-pulse">🎄✨</div>
-        </div>
+      {/* 🎵 MUSIC BAR */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur shadow-lg p-4 flex justify-center gap-8 z-30">
+        <button onClick={() => setCurrentTrack((p) => (p - 1 + playlist.length) % playlist.length)} className="text-3xl">⏮</button>
+        <button onClick={togglePlay} className="text-4xl">
+          {isPlaying ? "⏸" : "▶"}
+        </button>
+        <button onClick={() => setCurrentTrack((p) => (p + 1) % playlist.length)} className="text-3xl">⏭</button>
       </div>
 
-      {/* Hidden Audio Element */}
-      <audio ref={audioRef} onEnded={nextTrack} />
+      <audio ref={audioRef} onEnded={() => setCurrentTrack((p) => (p + 1) % playlist.length)} />
 
-      <style jsx>{`
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Dancing+Script:wght@700&display=swap');
-
-        body { font-family: 'Poppins', sans-serif; }
-
+      <style>{`
         @keyframes fall {
           to { transform: translateY(110vh); }
         }
-
-        @keyframes sway {
-          0% { transform: translateX(-10px); }
-          100% { transform: translateX(10px); }
-        }
-
         @keyframes rise-heart {
-          0% { opacity: 0; transform: translateY(0) scale(0.5); }
-          20% { opacity: 1; transform: translateY(-30px) scale(1.2); }
-          80% { opacity: 1; transform: translateY(-300px) scale(1); }
-          100% { opacity: 0; transform: translateY(-350px) scale(0.8); }
+          from { opacity: 0; transform: translateY(0) scale(.5); }
+          to { opacity: 0; transform: translateY(-300px) scale(1); }
         }
-
-        @keyframes starBurst {
-          0% { opacity: 1; transform: scale(0); }
-          50% { opacity: 1; transform: scale(1.5); }
-          100% { opacity: 0; transform: scale(0); }
+        @keyframes firework {
+          0% { opacity: 1; transform: scale(.2); }
+          100% { opacity: 0; transform: scale(1); }
         }
-
-        @keyframes float-slow {
-          0% { transform: translate(0, 0) rotate(0deg); }
-          50% { transform: translate(50px, -50px) rotate(10deg); }
-          100% { transform: translate(0, 0) rotate(0deg); }
-        }
-
-        @keyframes sway-slow {
-          0%, 100% { transform: rotate(-8deg); }
-          50% { transform: rotate(8deg); }
-        }
-
-        @keyframes bounce-slow {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-15px); }
-        }
-
-        @keyframes swing {
-          0%, 100% { transform: rotate(0); }
-          25% { transform: rotate(-15deg); }
-          75% { transform: rotate(15deg); }
-        }
-
-        @keyframes flicker {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.7; filter: brightness(1.5); }
-        }
-
-        @keyframes shimmer {
-          0% { background-position: -400% center; }
-          100% { background-position: 400% center; }
-        }
-
-        .animate-float-slow { animation: float-slow 25s infinite ease-in-out; }
-        .animate-sway-slow { animation: sway-slow 6s ease-in-out infinite; }
-        .animate-rise-heart { animation: rise-heart linear forwards; }
       `}</style>
     </div>
   );
