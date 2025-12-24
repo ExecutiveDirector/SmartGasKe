@@ -1,13 +1,32 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 const ChristmasGreeting = () => {
   const [sparkles, setSparkles] = useState([]);
   const [hearts, setHearts] = useState([]);
   const [snowflakes, setSnowflakes] = useState([]);
-  const [stars, setStars] = useState([]); // New: Click stars
+  const [stars, setStars] = useState([]);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTrack, setCurrentTrack] = useState(0);
+
+  const audioRef = useRef(null);
+
+  const playlist = [
+    {
+      title: 'Jingle Bells (Upbeat Instrumental)',
+      url: 'https://www.fesliyanstudios.com/play-mp3/6871', // Direct MP3 from Fesliyan Studios (royalty-free with credit)
+    },
+    {
+      title: 'We Wish You a Merry Christmas',
+      url: 'https://pixabay.com/music/download/christmas-holiday-we-wish-you-a-merry-christmas-11566.mp3?filename=we-wish-you-a-merry-christmas-11566.mp3', // Example Pixabay direct link (adjust if needed)
+    },
+    {
+      title: 'Deck the Halls (Festive)',
+      url: 'https://www.fesliyanstudios.com/play-mp3/6872', // Another from Fesliyan
+    },
+  ];
 
   useEffect(() => {
-    // Snowflakes
+    // Generate snowflakes
     const snowInterval = setInterval(() => {
       setSnowflakes(prev => {
         const newFlake = {
@@ -16,13 +35,12 @@ const ChristmasGreeting = () => {
           duration: Math.random() * 5 + 5,
           delay: Math.random() * 5,
           size: Math.random() * 20 + 15,
-          sway: Math.random() * 20 - 10,
         };
-        return [...prev.slice(-30), newFlake]; // More snowflakes
+        return [...prev.slice(-30), newFlake];
       });
     }, 200);
 
-    // Sparkles
+    // Generate sparkles
     const sparkleInterval = setInterval(() => {
       setSparkles(prev => {
         const newSparkle = {
@@ -31,11 +49,11 @@ const ChristmasGreeting = () => {
           top: Math.random() * 100,
           size: Math.random() * 8 + 4,
         };
-        return [...prev.slice(-10), newSparkle]; // More sparkles
+        return [...prev.slice(-10), newSparkle];
       });
     }, 600);
 
-    // Floating hearts
+    // Generate floating hearts
     const heartInterval = setInterval(() => {
       setHearts(prev => {
         const newHeart = {
@@ -59,7 +77,7 @@ const ChristmasGreeting = () => {
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    for (let i = 0; i < 8; i++) { // More stars on click
+    for (let i = 0; i < 8; i++) {
       const newStar = {
         id: Date.now() + Math.random() + i,
         x,
@@ -74,21 +92,51 @@ const ChristmasGreeting = () => {
     }
   };
 
+  const togglePlay = () => {
+    setIsPlaying(!isPlaying);
+    if (audioRef.current) {
+      if (!isPlaying) {
+        audioRef.current.play();
+      } else {
+        audioRef.current.pause();
+      }
+    }
+  };
+
+  const nextTrack = () => {
+    setCurrentTrack((prev) => (prev + 1) % playlist.length);
+    setIsPlaying(true);
+  };
+
+  const prevTrack = () => {
+    setCurrentTrack((prev) => (prev - 1 + playlist.length) % playlist.length);
+    setIsPlaying(true);
+  };
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.src = playlist[currentTrack].url;
+      if (isPlaying) {
+        audioRef.current.play();
+      }
+    }
+  }, [currentTrack]);
+
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-[#0a1a2f] via-[#1e3a5f] to-[#2c5282]">
+    <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden bg-gradient-to-br from-[#0a1a2f] via-[#1e3a5f] to-[#2c5282]">
       
-      {/* Enhanced Background Blobs */}
+      {/* Background Glow Blobs */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute w-96 h-96 rounded-full bg-red-500/20 blur-3xl animate-float-slow" style={{ top: '5%', left: '-10%' }} />
         <div className="absolute w-80 h-80 rounded-full bg-green-500/20 blur-3xl animate-float-slow" style={{ bottom: '10%', right: '-5%', animationDelay: '4s' }} />
-        <div className="absolute w-72 h-72 rounded-full bg-gold-400/20 blur-3xl animate-float-slow" style={{ top: '40%', left: '60%', animationDelay: '8s' }} />
+        <div className="absolute w-72 h-72 rounded-full bg-yellow-400/20 blur-3xl animate-float-slow" style={{ top: '40%', left: '60%', animationDelay: '8s' }} />
       </div>
 
-      {/* Snowflakes with sway */}
+      {/* Snowflakes with gentle sway */}
       {snowflakes.map(flake => (
         <div
           key={flake.id}
-          className="absolute text-white pointer-events-none"
+          className="absolute text-white/90 pointer-events-none"
           style={{
             left: `${flake.left}%`,
             fontSize: `${flake.size}px`,
@@ -96,7 +144,7 @@ const ChristmasGreeting = () => {
             animationDelay: `${flake.delay}s`,
           }}
         >
-          <span style={{ display: 'inline-block', animation: `sway ${flake.duration}s ease-in-out infinite` }}>❄️</span>
+          <span style={{ display: 'inline-block', animation: `sway ${flake.duration}s ease-in-out infinite alternate` }}>❄️</span>
         </div>
       ))}
 
@@ -115,15 +163,15 @@ const ChristmasGreeting = () => {
         />
       ))}
 
-      {/* Main Card */}
+      {/* Main Greeting Card */}
       <div
         onClick={handleClick}
-        className="relative z-10 w-full max-w-3xl mx-4 rounded-3xl p-12 shadow-2xl cursor-pointer backdrop-blur-lg bg-white/80 border border-white/30"
+        className="relative z-10 w-full max-w-3xl mx-4 rounded-3xl p-12 shadow-2xl cursor-pointer backdrop-blur-lg bg-white/85 border border-white/40"
       >
-        {/* Shimmer Border Top */}
+        {/* Top Shimmer Border */}
         <div className="absolute top-0 left-0 right-0 h-2 rounded-t-3xl animate-shimmer bg-gradient-to-r from-red-600 via-green-600 to-red-600" />
 
-        {/* Floating Hearts */}
+        {/* Floating Hearts from bottom */}
         {hearts.map(heart => (
           <div
             key={heart.id}
@@ -138,11 +186,11 @@ const ChristmasGreeting = () => {
           </div>
         ))}
 
-        {/* Click Stars Burst */}
+        {/* Click Burst Stars */}
         {stars.map(star => (
           <div
             key={star.id}
-            className="absolute text-2xl pointer-events-none animate-star-burst"
+            className="absolute text-2xl pointer-events-none"
             style={{
               left: `${star.x}px`,
               top: `${star.y}px`,
@@ -199,7 +247,7 @@ const ChristmasGreeting = () => {
           </p>
         </div>
 
-        {/* CTA */}
+        {/* Call to Action */}
         <div className="text-center mb-10">
           <a
             href="https://www.aquagas.co.ke"
@@ -225,6 +273,29 @@ const ChristmasGreeting = () => {
         </div>
       </div>
 
+      {/* Fixed Bottom Music Player */}
+      <div className="fixed bottom-0 left-0 right-0 z-30 bg-white/90 backdrop-blur-lg shadow-2xl border-t border-gray-300">
+        <div className="max-w-4xl mx-auto p-4 flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            <button onClick={prevTrack} className="text-3xl text-gray-700 hover:text-red-600 transition">⏮</button>
+            <button onClick={togglePlay} className="text-5xl text-red-600 hover:scale-110 transition">
+              {isPlaying ? '⏸' : '▶'}
+            </button>
+            <button onClick={nextTrack} className="text-3xl text-gray-700 hover:text-red-600 transition">⏭</button>
+          </div>
+
+          <div className="flex-1 text-center">
+            <div className="text-lg font-semibold text-gray-800">{playlist[currentTrack].title}</div>
+            <div className="text-sm text-gray-600">Festive Christmas Instrumental 🎵</div>
+          </div>
+
+          <div className="text-4xl animate-pulse">🎄✨</div>
+        </div>
+      </div>
+
+      {/* Hidden Audio Element */}
+      <audio ref={audioRef} onEnded={nextTrack} />
+
       <style jsx>{`
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Dancing+Script:wght@700&display=swap');
 
@@ -235,8 +306,8 @@ const ChristmasGreeting = () => {
         }
 
         @keyframes sway {
-          0%, 100% { transform: translateX(0); }
-          50% { transform: translateX(20px); }
+          0% { transform: translateX(-10px); }
+          100% { transform: translateX(10px); }
         }
 
         @keyframes rise-heart {
@@ -287,7 +358,6 @@ const ChristmasGreeting = () => {
         .animate-float-slow { animation: float-slow 25s infinite ease-in-out; }
         .animate-sway-slow { animation: sway-slow 6s ease-in-out infinite; }
         .animate-rise-heart { animation: rise-heart linear forwards; }
-        .animate-star-burst { animation: starBurst 1.5s ease-out forwards; }
       `}</style>
     </div>
   );
