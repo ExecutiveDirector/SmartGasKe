@@ -11,19 +11,23 @@ const ChristmasGreeting = () => {
   const audioRef = useRef(null);
 
   const playlist = [
-    {
-      title: 'Jingle Bells (Upbeat Instrumental)',
-      url: 'https://pixabay.com/music/search/jingle%20bells%20instrumental/', // Direct MP3 from Fesliyan Studios (royalty-free with credit)
-    },
-    {
-      title: 'We Wish You a Merry Christmas',
-      url: 'https://pixabay.com/music/download/christmas-holiday-we-wish-you-a-merry-christmas-11566.mp3?filename=we-wish-you-a-merry-christmas-11566.mp3', // Example Pixabay direct link (adjust if needed)
-    },
-    {
-      title: 'Deck the Halls (Festive)',
-      url: 'https://pixabay.com/music/search/feliz%20navidad/', // Another from Fesliyan
-    },
-  ];
+  {
+    title: 'Jingle Bells (Upbeat Instrumental)',
+    url: 'https://www.singing-bell.com/wp-content/uploads/2013/10/Jingle-Bells.mp3', // Direct free instrumental MP3 from Singing Bell
+  },
+  {
+    title: 'We Wish You a Merry Christmas (Orchestral Instrumental)',
+    url: 'https://files.freemusicarchive.org/storage-freemusicarchive-org/music/ccCommunity/United_States_Marine_Band/Holiday_Music_Selections/United_States_Marine_Band_-_07_-_We_Wish_You_a_Merry_Christmas.mp3', // Public domain direct MP3 from Free Music Archive
+  },
+  {
+    title: 'Feliz Navidad (Festive Instrumental)',
+    url: 'https://www.singing-bell.com/wp-content/uploads/2014/11/Feliz-Navidad.mp3', // Direct free instrumental MP3 from Singing Bell (joyful guitar/percussion version)
+  },
+  {
+    title: 'Deck the Halls (Traditional Instrumental)',
+    url: 'https://www.singing-bell.com/wp-content/uploads/2013/09/Deck-the-Halls.mp3', // Bonus: Direct free instrumental from Singing Bell
+  },
+];
 
   useEffect(() => {
     // Generate snowflakes
