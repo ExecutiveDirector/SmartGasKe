@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 
-const HappyNewYearMessage = () => {
+const ChristmasGreeting = () => {
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [started, setStarted] = useState(false);
   const [countdown, setCountdown] = useState(null);
@@ -504,4 +504,4 @@ const HappyNewYearMessage = () => {
   );
 };
 
-export default HappyNewYearMessage;
+export default ChristmasGreeting;
