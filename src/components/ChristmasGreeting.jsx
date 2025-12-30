@@ -1,4 +1,4 @@
-     import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const ChristmasGreeting = () => {
@@ -284,5 +284,5 @@ const ChristmasGreeting = () => {
   );
 };
 
-      {/*export default HappyNewYearMessage;*/ }    
+      {/*export default HappyNewYearMessage; */ }    
 export default ChristmasGreeting; 
