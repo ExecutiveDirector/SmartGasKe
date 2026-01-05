@@ -7,8 +7,9 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 
 // Context Providers
-import { AuthProvider } from './lib/context/CartContext';
-import { CartProvider } from './lib/context/AuthContext';
+
+import { AuthProvider } from './lib/context/AuthContext';
+import { CartProvider } from './lib/context/CartContext';
 
 // Layout Components
 import Navbar from './components/Navbar';
