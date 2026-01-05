@@ -33,8 +33,8 @@ import CartPage from './pages/shop/cart';
 import CheckoutPage from './pages/shop/checkout';
 
 // Order Pages
-import OrdersPage from './pages/orders/Orders';
-import OrderDetailPage from './pages/orders/OrderDetail';
+import OrdersPage from './pages/orders/index';
+import OrderDetailPage from './pages/orders/[orderId]';
 
 // Account Pages
 import LoginPage from './pages/account/Login';
