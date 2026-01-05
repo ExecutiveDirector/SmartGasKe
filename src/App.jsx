@@ -20,7 +20,7 @@ import Footer from './components/Footer';
 import HomePage from './pages/index';
 import AboutPage from './pages/about';
 import FounderPage from './pages/founder';
-import HowItWorksPage from './pages/howItWorks';
+import HowItWorksPage from './pages/how-it-works';
 import TechnologyPage from './pages/technology';
 import InvestorsPage from './pages/investors';
 import PartnersPage from './pages/partners';
