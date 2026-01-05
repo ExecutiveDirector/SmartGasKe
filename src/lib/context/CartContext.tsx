@@ -140,5 +140,4 @@ export const useCart = (): CartContextType => {
 
 export default CartContext;
 
-// ============================================================
-      
+
