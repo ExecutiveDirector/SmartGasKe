@@ -37,10 +37,10 @@ import OrdersPage from './pages/orders/index';
 import OrderDetailPage from './pages/orders/[orderId]';
 
 // Account Pages
-import LoginPage from './pages/account/Login';
-import AccountPage from './pages/account/Account';
-import ProfilePage from './pages/account/Profile';
-import WalletPage from './pages/account/Wallet';
+import LoginPage from './pages/account/login';
+import AccountPage from './pages/account/index';
+import ProfilePage from './pages/account/profile';
+import WalletPage from './pages/account/wallet';
 
 function App() {
   return (
