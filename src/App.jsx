@@ -17,7 +17,7 @@ import Footer from './components/Footer';
 
 // Pages - Import your page components here
 // Main Pages
-import HomePage from './pages/Home';
+import HomePage from './pages/index';
 import AboutPage from './pages/About';
 import FounderPage from './pages/Founder';
 import HowItWorksPage from './pages/HowItWorks';
