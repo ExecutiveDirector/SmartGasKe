@@ -28,7 +28,7 @@ import ContactPage from './pages/contact';
 
 // Shop Pages
 import ShopPage from './pages/shop/index';
-import VendorPage from './pages/shop/VendorPage';
+import VendorPage from './pages/shop/[vendorId]';
 import CartPage from './pages/shop/cart';
 import CheckoutPage from './pages/shop/checkout';
 
