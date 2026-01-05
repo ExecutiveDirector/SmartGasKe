@@ -27,10 +27,10 @@ import PartnersPage from './pages/partners';
 import ContactPage from './pages/contact';
 
 // Shop Pages
-import ShopPage from './pages/shop/Shop';
+import ShopPage from './pages/shop/index';
 import VendorPage from './pages/shop/VendorPage';
-import CartPage from './pages/shop/Cart';
-import CheckoutPage from './pages/shop/Checkout';
+import CartPage from './pages/shop/cart';
+import CheckoutPage from './pages/shop/checkout';
 
 // Order Pages
 import OrdersPage from './pages/orders/Orders';
