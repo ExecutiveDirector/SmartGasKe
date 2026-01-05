@@ -18,13 +18,13 @@ import Footer from './components/Footer';
 // Pages - Import your page components here
 // Main Pages
 import HomePage from './pages/index';
-import AboutPage from './pages/About';
-import FounderPage from './pages/Founder';
-import HowItWorksPage from './pages/HowItWorks';
-import TechnologyPage from './pages/Technology';
-import InvestorsPage from './pages/Investors';
-import PartnersPage from './pages/Partners';
-import ContactPage from './pages/Contact';
+import AboutPage from './pages/about';
+import FounderPage from './pages/founder';
+import HowItWorksPage from './pages/howItWorks';
+import TechnologyPage from './pages/technology';
+import InvestorsPage from './pages/investors';
+import PartnersPage from './pages/partners';
+import ContactPage from './pages/contact';
 
 // Shop Pages
 import ShopPage from './pages/shop/Shop';
