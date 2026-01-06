@@ -1,22 +1,12 @@
-// ============================================================
-// Configuration Files
-// ============================================================
-
-/*
-FILE: next.config.js
---------------------------------------------------
-*/
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
   images: {
     domains: ['localhost', 'api.aquagas.com'],
     formats: ['image/avif', 'image/webp'],
   },
   env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://api.aquagas.com',
     NEXT_PUBLIC_GA_ID: process.env.NEXT_PUBLIC_GA_ID,
   },
   async redirects() {
@@ -34,10 +24,11 @@ const nextConfig = {
     ];
   },
   async rewrites() {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.aquagas.com';
     return [
       {
         source: '/api/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL}/:path*`,
+        destination: `${apiUrl}/:path*`,
       },
     ];
   },
