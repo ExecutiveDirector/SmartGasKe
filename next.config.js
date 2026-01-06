@@ -24,11 +24,13 @@ const nextConfig = {
     ];
   },
   async rewrites() {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.aquagas.com';
+    // Ensure the base API URL includes the protocol
+    const apiUrl = (process.env.NEXT_PUBLIC_API_URL || 'https://api.aquagas.com').replace(/\/$/, ''); // optional: trim trailing slash
+
     return [
       {
         source: '/api/:path*',
-        destination: `${apiUrl}/:path*`,
+        destination: `${apiUrl}/:path*`, // This should now be e.g., https://api.aquagas.com/:path*
       },
     ];
   },
