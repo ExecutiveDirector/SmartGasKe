@@ -8,7 +8,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { CartItem, Product, Outlet } from '../types';
 
-interface CartContextType {
+export interface CartContextType {
   cart: CartItem[];
   addToCart: (product: Product, outlet: Outlet) => void;
   removeFromCart: (productId: string, outletId: string) => void;
