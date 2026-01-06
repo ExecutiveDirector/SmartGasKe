@@ -3,7 +3,7 @@
 // FILE: src/lib/api.ts
 // ============================================================
 
-import axios, { AxiosInstance, AxiosError, AxiosRequestConfig } from 'axios';
+import axios, { AxiosInstance, AxiosError } from 'axios';
 import type {
   User,
   LoginCredentials,
