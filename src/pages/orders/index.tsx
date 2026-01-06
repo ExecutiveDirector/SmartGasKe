@@ -11,7 +11,6 @@ import {
   Package,
   ChevronRight,
   Loader,
-  User,
   Calendar,
   DollarSign,
   CheckCircle,
