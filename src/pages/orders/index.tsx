@@ -12,7 +12,6 @@ import {
   ChevronRight,
   Loader,
   Calendar,
-  DollarSign,
   CheckCircle,
   Clock,
   TrendingUp,
