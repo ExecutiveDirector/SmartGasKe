@@ -3,7 +3,7 @@
 // Authentication Service - Wrapper around auth API calls
 // ============================================================
 
-import api, { authService as authApi } from '../api';
+import { authService as authApi } from '../api';
 import { LoginCredentials, RegisterData, User } from '../types';
 
 class AuthService {
