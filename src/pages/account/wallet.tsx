@@ -24,7 +24,7 @@ import {
 import { useAuth } from '@/lib/context/AuthContext';
 import { walletService } from '@/lib/api';
 import { WalletTransaction } from '@/lib/types';
-import { formatPrice, formatDate, formatDateTime } from '@/lib/utils';
+import { formatPrice, formatDateTime } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
 export default function WalletPage() {
