@@ -16,7 +16,6 @@ import {
   Clock,
   TrendingUp,
   XCircle,
-  Filter,
 } from 'lucide-react';
 import { useAuth } from '@/lib/context/AuthContext';
 import { orderService } from '@/lib/api';
