@@ -1,4 +1,4 @@
-// src/app/shop/page.tsx
+// src/app/shop/index.tsx
 // Shop Main Page - Display all products with filters (App Router version)
 
 import React, { useState, useEffect } from 'react';
