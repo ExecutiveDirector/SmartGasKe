@@ -14,7 +14,7 @@
 
 @layer base {
   * {
-    @apply border-border;
+    @apply box-border;
   }
 
   html {
