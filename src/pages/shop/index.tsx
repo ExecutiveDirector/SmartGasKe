@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, Filter, ChevronRight, Loader } from 'lucide-react';
+import { Filter, ChevronRight, Loader } from 'lucide-react';
 import ProductCard from '@/components/ProductCard';
 import VendorCard from '@/components/VendorCard';
 import Carousel from '@/components/Carousel';
