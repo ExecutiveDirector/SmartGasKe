@@ -7,15 +7,37 @@ import toast from 'react-hot-toast';
 interface ProductCardProps {
   product: Product;
   outlet: Outlet;
+  compact?: boolean;
 }
 
-export default function ProductCard({ product, outlet }: ProductCardProps) {
+export default function ProductCard({ product, outlet, compact = false }: ProductCardProps) {
   const { addToCart } = useCart();
 
   const handleAddToCart = () => {
     addToCart(product, outlet);
     toast.success(`${product.name} added to cart!`);
   };
+
+  if (compact) {
+    return (
+      <div className="min-w-[200px] bg-white rounded-lg shadow p-2 flex-shrink-0 hover:shadow-md transition">
+        <img 
+          src={product.image || '/placeholder-product.jpg'} 
+          alt={product.name} 
+          className="w-full h-32 object-cover rounded"
+        />
+        <h3 className="mt-2 font-semibold text-sm">{product.name}</h3>
+        <p className="text-blue-600 font-bold">KES {product.price}</p>
+        <button
+          onClick={handleAddToCart}
+          disabled={product.stock === 0}
+          className="mt-2 w-full bg-blue-600 text-white py-1 px-2 rounded text-sm hover:bg-blue-700 disabled:bg-gray-400 transition"
+        >
+          Add to Cart
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition">
