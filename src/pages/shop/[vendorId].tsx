@@ -266,4 +266,5 @@ export default function VendorPage() {
       </div>
     </>
   );
+}
     
