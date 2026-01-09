@@ -2,12 +2,39 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import Carousel from '../components/Carousel';
 import VendorCard from '../components/VendorCard';
+import { Outlet } from '@/lib/types';
 
 export default function Home() {
-  const vendors = [
-    { id: 1, name: 'AquaGas Outlet 1', location: 'Nairobi CBD', distance: '2km', rating: 4.8 },
-    { id: 2, name: 'AquaGas Outlet 2', location: 'Westlands', distance: '5km', rating: 4.6 },
+  // Convert vendor data to Outlet type
+  const vendors: Outlet[] = [
+    { 
+      id: '1', 
+      name: 'AquaGas Outlet 1', 
+      vendor: 'AquaGas',
+      address: 'Nairobi CBD', 
+      distance: 2,
+      rating: 4.8,
+      reviews: 120,
+      phone: '+254 700 000 001',
+      featured: true,
+      latitude: -1.286389,
+      longitude: 36.817223,
+    },
+    { 
+      id: '2', 
+      name: 'AquaGas Outlet 2', 
+      vendor: 'AquaGas',
+      address: 'Westlands', 
+      distance: 5,
+      rating: 4.6,
+      reviews: 89,
+      phone: '+254 700 000 002',
+      featured: false,
+      latitude: -1.2676,
+      longitude: 36.8070,
+    },
   ];
+  
   const carouselImages = ['/images/banner1.jpg', '/images/banner2.jpg'];
 
   return (
@@ -18,7 +45,7 @@ export default function Home() {
         <h2 className="text-2xl font-bold my-4">Vendors Near You</h2>
         <div className="grid md:grid-cols-2 gap-4">
           {vendors.map(vendor => (
-            <VendorCard key={vendor.id} vendor={vendor} />
+            <VendorCard key={vendor.id} outlet={vendor} />
           ))}
         </div>
       </main>
