@@ -1,7 +1,7 @@
 import Head from 'next/head';
-import Carousel from '../components/Carousel';
-import VendorCard from '../components/VendorCard';
 import { Outlet } from '@/lib/types';
+import Carousel from '@/components/Carousel';
+import VendorCard from '@/components/VendorCard';
 
 export default function Home() {
   // Sample vendor data
