@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { ChevronRight, Loader } from 'lucide-react';
 import ProductCard from '@/components/ProductCard';
 import VendorCard from '@/components/VendorCard';
-import Carousel from '@/components/Carousel';
+// import Carousel from '@/components/Carousel';
 import FilterComponent from '@/components/Filter';
 import { productService, outletService } from '@/lib/api';
 import { Product, Outlet } from '@/lib/types';
