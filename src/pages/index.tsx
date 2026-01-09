@@ -2,6 +2,8 @@ import Head from 'next/head';
 import { Outlet } from '@/lib/types';
 import Carousel from '@/components/Carousel';
 import VendorCard from '@/components/VendorCard';
+import SEO from '@/components/SEO';
+import Link from 'next/link';
 
 export default function Home() {
   // Sample vendor data
@@ -36,40 +38,62 @@ export default function Home() {
     },
   ];
 
-  const carouselImages = ['/images/banners/hero-banner.jpg', '/images/banners/promo-banner.jpg'];
+  const carouselImages = [
+    '/images/banners/hero-banner.jpg',
+    '/images/banners/promo-banner.jpg'
+  ];
 
   return (
     <>
-      {/* Next.js Head for SEO */}
-      <Head>
-        <title>AquaGas Delivery | Fast Gas Delivery in Kenya</title>
-        <meta name="description" content="AquaGas delivers cooking gas cylinders quickly and reliably across Nairobi and surrounding areas." />
-        <link rel="icon" href="/favicon.ico" />
+      {/* SEO Meta Tags */}
+      <SEO
+        title="AquaGas Delivery | Fast Gas Delivery in Kenya"
+        description="AquaGas delivers cooking gas cylinders quickly and reliably across Nairobi and surrounding areas."
+        image="/images/banners/hero-banner.jpg"
+        url="https://www.aquagas.co.ke"
+      />
 
-        {/* Open Graph */}
-        <meta property="og:title" content="AquaGas Delivery | Fast Gas Delivery in Kenya" />
-        <meta property="og:description" content="AquaGas delivers cooking gas cylinders quickly and reliably across Nairobi and surrounding areas." />
-        <meta property="og:image" content="/images/banners/hero-banner.jpg" />
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://www.aquagas.co.ke" />
-
-        {/* Twitter Card */}
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="AquaGas Delivery | Fast Gas Delivery in Kenya" />
-        <meta name="twitter:description" content="AquaGas delivers cooking gas cylinders quickly and reliably across Nairobi and surrounding areas." />
-        <meta name="twitter:image" content="/images/banners/hero-banner.jpg" />
-      </Head>
-
-      {/* Page content */}
-      <div className="container mx-auto p-4">
+      {/* Hero Section / Carousel */}
+      <section className="mb-8">
         <Carousel images={carouselImages} />
-        <h2 className="text-2xl font-bold my-4">Vendors Near You</h2>
+      </section>
+
+      {/* Vendors Near You */}
+      <section className="mb-12">
+        <h2 className="text-2xl font-bold mb-4">Vendors Near You</h2>
         <div className="grid md:grid-cols-2 gap-4">
           {vendors.map(vendor => (
             <VendorCard key={vendor.id} outlet={vendor} />
           ))}
         </div>
-      </div>
+        <div className="mt-4">
+          <Link href="/shop" className="text-blue-600 hover:underline">
+            View All Vendors
+          </Link>
+        </div>
+      </section>
+
+      {/* About Section */}
+      <section className="mb-12 bg-gray-50 p-6 rounded-lg shadow-md">
+        <h2 className="text-2xl font-bold mb-2">About AquaGas</h2>
+        <p className="mb-2">
+          AquaGas is Kenya’s leading LPG distributor, offering fast and reliable gas delivery with IoT-enabled cylinders for real-time monitoring and safety.
+        </p>
+        <Link href="/about" className="text-blue-600 hover:underline">
+          Read More About Us
+        </Link>
+      </section>
+
+      {/* How It Works Section */}
+      <section className="mb-12 bg-gray-50 p-6 rounded-lg shadow-md">
+        <h2 className="text-2xl font-bold mb-2">How It Works</h2>
+        <p className="mb-2">
+          Ordering gas has never been easier! Choose your cylinder, place your order, and track your delivery in real time.
+        </p>
+        <Link href="/how-it-works" className="text-blue-600 hover:underline">
+          Learn More
+        </Link>
+      </section>
     </>
   );
 }
