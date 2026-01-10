@@ -3,7 +3,7 @@ import React from 'react';
 import { 
   Code, Database, Smartphone, Server, 
   Lock, Zap, Globe, Cpu, 
-  ArrowRight, CheckCircle, Shield, TrendingUp 
+  ArrowRight, CheckCircle, Shield, ChevronRight, TrendingUp 
 } from 'lucide-react';
 
 export default function Technology() {
