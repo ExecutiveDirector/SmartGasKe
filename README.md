@@ -1,8 +1,3 @@
-
-/* ============================================================
-// FILE: README.md - Project Documentation
-// ============================================================ */
-
 # AquaGas Website
 
 Smart LPG Distribution Platform
