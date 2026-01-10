@@ -1,20 +1,28 @@
 import Link from 'next/link';
-import { Facebook, Instagram, Twitter, MessageCircle, Mail, Phone, MapPin, ArrowRight, Send } from 'lucide-react';
-import { useState } from 'react';
+import { Facebook, Instagram, Twitter, MessageCircle, Mail, Phone, MapPin, ArrowRight, Send, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState, useRef } from 'react';
 
 export default function Footer() {
   const [email, setEmail] = useState('');
   const year = new Date().getFullYear();
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const handleNewsletterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle newsletter subscription
     console.log('Newsletter signup:', email);
     setEmail('');
   };
 
+  const scrollLeft = () => {
+    if (scrollRef.current) scrollRef.current.scrollBy({ left: -300, behavior: 'smooth' });
+  };
+
+  const scrollRight = () => {
+    if (scrollRef.current) scrollRef.current.scrollBy({ left: 300, behavior: 'smooth' });
+  };
+
   return (
-    <footer className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-gray-300">
+    <footer className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-gray-300 relative">
       {/* Newsletter Section */}
       <div className="border-b border-gray-700">
         <div className="container mx-auto px-6 py-12">
@@ -51,23 +59,39 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* Main Footer Content */}
-      <div className="container mx-auto px-6 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-12">
-          
-          {/* Brand Column */}
-          <div className="lg:col-span-2">
+      {/* Main Footer Content - Horizontal Snap Scroll */}
+      <div className="container mx-auto px-6 py-12 relative">
+        {/* Scroll Arrows */}
+        <button
+          onClick={scrollLeft}
+          className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 bg-gray-800 hover:bg-blue-600 p-2 rounded-full z-10"
+          aria-label="Scroll Left"
+        >
+          <ChevronLeft size={24} />
+        </button>
+        <button
+          onClick={scrollRight}
+          className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 bg-gray-800 hover:bg-blue-600 p-2 rounded-full z-10"
+          aria-label="Scroll Right"
+        >
+          <ChevronRight size={24} />
+        </button>
+
+        <div
+          ref={scrollRef}
+          className="flex gap-8 overflow-x-auto no-scrollbar scroll-smooth snap-x snap-mandatory"
+        >
+          {/* Column 1 - Brand */}
+          <div className="flex-shrink-0 w-64 snap-start">
             <Link href="/" className="inline-block mb-4">
               <h2 className="text-3xl font-bold">
                 <span className="text-blue-500">Aqua</span>
                 <span className="text-white">Gas</span>
               </h2>
             </Link>
-            <p className="text-gray-400 leading-relaxed mb-6 max-w-sm">
+            <p className="text-gray-400 leading-relaxed mb-6">
               Kenya's leading smart gas delivery service. We bring cooking gas to your doorstep using IoT technology for seamless ordering and delivery tracking.
             </p>
-            
-            {/* Contact Info */}
             <div className="space-y-3">
               <a href="tel:+254710820666" className="flex items-center gap-3 text-gray-400 hover:text-white transition group">
                 <div className="bg-gray-800 p-2 rounded-lg group-hover:bg-blue-600 transition">
@@ -90,8 +114,8 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Company */}
-          <div>
+          {/* Column 2 - Company */}
+          <div className="flex-shrink-0 w-48 snap-start">
             <h3 className="text-white font-bold text-lg mb-4">Company</h3>
             <ul className="space-y-3">
               {[
@@ -112,8 +136,8 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Services */}
-          <div>
+          {/* Column 3 - Services */}
+          <div className="flex-shrink-0 w-48 snap-start">
             <h3 className="text-white font-bold text-lg mb-4">Services</h3>
             <ul className="space-y-3">
               {[
@@ -133,8 +157,8 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Legal */}
-          <div>
+          {/* Column 4 - Legal */}
+          <div className="flex-shrink-0 w-48 snap-start">
             <h3 className="text-white font-bold text-lg mb-4">Legal</h3>
             <ul className="space-y-3">
               {[
@@ -152,61 +176,30 @@ export default function Footer() {
               ))}
             </ul>
           </div>
-
         </div>
       </div>
 
       {/* Bottom Bar */}
       <div className="border-t border-gray-800">
-        <div className="container mx-auto px-6 py-6">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            
-            {/* Copyright */}
-            <p className="text-gray-400 text-sm text-center md:text-left">
-              © {year} AquaGas Delivery. All rights reserved. Built with ❤️ in Kenya
-            </p>
-
-            {/* Social Links */}
-            <div className="flex items-center gap-4">
-              <span className="text-gray-400 text-sm hidden md:inline">Follow us:</span>
-              <div className="flex gap-3">
-                <a
-                  href="https://facebook.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-gray-800 hover:bg-blue-600 p-3 rounded-lg transition"
-                  aria-label="Facebook"
-                >
-                  <Facebook size={18} />
-                </a>
-                <a
-                  href="https://instagram.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-gray-800 hover:bg-pink-600 p-3 rounded-lg transition"
-                  aria-label="Instagram"
-                >
-                  <Instagram size={18} />
-                </a>
-                <a
-                  href="https://twitter.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-gray-800 hover:bg-blue-400 p-3 rounded-lg transition"
-                  aria-label="Twitter"
-                >
-                  <Twitter size={18} />
-                </a>
-                <a
-                  href="https://wa.me/254710820666"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-gray-800 hover:bg-green-600 p-3 rounded-lg transition"
-                  aria-label="WhatsApp"
-                >
-                  <MessageCircle size={18} />
-                </a>
-              </div>
+        <div className="container mx-auto px-6 py-6 flex flex-col md:flex-row justify-between items-center gap-4">
+          <p className="text-gray-400 text-sm text-center md:text-left">
+            © {year} AquaGas Delivery. All rights reserved. Built with ❤️ in Kenya
+          </p>
+          <div className="flex items-center gap-4">
+            <span className="text-gray-400 text-sm hidden md:inline">Follow us:</span>
+            <div className="flex gap-3">
+              <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="bg-gray-800 hover:bg-blue-600 p-3 rounded-lg transition" aria-label="Facebook">
+                <Facebook size={18} />
+              </a>
+              <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="bg-gray-800 hover:bg-pink-600 p-3 rounded-lg transition" aria-label="Instagram">
+                <Instagram size={18} />
+              </a>
+              <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="bg-gray-800 hover:bg-blue-400 p-3 rounded-lg transition" aria-label="Twitter">
+                <Twitter size={18} />
+              </a>
+              <a href="https://wa.me/254710820666" target="_blank" rel="noopener noreferrer" className="bg-gray-800 hover:bg-green-600 p-3 rounded-lg transition" aria-label="WhatsApp">
+                <MessageCircle size={18} />
+              </a>
             </div>
           </div>
         </div>
@@ -222,6 +215,17 @@ export default function Footer() {
       >
         <MessageCircle size={28} />
       </a>
+
+      {/* Hide default scrollbar */}
+      <style jsx>{`
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .no-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
     </footer>
   );
 }
