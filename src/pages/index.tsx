@@ -1,4 +1,5 @@
-Update my index.tsx import Head from 'next/head';  
+// Update my index.tsx 
+import Head from 'next/head';  
 import { Outlet } from '@/lib/types';  
 import Carousel from '@/components/Carousel';  
 import VendorCard from '@/components/VendorCard';  
