@@ -62,28 +62,27 @@ export default function WalletPage() {
   }, [isAuthenticated, user, currentPage]);
 
   const fetchWalletData = async () => {
-    try {
-      setLoading(true);
+  try {
+    setLoading(true);
 
-      // Fetch balance
-      const balanceResponse = await walletService.getBalance();
-      setBalance(balanceResponse.data.balance);
+    // Fetch balance
+    const balanceResponse = await walletService.getBalance();
+    setBalance(balanceResponse?.data?.balance ?? 0); // Safe fallback to 0
 
-      // Fetch transactions
-      const transactionsResponse = await walletService.getTransactions({
-        page: currentPage,
-        limit: 10,
-      });
-      setTransactions(transactionsResponse.data);
-      setTotalPages(transactionsResponse.pagination.pages);
-    } catch (error: any) {
-      console.error('Error fetching wallet data:', error);
-      toast.error('Failed to load wallet data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
+    // Fetch transactions
+    const transactionsResponse = await walletService.getTransactions({
+      page: currentPage,
+      limit: 10,
+    });
+    setTransactions(transactionsResponse?.data ?? []); // Safe fallback to empty array
+    setTotalPages(transactionsResponse?.pagination?.pages ?? 1); // Fallback to 1 page
+  } catch (error: any) {
+    console.error('Error fetching wallet data:', error);
+    toast.error('Failed to load wallet data');
+  } finally {
+    setLoading(false);
+  }
+};
   // Handle add money
   const handleAddMoney = async (e: React.FormEvent) => {
     e.preventDefault();
