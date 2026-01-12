@@ -46,11 +46,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const token = localStorage.getItem('authToken');
       if (token) {
         const response = await authService.getProfile();
-        if (response?.data) {
-          setUser(response.data);
-        } else {
-          setUser(null);
-        }
+        setUser(response?.data ?? null);
       } else {
         setUser(null);
       }
@@ -131,6 +127,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 };
 
 // -----------------------------
-// Custom hook (only in useAuth.ts)
+// Custom hook to use AuthContext
 // -----------------------------
+export const useAuth = (): AuthContextType => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
+// Default export of context
 export default AuthContext;
