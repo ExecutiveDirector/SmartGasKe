@@ -47,28 +47,28 @@ export default function OrdersPage() {
   }, [isAuthenticated, statusFilter, currentPage]);
 
   const fetchOrders = async () => {
-    try {
-      setLoading(true);
+  try {
+    setLoading(true);
 
-      const params: any = {
-        page: currentPage,
-        limit: 10,
-      };
+    const params: any = {
+      page: currentPage,
+      limit: 10,
+    };
 
-      if (statusFilter !== 'all') {
-        params.status = statusFilter;
-      }
-
-      const response = await orderService.getOrders(params);
-      setOrders(response.data);
-      setTotalPages(response.pagination.pages);
-    } catch (error: any) {
-      console.error('Error fetching orders:', error);
-      toast.error('Failed to load orders');
-    } finally {
-      setLoading(false);
+    if (statusFilter !== 'all') {
+      params.status = statusFilter;
     }
-  };
+
+    const response = await orderService.getOrders(params);
+    setOrders(response.data ?? []);
+    setTotalPages(response.pagination?.pages ?? 1);
+  } catch (error: any) {
+    console.error('Error fetching orders:', error);
+    toast.error('Failed to load orders');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const getStatusColor = (status: OrderStatus) => {
     switch (status) {
