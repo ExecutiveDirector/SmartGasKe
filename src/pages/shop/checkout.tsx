@@ -78,13 +78,18 @@ export default function CheckoutPage() {
   }, [isAuthenticated]);
 
   const fetchWalletBalance = async () => {
-    try {
-      const response = await walletService.getBalance();
-      setWalletBalance(response.data.balance);
-    } catch (error) {
-      console.error('Error fetching wallet balance:', error);
+  try {
+    const response = await walletService.getBalance();
+
+    if (!response.data) {
+      throw new Error('Wallet data missing');
     }
-  };
+
+    setWalletBalance(response.data.balance);
+  } catch (error) {
+    console.error('Error fetching wallet balance:', error);
+  }
+};
 
   // Validate form
   const validateForm = (): boolean => {
