@@ -1,5 +1,5 @@
 // Investors.jsx
-import React from 'react';
+import React, { useRef } from 'react';
 import {
   TrendingUp, BarChart2, Users, Globe,
   DollarSign, PieChart, ArrowRight,
@@ -7,6 +7,17 @@ import {
 } from 'lucide-react';
 
 export default function Investors() {
+  const metricsRef = useRef(null);
+  const revenueRef = useRef(null);
+
+  const scroll = (ref, direction = 'left') => {
+    if (!ref.current) return;
+    ref.current.scrollBy({
+      left: direction === 'left' ? -300 : 300,
+      behavior: 'smooth'
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-50 to-white font-sans">
 
@@ -45,88 +56,64 @@ export default function Investors() {
         </div>
       </section>
 
-      {/* KEY METRICS */}
+      {/* KEY METRICS - horizontal scroll */}
       <section className="-mt-20 relative z-10 pb-20">
-        <div className="max-w-6xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-6">
-          {[
-            { icon: Users, num: "5,000+", label: "Verified Users" },
-            { icon: TrendingUp, num: "1,200+", label: "Monthly Deliveries" },
-            { icon: DollarSign, num: "KES 8M+", label: "Annual Run Rate" },
-            { icon: Globe, num: "Nairobi+", label: "Expansion Ready" }
-          ].map((m, i) => (
-            <div key={i} className="bg-white rounded-3xl p-6 shadow-lg text-center">
-              <m.icon className="w-12 h-12 mx-auto mb-4 text-emerald-500" />
-              <div className="text-3xl font-bold text-green-900">{m.num}</div>
-              <div className="text-gray-600 font-medium">{m.label}</div>
-            </div>
-          ))}
-        </div>
-      </section>
+        <div className="max-w-6xl mx-auto px-6 relative">
+          {/* Scroll Buttons */}
+          <button onClick={() => scroll(metricsRef, 'left')} className="absolute left-0 top-1/2 -translate-y-1/2 bg-green-800 text-white p-3 rounded-full shadow-lg z-10">
+            ‹
+          </button>
+          <button onClick={() => scroll(metricsRef, 'right')} className="absolute right-0 top-1/2 -translate-y-1/2 bg-green-800 text-white p-3 rounded-full shadow-lg z-10">
+            ›
+          </button>
 
-      {/* MARKET OPPORTUNITY */}
-      <section id="opportunity" className="py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-center">
-          <div className="space-y-6">
-            <span className="inline-block px-4 py-1 bg-emerald-100 text-emerald-800 rounded-full text-sm font-medium">
-              Market Opportunity
-            </span>
-            <h2 className="text-4xl md:text-5xl font-bold text-green-900">
-              $1B+ LPG Market<br />
-              <span className="text-emerald-500">Ready for Digital Control</span>
-            </h2>
-
-            <ul className="space-y-4">
-              {[
-                { icon: TrendingUp, text: "15% annual LPG demand growth" },
-                { icon: Users, text: "2M+ urban households adopting LPG" },
-                { icon: Zap, text: "Mobile-first ordering behavior" },
-                { icon: Shield, text: "Safety compliance driving vendor consolidation" }
-              ].map((item, i) => (
-                <li key={i} className="flex gap-4">
-                  <div className="w-10 h-10 bg-emerald-50 rounded-full flex items-center justify-center">
-                    <item.icon className="text-emerald-600" size={20} />
-                  </div>
-                  <p className="text-lg text-gray-700">{item.text}</p>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="bg-gradient-to-br from-emerald-50 to-green-50 rounded-3xl p-10 shadow-lg">
-            <h3 className="text-2xl font-bold text-green-900 mb-6">2026 Market Snapshot</h3>
-            <div className="space-y-6 text-center">
-              <div className="text-5xl font-bold text-emerald-600">$1.2B</div>
-              <p className="text-gray-600">Total Market Size</p>
-              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div className="h-full w-[15%] bg-emerald-500" />
+          <div ref={metricsRef} className="flex gap-6 overflow-x-auto snap-x snap-mandatory scroll-smooth no-scrollbar py-6">
+            {[
+              { icon: Users, num: "5,000+", label: "Verified Users" },
+              { icon: TrendingUp, num: "1,200+", label: "Monthly Deliveries" },
+              { icon: DollarSign, num: "KES 8M+", label: "Annual Run Rate" },
+              { icon: Globe, num: "Nairobi+", label: "Expansion Ready" }
+            ].map((m, i) => (
+              <div key={i} className="bg-white rounded-3xl p-6 shadow-lg text-center flex-shrink-0 w-64 snap-start">
+                <m.icon className="w-12 h-12 mx-auto mb-4 text-emerald-500" />
+                <div className="text-3xl font-bold text-green-900">{m.num}</div>
+                <div className="text-gray-600 font-medium">{m.label}</div>
               </div>
-              <p className="text-gray-600">Digital Penetration: 15%</p>
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* BUSINESS MODEL */}
+      {/* BUSINESS MODEL - Revenue Engine - horizontal scroll */}
       <section className="py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-6 text-center">
           <h2 className="text-4xl font-bold text-green-900 mb-12">
             Scalable Revenue Engine
           </h2>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { icon: PieChart, title: "Order Commissions", desc: "10–15% per successful LPG transaction" },
-              { icon: DollarSign, title: "Vendor Subscriptions", desc: "Premium dashboards & compliance tools" },
-              { icon: BarChart2, title: "Logistics & Ads", desc: "Delivery fees + promoted vendor listings" }
-            ].map((b, i) => (
-              <div key={i} className="bg-white rounded-3xl p-8 shadow-lg">
-                <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <b.icon className="text-emerald-600" size={32} />
+          <div className="relative">
+            <button onClick={() => scroll(revenueRef, 'left')} className="absolute left-0 top-1/2 -translate-y-1/2 bg-green-800 text-white p-3 rounded-full shadow-lg z-10">
+              ‹
+            </button>
+            <button onClick={() => scroll(revenueRef, 'right')} className="absolute right-0 top-1/2 -translate-y-1/2 bg-green-800 text-white p-3 rounded-full shadow-lg z-10">
+              ›
+            </button>
+
+            <div ref={revenueRef} className="flex gap-6 overflow-x-auto snap-x snap-mandatory scroll-smooth no-scrollbar py-6">
+              {[
+                { icon: PieChart, title: "Order Commissions", desc: "10–15% per successful LPG transaction" },
+                { icon: DollarSign, title: "Vendor Subscriptions", desc: "Premium dashboards & compliance tools" },
+                { icon: BarChart2, title: "Logistics & Ads", desc: "Delivery fees + promoted vendor listings" }
+              ].map((b, i) => (
+                <div key={i} className="bg-white rounded-3xl p-8 shadow-lg flex-shrink-0 w-72 snap-start">
+                  <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <b.icon className="text-emerald-600" size={32} />
+                  </div>
+                  <h3 className="text-2xl font-bold text-green-900 mb-4">{b.title}</h3>
+                  <p className="text-gray-600">{b.desc}</p>
                 </div>
-                <h3 className="text-2xl font-bold text-green-900 mb-4">{b.title}</h3>
-                <p className="text-gray-600">{b.desc}</p>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -153,7 +140,7 @@ export default function Investors() {
             <LayoutDashboard size={48} className="mb-6 text-emerald-300" />
             <p className="text-xl font-semibold mb-2">Live Admin View</p>
             <p className="text-green-100">
-              Designed for founders, operators, and investors — not a demo UI.
+              Designed for founders, operators, and investors .
             </p>
           </div>
         </div>
@@ -177,6 +164,11 @@ export default function Investors() {
         </div>
       </section>
 
+      {/* Scrollbar hiding */}
+      <style jsx>{`
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      `}</style>
     </div>
   );
 }
