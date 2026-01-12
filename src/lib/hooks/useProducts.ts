@@ -33,28 +33,28 @@ export const useProducts = (options: UseProductsOptions = {}): UseProductsReturn
   const [params, setParams] = useState<ProductQueryParams | undefined>(initialParams);
 
   const fetchProducts = async (fetchParams?: ProductQueryParams) => {
-  try {
-    setLoading(true);
-    setError(null);
+    try {
+      setLoading(true);
+      setError(null);
 
-    const queryParams = fetchParams || params || {};
-    const response = await productService.getProducts(queryParams);
+      const queryParams = fetchParams || params || {};
+      const response = await productService.getProducts(queryParams);
 
-    setProducts(response.data ?? []);
-    setTotalPages(response.pagination?.pages ?? 1);
-    setCurrentPage(response.pagination?.page ?? 1);
-  } catch (err: any) {
-    setError(err.message || 'Failed to fetch products');
-    console.error('Error fetching products:', err);
-  } finally {
-    setLoading(false);
-  }
-};
+      // Use response directly, no `.data`
+      setProducts(Array.isArray(response) ? response : []);
+      setTotalPages(1); // if your API doesn't provide pagination
+      setCurrentPage(queryParams.page || 1);
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch products');
+      console.error('Error fetching products:', err);
+      setProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const refetch = async (newParams?: ProductQueryParams) => {
-    if (newParams) {
-      setParams(newParams);
-    }
+    if (newParams) setParams(newParams);
     await fetchProducts(newParams || params);
   };
 
@@ -64,9 +64,7 @@ export const useProducts = (options: UseProductsOptions = {}): UseProductsReturn
   };
 
   useEffect(() => {
-    if (autoFetch) {
-      fetchProducts(params);
-    }
+    if (autoFetch) fetchProducts(params);
   }, [autoFetch]);
 
   return {
@@ -80,7 +78,9 @@ export const useProducts = (options: UseProductsOptions = {}): UseProductsReturn
   };
 };
 
+// -----------------------------
 // Hook for fetching a single product
+// -----------------------------
 interface UseProductOptions {
   productId: string | null;
   autoFetch?: boolean;
@@ -108,19 +108,18 @@ export const useProduct = (options: UseProductOptions): UseProductReturn => {
       setError(null);
 
       const response = await productService.getProduct(productId);
-      setProduct(response.data);
+      setProduct(response ?? null); // no `.data`
     } catch (err: any) {
       setError(err.message || 'Failed to fetch product');
       console.error('Error fetching product:', err);
+      setProduct(null);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (autoFetch && productId) {
-      fetchProduct();
-    }
+    if (autoFetch && productId) fetchProduct();
   }, [productId, autoFetch]);
 
   return {
@@ -128,45 +127,5 @@ export const useProduct = (options: UseProductOptions): UseProductReturn => {
     loading,
     error,
     refetch: fetchProduct,
-  };
-};
-
-// Hook for fetching featured products
-interface UseFeaturedProductsReturn {
-  products: Product[];
-  loading: boolean;
-  error: string | null;
-  refetch: () => Promise<void>;
-}
-
-export const useFeaturedProducts = (limit?: number): UseFeaturedProductsReturn => {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchFeaturedProducts = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const response = await productService.getFeaturedProducts(limit);
-      setProducts(response.data);
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch featured products');
-      console.error('Error fetching featured products:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchFeaturedProducts();
-  }, [limit]);
-
-  return {
-    products,
-    loading,
-    error,
-    refetch: fetchFeaturedProducts,
   };
 };
