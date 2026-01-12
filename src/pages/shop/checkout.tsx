@@ -146,19 +146,17 @@ export default function CheckoutPage() {
         payment_method: formData.paymentMethod,
         notes: formData.notes || undefined,
       };
+// Create order
+const response = await orderService.createOrder(orderData);
 
-      // Create order
-      const response = await orderService.createOrder(orderData);
-      setOrderId(response.data.id);
-      setOrderPlaced(true);
-      clearCart();
-      toast.success('Order placed successfully!');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to place order');
-    } finally {
-      setSubmitting(false);
-    }
-  };
+if (!response.data) {
+  throw new Error('Order creation failed: no data returned');
+}
+
+setOrderId(response.data.id);
+setOrderPlaced(true);
+clearCart();
+toast.success('Order placed successfully!');
 
   // Success screen
   if (orderPlaced) {
