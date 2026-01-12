@@ -55,17 +55,17 @@ export default function OrderDetailPage() {
   }, [orderId, isAuthenticated]);
 
   const fetchOrderDetails = async () => {
-    try {
-      setLoading(true);
-      const response = await orderService.getOrder(orderId as string);
-      setOrder(response.data);
-    } catch (error: any) {
-      console.error('Error fetching order:', error);
-      toast.error('Failed to load order details');
-    } finally {
-      setLoading(false);
-    }
-  };
+  try {
+    setLoading(true);
+    const response = await orderService.getOrder(orderId as string);
+    setOrder(response.data ?? null); // safe fallback
+  } catch (error: any) {
+    console.error('Error fetching order:', error);
+    toast.error('Failed to load order details');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleCancelOrder = async () => {
     if (!order) return;
