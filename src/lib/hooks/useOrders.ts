@@ -34,29 +34,26 @@ export const useOrders = (options: UseOrdersOptions = {}): UseOrdersReturn => {
   const [params, setParams] = useState<OrderQueryParams | undefined>(initialParams);
 
   const fetchOrders = async (fetchParams?: OrderQueryParams) => {
-  try {
-    setLoading(true);
-    setError(null);
+    try {
+      setLoading(true);
+      setError(null);
 
-    const queryParams = fetchParams || params || {};
-    const response = await orderService.getOrders(queryParams);
+      const queryParams = fetchParams || params || {};
+      const response = await orderService.getOrders(queryParams);
 
-    // Provide a fallback empty array if response.data is undefined
-    setOrders(response.data ?? []);
-    setTotalPages(response.pagination?.pages ?? 1);
-    setCurrentPage(response.pagination?.page ?? 1);
-  } catch (err: any) {
-    setError(err.message || 'Failed to fetch orders');
-    console.error('Error fetching orders:', err);
-  } finally {
-    setLoading(false);
-  }
-};
+      setOrders(response.data ?? []); // default to empty array
+      setTotalPages(response.pagination?.pages ?? 1);
+      setCurrentPage(response.pagination?.page ?? 1);
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch orders');
+      console.error('Error fetching orders:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const refetch = async (newParams?: OrderQueryParams) => {
-    if (newParams) {
-      setParams(newParams);
-    }
+    if (newParams) setParams(newParams);
     await fetchOrders(newParams || params);
   };
 
@@ -77,9 +74,7 @@ export const useOrders = (options: UseOrdersOptions = {}): UseOrdersReturn => {
   };
 
   useEffect(() => {
-    if (autoFetch) {
-      fetchOrders(params);
-    }
+    if (autoFetch) fetchOrders(params);
   }, [autoFetch]);
 
   return {
@@ -94,7 +89,9 @@ export const useOrders = (options: UseOrdersOptions = {}): UseOrdersReturn => {
   };
 };
 
+// -----------------------------
 // Hook for fetching a single order
+// -----------------------------
 interface UseOrderOptions {
   orderId: string | null;
   autoFetch?: boolean;
@@ -124,7 +121,7 @@ export const useOrder = (options: UseOrderOptions): UseOrderReturn => {
       setError(null);
 
       const response = await orderService.getOrder(orderId);
-      setOrder(response.data);
+      setOrder(response.data ?? null); // default to null
     } catch (err: any) {
       setError(err.message || 'Failed to fetch order');
       console.error('Error fetching order:', err);
@@ -138,7 +135,7 @@ export const useOrder = (options: UseOrderOptions): UseOrderReturn => {
 
     try {
       const response = await orderService.cancelOrder(orderId, reason);
-      setOrder(response.data);
+      setOrder(response.data ?? null);
     } catch (err: any) {
       setError(err.message || 'Failed to cancel order');
       console.error('Error cancelling order:', err);
@@ -151,7 +148,7 @@ export const useOrder = (options: UseOrderOptions): UseOrderReturn => {
 
     try {
       const response = await orderService.trackOrder(orderId);
-      setOrder(response.data);
+      setOrder(response.data ?? null);
     } catch (err: any) {
       setError(err.message || 'Failed to track order');
       console.error('Error tracking order:', err);
@@ -160,9 +157,7 @@ export const useOrder = (options: UseOrderOptions): UseOrderReturn => {
   };
 
   useEffect(() => {
-    if (autoFetch && orderId) {
-      fetchOrder();
-    }
+    if (autoFetch && orderId) fetchOrder();
   }, [orderId, autoFetch]);
 
   return {
@@ -175,7 +170,9 @@ export const useOrder = (options: UseOrderOptions): UseOrderReturn => {
   };
 };
 
+// -----------------------------
 // Hook for creating orders
+// -----------------------------
 interface UseCreateOrderReturn {
   createOrder: (orderData: any) => Promise<Order>;
   loading: boolean;
@@ -192,7 +189,7 @@ export const useCreateOrder = (): UseCreateOrderReturn => {
       setError(null);
 
       const response = await orderService.createOrder(orderData);
-      return response.data;
+      return response.data ?? ({} as Order); // default empty object cast to Order
     } catch (err: any) {
       setError(err.message || 'Failed to create order');
       console.error('Error creating order:', err);
@@ -208,4 +205,3 @@ export const useCreateOrder = (): UseCreateOrderReturn => {
     error,
   };
 };
-
