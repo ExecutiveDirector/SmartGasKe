@@ -487,7 +487,7 @@ toast.success('Order placed successfully!');
                         {item.image}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-gray-800 truncate">{item.name}</p>
+                        <p className="font-semibold text-gray-800 truncate">{item.product_name}</p>
                         <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
                       </div>
                       <p className="font-bold text-gray-800">
