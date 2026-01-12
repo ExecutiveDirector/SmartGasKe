@@ -8,7 +8,7 @@ import { useRouter } from 'next/router';
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const { items, itemCount } = useCart();
+  const { itemCount } = useCart();
   const { isAuthenticated, user, logout } = useAuth();
   const router = useRouter();
 
