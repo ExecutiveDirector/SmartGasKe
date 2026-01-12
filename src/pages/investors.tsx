@@ -9,15 +9,13 @@ import {
 export default function Investors() {
   const metricsRef = useRef(null);
   const revenueRef = useRef(null);
-
-  const scroll = (ref, direction = 'left') => {
-    if (!ref.current) return;
-    ref.current.scrollBy({
-      left: direction === 'left' ? -300 : 300,
-      behavior: 'smooth'
-    });
-  };
-
+const scroll = (ref: React.RefObject<HTMLDivElement>, direction: 'left' | 'right' = 'left') => {
+  if (!ref.current) return;
+  ref.current.scrollBy({
+    left: direction === 'left' ? -300 : 300,
+    behavior: 'smooth',
+  });
+};
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-50 to-white font-sans">
 
