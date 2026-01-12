@@ -11,9 +11,10 @@ class WalletService {
   /**
    * Get wallet balance
    */
-  async getBalance() {
+  async getBalance(): Promise<number> {
     const response = await walletApi.getBalance();
-    return response;
+    // Assuming walletApi.getBalance() returns { balance: number } or AxiosResponse
+    return response.data?.balance ?? 0;
   }
 
   /**
@@ -21,7 +22,7 @@ class WalletService {
    */
   async getTransactions(params?: { page?: number; limit?: number }) {
     const response = await walletApi.getTransactions(params);
-    return response;
+    return response.data; // unwrap here too
   }
 
   /**
@@ -29,7 +30,7 @@ class WalletService {
    */
   async addMoney(data: AddMoneyData) {
     const response = await walletApi.addMoney(data);
-    return response;
+    return response.data; // unwrap
   }
 
   /**
@@ -37,8 +38,9 @@ class WalletService {
    */
   async withdrawMoney(amount: number, bankDetails: any) {
     const response = await walletApi.withdrawMoney(amount, bankDetails);
-    return response;
+    return response.data; // unwrap
   }
+  
 
   /**
    * Check if wallet has sufficient balance
