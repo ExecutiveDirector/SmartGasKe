@@ -78,18 +78,18 @@ export default function CheckoutPage() {
   }, [isAuthenticated]);
 
   const fetchWalletBalance = async () => {
-  try {
-    const response = await walletService.getBalance();
+    try {
+      const response = await walletService.getBalance();
 
-    if (!response.data) {
-      throw new Error('Wallet data missing');
+      if (!response.data) {
+        throw new Error('Wallet data missing');
+      }
+
+      setWalletBalance(response.data.balance);
+    } catch (error) {
+      console.error('Error fetching wallet balance:', error);
     }
-
-    setWalletBalance(response.data.balance);
-  } catch (error) {
-    console.error('Error fetching wallet balance:', error);
-  }
-};
+  };
 
   // Validate form
   const validateForm = (): boolean => {
@@ -146,17 +146,25 @@ export default function CheckoutPage() {
         payment_method: formData.paymentMethod,
         notes: formData.notes || undefined,
       };
-// Create order
-const response = await orderService.createOrder(orderData);
 
-if (!response.data) {
-  throw new Error('Order creation failed: no data returned');
-}
+      // Create order
+      const response = await orderService.createOrder(orderData);
 
-setOrderId(response.data.id);
-setOrderPlaced(true);
-clearCart();
-toast.success('Order placed successfully!');
+      if (!response.data) {
+        throw new Error('Order creation failed: no data returned');
+      }
+
+      setOrderId(response.data.id);
+      setOrderPlaced(true);
+      clearCart();
+      toast.success('Order placed successfully!');
+    } catch (error: any) {
+      console.error('Error creating order:', error);
+      toast.error(error.message || 'Failed to place order. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   // Success screen
   if (orderPlaced) {
@@ -541,4 +549,4 @@ toast.success('Order placed successfully!');
       </div>
     </>
   );
-  }
+}
