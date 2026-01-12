@@ -67,27 +67,7 @@ export default function Navbar() {
                 )}
               </Link>
               {/* Cart dropdown */}
-              {itemCount > 0 && (
-                <div className="absolute right-0 mt-2 w-64 bg-white border rounded-lg shadow-lg overflow-hidden z-50">
-                  <div className="p-4 border-b text-gray-700 font-medium">Cart Items</div>
-                  <div className="max-h-48 overflow-y-auto">
-                    {items.map((item, idx) => (
-                      <div key={idx} className="flex justify-between items-center px-4 py-2 hover:bg-gray-50">
-                        <span className="text-gray-800">{item.name}</span>
-                        <span className="text-gray-600 font-semibold">{item.quantity}x</span>
-                      </div>
-                    ))}
-                  </div>
-                  <Link
-                    href="/shop/cart"
-                    className="block text-center bg-green-600 text-white font-semibold py-2 hover:bg-green-700 transition"
-                  >
-                    View Cart
-                  </Link>
-                </div>
-              )}
-            </div>
-
+              
             {/* User Account */}
             {isAuthenticated ? (
               <div className="relative">
