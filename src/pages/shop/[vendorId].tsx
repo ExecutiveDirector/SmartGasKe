@@ -57,11 +57,19 @@ export default function VendorPage() {
     setTotalPages(productsResponse.pagination?.pages ?? 1);
 
     // Extract unique categories
-    const uniqueCategories = [
-      'All',
-      ...new Set((productsResponse.data ?? []).map((p) => p.category)),
-    ];
-    setCategories(uniqueCategories);
+    const uniqueCategories: string[] = [
+  'All',
+  ...Array.from(
+    new Set(
+      (productsResponse.data ?? [])
+        .map((p) => p.category)
+        .filter(Boolean)
+        .map(String)
+    )
+  ),
+];
+
+setCategories(uniqueCategories);
   } catch (error: any) {
     console.error('Error fetching vendor data:', error);
     toast.error('Failed to load vendor information');
