@@ -15,7 +15,7 @@ export default function ProductCard({ product, outlet, compact = false }: Produc
 
   const handleAddToCart = () => {
     addToCart(product, outlet);
-    toast.success(`${product.name} added to cart!`);
+    toast.success(`${product.product_name} added to cart!`); // ✅ changed here
   };
 
   if (compact) {
@@ -23,10 +23,10 @@ export default function ProductCard({ product, outlet, compact = false }: Produc
       <div className="min-w-[200px] bg-white rounded-lg shadow p-2 flex-shrink-0 hover:shadow-md transition">
         <img 
           src={product.image || '/placeholder-product.jpg'} 
-          alt={product.name} 
+          alt={product.product_name} 
           className="w-full h-32 object-cover rounded"
         />
-        <h3 className="mt-2 font-semibold text-sm">{product.name}</h3>
+        <h3 className="mt-2 font-semibold text-sm">{product.product_name}</h3>
         <p className="text-blue-600 font-bold">KES {product.price}</p>
         <button
           onClick={handleAddToCart}
@@ -43,11 +43,11 @@ export default function ProductCard({ product, outlet, compact = false }: Produc
     <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition">
       <img 
         src={product.image || '/placeholder-product.jpg'} 
-        alt={product.name} 
+        alt={product.product_name} 
         className="w-full h-48 object-cover"
       />
       <div className="p-4">
-        <h3 className="font-semibold text-lg text-gray-800 mb-2">{product.name}</h3>
+        <h3 className="font-semibold text-lg text-gray-800 mb-2">{product.product_name}</h3>
         {product.description && (
           <p className="text-sm text-gray-600 mb-3 line-clamp-2">{product.description}</p>
         )}
