@@ -13,9 +13,12 @@ interface ProductCardProps {
 export default function ProductCard({ product, outlet, compact = false }: ProductCardProps) {
   const { addToCart } = useCart();
 
+  // Fallback product name
+  const productDisplayName = product.product_name || product.title || 'Unnamed Product';
+
   const handleAddToCart = () => {
     addToCart(product, outlet);
-    toast.success(`${product.product_name} added to cart!`); // ✅ changed here
+    toast.success(`${productDisplayName} added to cart!`);
   };
 
   if (compact) {
@@ -23,10 +26,10 @@ export default function ProductCard({ product, outlet, compact = false }: Produc
       <div className="min-w-[200px] bg-white rounded-lg shadow p-2 flex-shrink-0 hover:shadow-md transition">
         <img 
           src={product.image || '/placeholder-product.jpg'} 
-          alt={product.product_name} 
+          alt={productDisplayName} 
           className="w-full h-32 object-cover rounded"
         />
-        <h3 className="mt-2 font-semibold text-sm">{product.product_name}</h3>
+        <h3 className="mt-2 font-semibold text-sm">{productDisplayName}</h3>
         <p className="text-blue-600 font-bold">KES {product.price}</p>
         <button
           onClick={handleAddToCart}
@@ -43,18 +46,18 @@ export default function ProductCard({ product, outlet, compact = false }: Produc
     <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition">
       <img 
         src={product.image || '/placeholder-product.jpg'} 
-        alt={product.product_name} 
+        alt={productDisplayName} 
         className="w-full h-48 object-cover"
       />
       <div className="p-4">
-        <h3 className="font-semibold text-lg text-gray-800 mb-2">{product.product_name}</h3>
+        <h3 className="font-semibold text-lg text-gray-800 mb-2">{productDisplayName}</h3>
         {product.description && (
           <p className="text-sm text-gray-600 mb-3 line-clamp-2">{product.description}</p>
         )}
         <div className="flex items-center justify-between">
           <div>
             <p className="text-blue-600 font-bold text-xl">KES {product.price}</p>
-            {product.stock <= 10 && product.stock > 0 && (
+            {product.stock !== undefined && product.stock <= 10 && product.stock > 0 && (
               <p className="text-sm text-orange-600">Only {product.stock} left</p>
             )}
             {product.stock === 0 && (
