@@ -31,43 +31,44 @@ export default function VendorPage() {
   }, [vendorId, categoryFilter, currentPage]);
 
   const fetchVendorData = async () => {
-    try {
-      setLoading(true);
+  try {
+    setLoading(true);
 
-      // Fetch outlet details
-      const outletResponse = await outletService.getOutlet(vendorId as string);
-      setOutlet(outletResponse.data);
+    // Fetch outlet details
+    const outletResponse = await outletService.getOutlet(vendorId as string);
+    setOutlet(outletResponse.data ?? null);
 
-      // Fetch outlet products
-      const params: any = {
-        page: currentPage,
-        limit: 20,
-      };
+    // Fetch outlet products
+    const params: any = {
+      page: currentPage,
+      limit: 20,
+    };
 
-      if (categoryFilter !== 'All') {
-        params.category = categoryFilter;
-      }
-
-      const productsResponse = await outletService.getOutletProducts(
-        vendorId as string,
-        params
-      );
-      setProducts(productsResponse.data);
-      setTotalPages(productsResponse.pagination.pages);
-
-      // Extract unique categories
-      const uniqueCategories = [
-        'All',
-        ...new Set(productsResponse.data.map((p) => p.category)),
-      ];
-      setCategories(uniqueCategories);
-    } catch (error: any) {
-      console.error('Error fetching vendor data:', error);
-      toast.error('Failed to load vendor information');
-    } finally {
-      setLoading(false);
+    if (categoryFilter !== 'All') {
+      params.category = categoryFilter;
     }
-  };
+
+    const productsResponse = await outletService.getOutletProducts(
+      vendorId as string,
+      params
+    );
+
+    setProducts(productsResponse.data ?? []);
+    setTotalPages(productsResponse.pagination?.pages ?? 1);
+
+    // Extract unique categories
+    const uniqueCategories = [
+      'All',
+      ...new Set((productsResponse.data ?? []).map((p) => p.category)),
+    ];
+    setCategories(uniqueCategories);
+  } catch (error: any) {
+    console.error('Error fetching vendor data:', error);
+    toast.error('Failed to load vendor information');
+  } finally {
+    setLoading(false);
+  }
+};
 
   if (loading) {
     return (
