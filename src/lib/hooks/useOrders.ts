@@ -34,23 +34,24 @@ export const useOrders = (options: UseOrdersOptions = {}): UseOrdersReturn => {
   const [params, setParams] = useState<OrderQueryParams | undefined>(initialParams);
 
   const fetchOrders = async (fetchParams?: OrderQueryParams) => {
-    try {
-      setLoading(true);
-      setError(null);
+  try {
+    setLoading(true);
+    setError(null);
 
-      const queryParams = fetchParams || params || {};
-      const response = await orderService.getOrders(queryParams);
+    const queryParams = fetchParams || params || {};
+    const response = await orderService.getOrders(queryParams);
 
-      setOrders(response.data);
-      setTotalPages(response.pagination.pages);
-      setCurrentPage(response.pagination.page);
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch orders');
-      console.error('Error fetching orders:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    // Provide a fallback empty array if response.data is undefined
+    setOrders(response.data ?? []);
+    setTotalPages(response.pagination?.pages ?? 1);
+    setCurrentPage(response.pagination?.page ?? 1);
+  } catch (err: any) {
+    setError(err.message || 'Failed to fetch orders');
+    console.error('Error fetching orders:', err);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const refetch = async (newParams?: OrderQueryParams) => {
     if (newParams) {
