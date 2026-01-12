@@ -33,23 +33,23 @@ export const useProducts = (options: UseProductsOptions = {}): UseProductsReturn
   const [params, setParams] = useState<ProductQueryParams | undefined>(initialParams);
 
   const fetchProducts = async (fetchParams?: ProductQueryParams) => {
-    try {
-      setLoading(true);
-      setError(null);
+  try {
+    setLoading(true);
+    setError(null);
 
-      const queryParams = fetchParams || params || {};
-      const response = await productService.getProducts(queryParams);
+    const queryParams = fetchParams || params || {};
+    const response = await productService.getProducts(queryParams);
 
-      setProducts(response.data);
-      setTotalPages(response.pagination.pages);
-      setCurrentPage(response.pagination.page);
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch products');
-      console.error('Error fetching products:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    setProducts(response.data ?? []);
+    setTotalPages(response.pagination?.pages ?? 1);
+    setCurrentPage(response.pagination?.page ?? 1);
+  } catch (err: any) {
+    setError(err.message || 'Failed to fetch products');
+    console.error('Error fetching products:', err);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const refetch = async (newParams?: ProductQueryParams) => {
     if (newParams) {
