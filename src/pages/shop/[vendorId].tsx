@@ -13,11 +13,17 @@ import { outletService } from '@/lib/api';
 import { Outlet, Product } from '@/lib/types';
 import toast from 'react-hot-toast';
 
+// Extended Product type to include outlet_id from backend
+interface ProductWithOutlet extends Product {
+  outlet_id?: string;
+  category?: string | null;
+}
+
 export default function VendorPage() {
   const router = useRouter();
   const { vendorId } = router.query;
   const [outlet, setOutlet] = useState<Outlet | null>(null);
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<ProductWithOutlet[]>([]);
   const [loading, setLoading] = useState(true);
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [categories, setCategories] = useState<string[]>(['All']);
@@ -31,74 +37,109 @@ export default function VendorPage() {
   }, [vendorId, categoryFilter, currentPage]);
 
   const fetchVendorData = async () => {
-  try {
-    setLoading(true);
+    try {
+      setLoading(true);
 
-    // Fetch outlet details
-    const outletResponse = await outletService.getOutlet(vendorId as string);
-    setOutlet(outletResponse.data ?? null);
+      // Fetch outlet details
+      const outletResponse = await outletService.getOutlet(vendorId as string);
+      const outletData = outletResponse.data;
+      
+      if (!outletData) {
+        setOutlet(null);
+        setLoading(false);
+        return;
+      }
 
-    // Fetch outlet products
-    const params: any = {
-      page: currentPage,
-      limit: 20,
-    };
+      setOutlet(outletData);
 
-    if (categoryFilter !== 'All') {
-      params.category = categoryFilter;
+      // Fetch outlet products
+      const params: any = {
+        page: currentPage,
+        limit: 20,
+      };
+
+      if (categoryFilter !== 'All') {
+        params.category = categoryFilter;
+      }
+
+      const productsResponse = await outletService.getOutletProducts(
+        vendorId as string,
+        params
+      );
+
+      const productsData = productsResponse.data ?? [];
+      setProducts(productsData);
+      setTotalPages(productsResponse.pagination?.pages ?? 1);
+
+      // Extract unique categories from products
+      const uniqueCategories = new Set<string>();
+      productsData.forEach((product) => {
+        if (product.category) {
+          // Handle both string and object categories
+          const categoryName = typeof product.category === 'string' 
+            ? product.category 
+            : (product.category as any)?.category_name || (product.category as any)?.name;
+          
+          if (categoryName) {
+            uniqueCategories.add(categoryName);
+          }
+        }
+      });
+
+      setCategories(['All', ...Array.from(uniqueCategories).sort()]);
+
+    } catch (error: any) {
+      console.error('Error fetching vendor data:', error);
+      toast.error(error?.message || 'Failed to load vendor information');
+      setOutlet(null);
+    } finally {
+      setLoading(false);
     }
-
-    const productsResponse = await outletService.getOutletProducts(
-      vendorId as string,
-      params
-    );
-
-    setProducts(productsResponse.data ?? []);
-    setTotalPages(productsResponse.pagination?.pages ?? 1);
-
-    // Extract unique categories
-    const uniqueCategories: string[] = [
-  'All',
-  ...Array.from(
-    new Set(
-      (productsResponse.data ?? [])
-        .map((p) => p.category)
-        .filter(Boolean)
-        .map(String)
-    )
-  ),
-];
-
-setCategories(uniqueCategories);
-  } catch (error: any) {
-    console.error('Error fetching vendor data:', error);
-    toast.error('Failed to load vendor information');
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader className="animate-spin text-blue-600" size={48} />
-      </div>
+      <>
+        <Head>
+          <title>Loading... - AquaGas</title>
+        </Head>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <Loader className="animate-spin text-blue-600 mx-auto mb-4" size={48} />
+            <p className="text-gray-600">Loading vendor information...</p>
+          </div>
+        </div>
+      </>
     );
   }
 
   if (!outlet) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Outlet Not Found</h2>
-          <Link
-            href="/shop"
-            className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition"
-          >
-            Back to Shop
-          </Link>
+      <>
+        <Head>
+          <title>Outlet Not Found - AquaGas</title>
+        </Head>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center max-w-md mx-auto px-4">
+            <div className="mb-6">
+              <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                <MapPin size={48} className="text-gray-400" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Outlet Not Found</h2>
+              <p className="text-gray-600 mb-6">
+                The outlet you're looking for doesn't exist or is no longer available.
+              </p>
+            </div>
+            <Link
+              href="/shop"
+              className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-semibold"
+            >
+              <ArrowLeft size={20} />
+              Back to Shop
+            </Link>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
@@ -168,7 +209,7 @@ setCategories(uniqueCategories);
                   <div className="flex items-center gap-4 mb-4">
                     <div className="flex items-center gap-2">
                       <Star size={24} fill="currentColor" className="text-yellow-400" />
-                      <span className="text-3xl font-bold">{outlet.rating}</span>
+                      <span className="text-3xl font-bold">{outlet.rating.toFixed(1)}</span>
                     </div>
                     <div className="text-sm">
                       <p className="font-semibold">Rating</p>
@@ -203,41 +244,65 @@ setCategories(uniqueCategories);
           {/* Category Filter */}
           <div className="mb-8">
             <h2 className="text-2xl font-bold text-gray-800 mb-4">Products</h2>
-            <div className="flex gap-3 overflow-x-auto pb-2">
-              {categories.map((category) => (
-                <button
-                  key={category}
-                  onClick={() => {
-                    setCategoryFilter(category);
-                    setCurrentPage(1);
-                  }}
-                  className={`px-6 py-3 rounded-full whitespace-nowrap font-semibold transition ${
-                    categoryFilter === category
-                      ? 'bg-blue-600 text-white shadow-md'
-                      : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
-                  }`}
-                >
-                  {category}
-                </button>
-              ))}
-            </div>
+            {categories.length > 1 && (
+              <div className="flex gap-3 overflow-x-auto pb-2">
+                {categories.map((category) => (
+                  <button
+                    key={category}
+                    onClick={() => {
+                      setCategoryFilter(category);
+                      setCurrentPage(1);
+                    }}
+                    className={`px-6 py-3 rounded-full whitespace-nowrap font-semibold transition ${
+                      categoryFilter === category
+                        ? 'bg-blue-600 text-white shadow-md'
+                        : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+                    }`}
+                  >
+                    {category}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Products Grid */}
           {products.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-gray-600 text-lg mb-4">
-                No products available in this category
-              </p>
-              <button
-                onClick={() => {
-                  setCategoryFilter('All');
-                  setCurrentPage(1);
-                }}
-                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition"
-              >
-                View All Products
-              </button>
+            <div className="text-center py-12 bg-white rounded-lg shadow-sm">
+              <div className="max-w-md mx-auto">
+                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg 
+                    className="w-10 h-10 text-gray-400" 
+                    fill="none" 
+                    viewBox="0 0 24 24" 
+                    stroke="currentColor"
+                  >
+                    <path 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      strokeWidth={2} 
+                      d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" 
+                    />
+                  </svg>
+                </div>
+                <p className="text-gray-600 text-lg mb-4">
+                  {categoryFilter === 'All' 
+                    ? 'No products available at this outlet yet'
+                    : `No products available in the "${categoryFilter}" category`
+                  }
+                </p>
+                {categoryFilter !== 'All' && (
+                  <button
+                    onClick={() => {
+                      setCategoryFilter('All');
+                      setCurrentPage(1);
+                    }}
+                    className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-semibold"
+                  >
+                    View All Products
+                  </button>
+                )}
+              </div>
             </div>
           ) : (
             <>
@@ -257,7 +322,7 @@ setCategories(uniqueCategories);
                   >
                     Previous
                   </button>
-                  <span className="text-gray-600 font-semibold">
+                  <span className="text-gray-600 font-semibold px-4">
                     Page {currentPage} of {totalPages}
                   </span>
                   <button
@@ -275,5 +340,4 @@ setCategories(uniqueCategories);
       </div>
     </>
   );
-}
-    
+      }
