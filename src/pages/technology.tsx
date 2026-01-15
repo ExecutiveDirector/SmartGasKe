@@ -1,174 +1,228 @@
-// Technology.jsx
-import React from 'react';
+import Head from 'next/head';
+import Link from 'next/link';
 import { 
   Code, Database, Smartphone, Server, 
   Lock, Zap, Globe, Cpu, 
-  ArrowRight, CheckCircle, Shield, ChevronRight, TrendingUp 
+  ArrowRight, CheckCircle, Shield, TrendingUp 
 } from 'lucide-react';
 
 export default function Technology() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
-      {/* Hero Section - Tech-Focused */}
-      <section className="relative bg-gradient-to-br from-blue-950 via-indigo-950 to-blue-900 text-white pt-24 pb-32 md:pt-32 md:pb-40 overflow-hidden">
-        <div className="absolute inset-0 opacity-10 pointer-events-none">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_70%,rgba(255,165,0,0.18),transparent_60%)]" />
-        </div>
+    <>
+      <Head>
+        <title>Our Technology - AquaGas Delivery</title>
+        <meta name="description" content="Learn about the technology powering AquaGas - modern stack for fast, secure, and reliable gas delivery." />
+      </Head>
 
-        <div className="relative max-w-7xl mx-auto px-5 lg:px-8 text-center">
-          <div className="inline-flex items-center gap-3 mb-8 px-6 py-3 bg-orange-500/20 backdrop-blur-md rounded-full text-orange-300 font-medium">
-            <span className="text-sm">Built for Scale & Security</span>
+      <div className="min-h-screen bg-white">
+        {/* Hero Section */}
+        <section className="relative bg-gradient-to-br from-blue-600 via-blue-700 to-green-600 text-white py-20">
+          <div className="container mx-auto px-4 text-center">
+            <div className="inline-flex items-center gap-2 mb-6 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full text-sm font-medium">
+              Built for Scale & Security
+            </div>
+
+            <h1 className="text-4xl md:text-5xl font-bold leading-tight mb-6 max-w-4xl mx-auto">
+              Powering Reliable Delivery
+              <span className="block text-green-300 mt-2">With Modern Technology</span>
+            </h1>
+
+            <p className="text-xl text-blue-100 max-w-3xl mx-auto mb-10 leading-relaxed">
+              Flutter apps, Node.js backend, and real-time tracking—all designed for Kenya's LPG delivery needs.
+            </p>
+
+            <a href="#stack" 
+               className="inline-flex items-center gap-2 bg-white text-blue-600 px-8 py-4 rounded-lg font-bold shadow-lg hover:bg-blue-50 transition group">
+              Explore Our Stack <ArrowRight className="group-hover:translate-x-1 transition-transform" size={20} />
+            </a>
           </div>
+        </section>
 
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-tight mb-8">
-            Powering Reliable Delivery
-            <span className="block text-orange-400 mt-3">With Modern Tech</span>
-          </h1>
-
-          <p className="text-xl md:text-2xl text-blue-100/90 max-w-3xl mx-auto font-light leading-relaxed mb-10">
-            Flutter apps, Node.js backend, real-time tracking — all designed for Kenya's LPG needs.
-          </p>
-
-          <a href="#stack" 
-             className="bg-orange-500 hover:bg-orange-600 text-white px-10 py-5 rounded-xl font-bold text-lg shadow-lg hover:shadow-orange-400/30 transition-all flex items-center gap-3 mx-auto group max-w-fit">
-            Explore Our Stack <ArrowRight className="group-hover:translate-x-1 transition-transform" />
-          </a>
-        </div>
-      </section>
-
-      {/* Key Features Cards */}
-      <section className="-mt-24 md:-mt-32 relative z-10 pb-16 md:pb-24">
-        <div className="max-w-6xl mx-auto px-5">
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { icon: Zap, title: "Lightning Fast", desc: "Real-time updates & quick load times" },
-              { icon: Lock, title: "Secure by Design", desc: "JWT auth & end-to-end encryption" },
-              { icon: Globe, title: "Scalable Architecture", desc: "Ready for nationwide expansion" }
-            ].map((feature, i) => (
-              <div key={i} 
-                   className="bg-white rounded-2xl p-8 shadow-xl hover:-translate-y-2 transition-transform duration-300 text-center">
-                <div className="w-16 h-16 mb-6 rounded-full bg-blue-100 flex items-center justify-center mx-auto">
-                  <feature.icon size={32} className="text-blue-600" />
+        {/* Key Features */}
+        <section className="py-16 -mt-16">
+          <div className="container mx-auto px-4">
+            <div className="max-w-5xl mx-auto grid md:grid-cols-3 gap-6">
+              {[
+                { icon: Zap, title: "Lightning Fast", desc: "Real-time updates with sub-second response times", color: "blue" },
+                { icon: Lock, title: "Secure by Design", desc: "JWT authentication and encrypted data", color: "green" },
+                { icon: Globe, title: "Scalable", desc: "Built to grow across Kenya and beyond", color: "purple" }
+              ].map((feature, i) => (
+                <div key={i} 
+                     className="bg-white rounded-xl p-8 shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all text-center">
+                  <div className={`w-16 h-16 mb-4 rounded-xl bg-${feature.color}-100 flex items-center justify-center mx-auto`}>
+                    <feature.icon size={32} className={`text-${feature.color}-600`} />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">{feature.title}</h3>
+                  <p className="text-gray-600 text-sm">{feature.desc}</p>
                 </div>
-                <h3 className="text-2xl font-bold text-blue-950 mb-3">{feature.title}</h3>
-                <p className="text-gray-600">{feature.desc}</p>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Tech Stack */}
+        <section id="stack" className="py-20 bg-gradient-to-br from-gray-50 to-white">
+          <div className="container mx-auto px-4">
+            <div className="max-w-6xl mx-auto">
+              <div className="text-center mb-12">
+                <div className="inline-block mb-4 px-4 py-2 bg-blue-100 text-blue-700 rounded-full font-medium text-sm">
+                  Our Technology Stack
+                </div>
+                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                  Built with Modern Tools
+                </h2>
+                <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+                  We use industry-leading technologies for reliability, speed, and security.
+                </p>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
-      {/* Tech Stack Section */}
-      <section id="stack" className="py-20 md:py-28 bg-white">
-        <div className="max-w-7xl mx-auto px-5">
-          <div className="text-center mb-16">
-            <div className="inline-block mb-6 px-5 py-2 bg-orange-100 text-orange-800 rounded-full font-medium">
-              Our Core Technologies
-            </div>
-            <h2 className="text-4xl md:text-5xl font-bold text-blue-950 mb-6">
-              Built with the Best Tools
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Modern stack for reliability, speed, and security in delivery logistics.
-            </p>
-          </div>
+              <div className="grid md:grid-cols-2 gap-8">
+                {/* Frontend */}
+                <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-6">Frontend</h3>
+                  <ul className="space-y-6">
+                    {[
+                      { icon: Smartphone, title: "Flutter", desc: "Cross-platform mobile apps for iOS & Android" },
+                      { icon: Code, title: "React.js", desc: "Responsive web dashboard and admin panel" }
+                    ].map((item, i) => (
+                      <li key={i} className="flex gap-4">
+                        <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-blue-50 flex items-center justify-center">
+                          <item.icon size={24} className="text-blue-600" />
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-bold mb-1 text-gray-900">{item.title}</h4>
+                          <p className="text-gray-600 text-sm">{item.desc}</p>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
 
-          <div className="grid md:grid-cols-2 gap-12">
-            <div className="bg-gradient-to-br from-blue-50 to-white rounded-3xl p-8 md:p-12 shadow-sm">
-              <h3 className="text-3xl font-bold text-blue-950 mb-8">Frontend</h3>
-              <ul className="space-y-6">
-                {[
-                  { icon: Smartphone, title: "Flutter Apps", desc: "Cross-platform for User, Vendor & Rider mobile apps" },
-                  { icon: Code, title: "React.js", desc: "Responsive web dashboard & admin panel" }
-                ].map((item, i) => (
-                  <li key={i} className="flex gap-4">
-                    <div className="flex-shrink-0 w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-md">
-                      <item.icon size={24} className="text-blue-600" />
-                    </div>
-                    <div>
-                      <h4 className="text-xl font-bold mb-2">{item.title}</h4>
-                      <p className="text-gray-600">{item.desc}</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="bg-gradient-to-br from-orange-50 to-white rounded-3xl p-8 md:p-12 shadow-sm">
-              <h3 className="text-3xl font-bold text-blue-950 mb-8">Backend & Infrastructure</h3>
-              <ul className="space-y-6">
-                {[
-                  { icon: Server, title: "Node.js + Express", desc: "High-performance API server" },
-                  { icon: Database, title: "MySQL Database", desc: "Reliable data storage for orders & users" },
-                  { icon: Lock, title: "JWT Authentication", desc: "Secure access & OTP via Twilio SMS" },
-                  { icon: Cpu, title: "RESTful APIs", desc: "Seamless integration across apps" }
-                ].map((item, i) => (
-                  <li key={i} className="flex gap-4">
-                    <div className="flex-shrink-0 w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-md">
-                      <item.icon size={24} className="text-orange-600" />
-                    </div>
-                    <div>
-                      <h4 className="text-xl font-bold mb-2">{item.title}</h4>
-                      <p className="text-gray-600">{item.desc}</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Benefits Section */}
-      <section className="py-20 md:py-28 bg-gradient-to-b from-gray-50 to-white">
-        <div className="max-w-7xl mx-auto px-5">
-          <div className="text-center mb-16">
-            <div className="inline-block mb-6 px-5 py-2 bg-blue-100 text-blue-800 rounded-full font-medium">
-              Why Our Tech Matters
-            </div>
-            <h2 className="text-4xl md:text-5xl font-bold text-blue-950 mb-6">
-              Innovation for Real Impact
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Our stack ensures efficiency, safety, and scalability for all users.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { icon: CheckCircle, title: "Real-Time Efficiency", desc: "Instant updates reduce wait times by 70%" },
-              { icon: Shield, title: "Top-Tier Security", desc: "Protect user data & prevent fraud" },
-              { icon: TrendingUp, title: "Built to Grow", desc: "Handle 10x more orders without slowdown" }
-            ].map((benefit, i) => (
-              <div key={i} className="bg-white rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-shadow text-center">
-                <benefit.icon size={48} className="mx-auto mb-6 text-orange-500" />
-                <h3 className="text-2xl font-bold text-blue-950 mb-3">{benefit.title}</h3>
-                <p className="text-gray-600">{benefit.desc}</p>
+                {/* Backend */}
+                <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-6">Backend & Infrastructure</h3>
+                  <ul className="space-y-6">
+                    {[
+                      { icon: Server, title: "Node.js", desc: "High-performance API server with Express" },
+                      { icon: Database, title: "MySQL", desc: "Reliable relational database" },
+                      { icon: Lock, title: "JWT Auth", desc: "Secure authentication system" },
+                      { icon: Cpu, title: "REST API", desc: "Clean, documented API architecture" }
+                    ].map((item, i) => (
+                      <li key={i} className="flex gap-4">
+                        <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-green-50 flex items-center justify-center">
+                          <item.icon size={24} className="text-green-600" />
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-bold mb-1 text-gray-900">{item.title}</h4>
+                          <p className="text-gray-600 text-sm">{item.desc}</p>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
-            ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Final CTA */}
-      <section className="py-24 bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-        <div className="max-w-5xl mx-auto px-5 text-center">
-          <h2 className="text-4xl md:text-5xl font-bold mb-8">
-            Experience the Tech Difference
-          </h2>
-          <p className="text-xl md:text-2xl mb-12 opacity-90">
-            Join AquaGas and see how our platform transforms LPG delivery.
-          </p>
-          <div className="flex flex-wrap justify-center gap-6">
-            <a href="/download" className="bg-white text-blue-600 px-10 py-5 rounded-xl font-bold text-lg shadow-2xl hover:shadow-white/30 hover:scale-[1.02] transition-all">
-              Download App
-            </a>
-            <a href="/investors" className="border-2 border-white px-10 py-5 rounded-xl font-bold text-lg hover:bg-white/10 transition flex items-center gap-3">
-              Invest in Innovation <ChevronRight />
-            </a>
+        {/* Benefits */}
+        <section className="py-20">
+          <div className="container mx-auto px-4">
+            <div className="max-w-6xl mx-auto">
+              <div className="text-center mb-12">
+                <div className="inline-block mb-4 px-4 py-2 bg-green-100 text-green-700 rounded-full font-medium text-sm">
+                  Why It Matters
+                </div>
+                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                  Technology That Delivers Results
+                </h2>
+                <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+                  Our technology stack ensures efficiency, safety, and scalability.
+                </p>
+              </div>
+
+              <div className="grid md:grid-cols-3 gap-8">
+                {[
+                  { 
+                    icon: CheckCircle, 
+                    title: "Real-Time Updates", 
+                    desc: "Instant order tracking and notifications keep everyone informed",
+                    color: "blue"
+                  },
+                  { 
+                    icon: Shield, 
+                    title: "Enterprise Security", 
+                    desc: "Bank-level encryption protects user data and transactions",
+                    color: "green"
+                  },
+                  { 
+                    icon: TrendingUp, 
+                    title: "Scalable Growth", 
+                    desc: "Architecture designed to handle 10x growth seamlessly",
+                    color: "purple"
+                  }
+                ].map((benefit, i) => (
+                  <div key={i} className="bg-white rounded-xl p-8 shadow-lg hover:shadow-xl transition-shadow text-center border border-gray-100">
+                    <div className={`w-16 h-16 mx-auto mb-4 rounded-xl bg-${benefit.color}-100 flex items-center justify-center`}>
+                      <benefit.icon size={32} className={`text-${benefit.color}-600`} />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-3">{benefit.title}</h3>
+                    <p className="text-gray-600">{benefit.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
-        </div>
-      </section>
-    </div>
+        </section>
+
+        {/* Features List */}
+        <section className="py-20 bg-gradient-to-br from-gray-50 to-white">
+          <div className="container mx-auto px-4">
+            <div className="max-w-4xl mx-auto">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-8 text-center">
+                Platform Features
+              </h2>
+              <div className="grid md:grid-cols-2 gap-6">
+                {[
+                  "Real-time GPS tracking",
+                  "Push notifications",
+                  "In-app payments",
+                  "Order history & receipts",
+                  "Multi-language support",
+                  "Offline mode capability",
+                  "Analytics dashboard",
+                  "SMS notifications"
+                ].map((feature, i) => (
+                  <div key={i} className="flex items-center gap-3 bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+                    <CheckCircle className="text-green-600 flex-shrink-0" size={20} />
+                    <span className="text-gray-700 font-medium">{feature}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* CTA */}
+        <section className="py-20 bg-gradient-to-br from-blue-600 to-green-600 text-white">
+          <div className="container mx-auto px-4 text-center">
+            <h2 className="text-3xl md:text-4xl font-bold mb-6">
+              Experience the Technology Difference
+            </h2>
+            <p className="text-xl mb-10 text-blue-100 max-w-2xl mx-auto">
+              See how our platform transforms gas delivery with modern technology.
+            </p>
+            <div className="flex flex-wrap justify-center gap-4">
+              <Link href="/shop" className="bg-white text-blue-600 px-8 py-4 rounded-lg font-bold shadow-lg hover:bg-blue-50 transition">
+                Try It Now
+              </Link>
+              <Link href="/investors" className="border-2 border-white px-8 py-4 rounded-lg font-bold hover:bg-white/10 transition">
+                Partner With Us
+              </Link>
+            </div>
+          </div>
+        </section>
+      </div>
+    </>
   );
-}
+                          }
