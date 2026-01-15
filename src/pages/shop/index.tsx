@@ -15,10 +15,15 @@ import { outletService } from '@/lib/api';
 import { Product, Outlet } from '@/lib/types';
 import toast from 'react-hot-toast';
 
+// Extended Product type to include outlet_id from backend
+interface ProductWithOutlet extends Product {
+  outlet_id?: string;
+}
+
 export default function ShopPage() {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<ProductWithOutlet[]>([]);
   const [outlets, setOutlets] = useState<Outlet[]>([]);
-  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+  const [featuredProducts, setFeaturedProducts] = useState<ProductWithOutlet[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
@@ -89,8 +94,28 @@ export default function ShopPage() {
     }
   };
 
-  const getOutletForProduct = (productOutletId: string) => {
-    return outlets.find((o) => o.id === productOutletId);
+  const getOutletForProduct = (product: ProductWithOutlet): Outlet | null => {
+    // If product has outlet_id, find matching outlet
+    if (product.outlet_id) {
+      return outlets.find((o) => o.id === product.outlet_id) || null;
+    }
+    
+    // Fallback: return first outlet if available
+    return outlets.length > 0 ? outlets[0] : null;
+  };
+
+  const createFallbackOutlet = (productOutletId?: string): Outlet => {
+    return {
+      id: productOutletId || 'unknown',
+      name: 'Product Available',
+      vendor: 'AquaGas',
+      rating: 4.0,
+      reviews: 0,
+      address: 'Multiple locations',
+      phone: '',
+      featured: false,
+      is_active: true,
+    };
   };
 
   if (loading) {
@@ -138,21 +163,14 @@ export default function ShopPage() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {featuredProducts.map((product) => {
-                  const outlet = getOutletForProduct(product.outlet_id);
-                  return outlet ? (
-                    <ProductCard key={product.id} product={product} outlet={outlet} compact={true} />
-                  ) : (
-                    <ProductCard key={product.id} product={product} outlet={{
-                      id: product.outlet_id || 'unknown',
-                      name: 'Unknown Outlet',
-                      vendor: 'Unknown Vendor',
-                      rating: 0,
-                      reviews: 0,
-                      address: '',
-                      phone: '',
-                      featured: false,
-                      is_active: true,
-                    }} compact={true} />
+                  const outlet = getOutletForProduct(product);
+                  return (
+                    <ProductCard 
+                      key={product.id} 
+                      product={product} 
+                      outlet={outlet || createFallbackOutlet(product.outlet_id)} 
+                      compact={true} 
+                    />
                   );
                 })}
               </div>
@@ -204,24 +222,12 @@ export default function ShopPage() {
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
                 {products.map((product) => {
-                  const outlet = getOutletForProduct(product.outlet_id);
-                  return outlet ? (
-                    <ProductCard key={product.id} product={product} outlet={outlet} />
-                  ) : (
+                  const outlet = getOutletForProduct(product);
+                  return (
                     <ProductCard 
                       key={product.id} 
                       product={product} 
-                      outlet={{
-                        id: product.outlet_id || 'unknown',
-                        name: 'Unknown Outlet',
-                        vendor: 'Unknown Vendor',
-                        rating: 0,
-                        reviews: 0,
-                        address: '',
-                        phone: '',
-                        featured: false,
-                        is_active: true,
-                      }} 
+                      outlet={outlet || createFallbackOutlet(product.outlet_id)} 
                     />
                   );
                 })}
@@ -282,4 +288,4 @@ export default function ShopPage() {
       </div>
     </>
   );
-        }
+}
