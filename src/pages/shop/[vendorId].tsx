@@ -10,13 +10,13 @@ import { useRouter } from 'next/router';
 import { MapPin, Star, Phone, Mail, Clock, ArrowLeft, Loader } from 'lucide-react';
 import ProductCard from '@/components/ProductCard';
 import { outletService } from '@/lib/api';
-import { Outlet, Product } from '@/lib/types';
+import { Outlet, Product, ProductCategory } from '@/lib/types';
 import toast from 'react-hot-toast';
 
-// Extended Product type to include outlet_id from backend
-interface ProductWithOutlet extends Product {
+// Extended Product type to handle backend response format
+interface ProductWithOutlet extends Omit<Product, 'category'> {
   outlet_id?: string;
-  category?: string | null;
+  category?: ProductCategory | string | null;
 }
 
 export default function VendorPage() {
@@ -35,6 +35,21 @@ export default function VendorPage() {
       fetchVendorData();
     }
   }, [vendorId, categoryFilter, currentPage]);
+
+  const getCategoryName = (category: ProductCategory | string | null | undefined): string | null => {
+    if (!category) return null;
+    
+    if (typeof category === 'string') {
+      return category;
+    }
+    
+    // Handle ProductCategory object
+    if (typeof category === 'object') {
+      return (category as ProductCategory).category_name || null;
+    }
+    
+    return null;
+  };
 
   const fetchVendorData = async () => {
     try {
@@ -74,15 +89,9 @@ export default function VendorPage() {
       // Extract unique categories from products
       const uniqueCategories = new Set<string>();
       productsData.forEach((product) => {
-        if (product.category) {
-          // Handle both string and object categories
-          const categoryName = typeof product.category === 'string' 
-            ? product.category 
-            : (product.category as any)?.category_name || (product.category as any)?.name;
-          
-          if (categoryName) {
-            uniqueCategories.add(categoryName);
-          }
+        const categoryName = getCategoryName(product.category);
+        if (categoryName) {
+          uniqueCategories.add(categoryName);
         }
       });
 
@@ -308,7 +317,7 @@ export default function VendorPage() {
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
                 {products.map((product) => (
-                  <ProductCard key={product.id} product={product} outlet={outlet} />
+                  <ProductCard key={product.id} product={product as Product} outlet={outlet} />
                 ))}
               </div>
 
