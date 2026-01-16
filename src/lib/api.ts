@@ -97,24 +97,65 @@ export const authService = {
    * Register a new user
    */
   register: async (userData: RegisterData): Promise<ApiResponse<AuthResponse>> => {
-    // Transform 'name' to 'fullName' for backend compatibility
-    const response = await api.post<ApiResponse<AuthResponse>>('/auth/register', {
-      fullName: userData.name, // Backend expects fullName
-      email: userData.email,
-      phone: userData.phone,
-      password: userData.password,
-    });
-    return response.data;
-  },
+  const response = await api.post('/auth/register', {
+    fullName: userData.name,
+    email: userData.email,
+    phone: userData.phone,
+    password: userData.password,
+  });
+  
+  // Backend returns: { message, token, role, redirect, user }
+  const backendData = response.data;
+  
+  const user: User = {
+    id: backendData.user.user_id,
+    name: backendData.user.full_name,
+    email: backendData.user.email,
+    phone: backendData.user.phone_number || '',
+    wallet: 0,
+  };
+  
+  return {
+    success: true,
+    data: {
+      token: backendData.token,
+      user,
+    },
+  };
+},
 
   /**
    * Login user
    */
-  login: async (credentials: LoginCredentials): Promise<ApiResponse<AuthResponse>> => {
-    const response = await api.post<ApiResponse<AuthResponse>>('/auth/login', credentials);
-    return response.data;
-  },
-
+login: async (credentials: LoginCredentials): Promise<ApiResponse<AuthResponse>> => {
+  const response = await api.post('/auth/login', credentials);
+  
+  // Backend returns: { message, token, role, redirect, account, roleData }
+  // Transform to match AuthResponse format
+  const backendData = response.data;
+  
+  // Build user object from roleData (for 'user' role)
+  let user: User | null = null;
+  
+  if (backendData.roleData && backendData.role === 'user') {
+    user = {
+      id: backendData.account.account_id,
+      name: `${backendData.roleData.first_name || ''} ${backendData.roleData.last_name || ''}`.trim(),
+      email: backendData.account.email,
+      phone: backendData.roleData.phone_number || backendData.account.phone_number || '',
+      wallet: backendData.roleData.wallet_balance || 0,
+      address: backendData.roleData.address || undefined,
+    };
+  }
+  
+  return {
+    success: true,
+    data: {
+      token: backendData.token,
+      user: user as User,
+    },
+  };
+},
   /**
    * Logout user
    */
