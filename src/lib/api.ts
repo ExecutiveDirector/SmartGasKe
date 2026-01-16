@@ -32,7 +32,7 @@ import type {
 } from './types';
 
 // API Base URL from environment variable
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://aquagas-backend.onrender.com/api';
 
 // Create axios instance
 const api: AxiosInstance = axios.create({
@@ -92,13 +92,18 @@ api.interceptors.response.use(
 // ============================================================
 // Authentication Service
 // ============================================================
-
 export const authService = {
   /**
    * Register a new user
    */
   register: async (userData: RegisterData): Promise<ApiResponse<AuthResponse>> => {
-    const response = await api.post<ApiResponse<AuthResponse>>('/auth/register', userData);
+    // Transform 'name' to 'fullName' for backend compatibility
+    const response = await api.post<ApiResponse<AuthResponse>>('/auth/register', {
+      fullName: userData.name, // Backend expects fullName
+      email: userData.email,
+      phone: userData.phone,
+      password: userData.password,
+    });
     return response.data;
   },
 
