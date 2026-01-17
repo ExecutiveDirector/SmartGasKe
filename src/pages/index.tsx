@@ -67,6 +67,11 @@ interface BackendCategory {
 
 // Extended Product type to include outlet info
 interface ProductWithOutlet extends Product {
+  product_id: number;
+  product_name: string;
+  product_code?: string;
+  base_price: number;
+  product_images?: string;
   outlet_id?: string;
   outlet_name?: string;
   vendor_name?: string;
@@ -188,8 +193,10 @@ export default function ShopPage() {
 
       // Transform to frontend format
       let transformedProducts: ProductWithOutlet[] = allBackendProducts.map((p) => ({
+        // Original Product fields
         id: p.product_id.toString(),
         name: p.product_name,
+        title: p.product_name,
         description: p.description || '',
         price: p.price || p.base_price,
         image: parseProductImage(p.product_images),
@@ -199,12 +206,19 @@ export default function ShopPage() {
         inStock: p.is_available && p.stock > 0,
         stock: p.stock,
         featured: p.is_featured || false,
-        outlet_id: p.outlet_name, // Store outlet name for now
-        outlet_name: p.outlet_name,
-        vendor_name: p.vendor_name,
         brand: p.brand,
         size: p.size_specification,
         unit: p.unit_of_measure,
+        
+        // Backend fields
+        product_id: p.product_id,
+        product_name: p.product_name,
+        product_code: p.product_code,
+        base_price: p.base_price,
+        product_images: p.product_images,
+        outlet_id: p.outlet_name,
+        outlet_name: p.outlet_name,
+        vendor_name: p.vendor_name,
       }));
 
       // Apply category filter
