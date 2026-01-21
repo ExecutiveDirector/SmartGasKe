@@ -1,6 +1,6 @@
 // ============================================================
 // FILE: src/pages/shop/index.tsx
-// Shop Main Page - Display all products with filters
+// Shop Main Page - Display all products with filters (FIXED TYPES)
 // ============================================================
 
 import React, { useState, useEffect } from 'react';
@@ -65,12 +65,12 @@ interface BackendCategory {
   description: string;
 }
 
-// Extended Product type to include outlet info
+// Extended Product type - properly typed
 interface ProductWithOutlet extends Product {
-  product_id: number;
-  product_name: string;
+  product_id?: number;
+  product_name?: string;
   product_code?: string;
-  base_price: number;
+  base_price?: number;
   product_images?: string;
   outlet_id?: string;
   outlet_name?: string;
@@ -123,7 +123,7 @@ export default function ShopPage() {
               name: outlet.outlet_name,
               vendor: vendor.business_name,
               address: `${outlet.address_line_1}, ${outlet.city}`,
-              distance: 0, // Calculate if needed
+              distance: 0,
               rating: vendor.rating || 0,
               reviews: vendor.total_reviews || 0,
               phone: vendor.business_phone,
@@ -164,10 +164,7 @@ export default function ShopPage() {
 
       if (searchTerm) params.append('search', searchTerm);
       
-      // For category filter, we'll need to get the category_id
-      // This might require fetching from different endpoints per vendor
-      
-      // For now, fetch all products from all vendors
+      // Fetch all vendors
       const vendorsRes = await fetch(`${API_URL}/vendors?page=1&limit=50`);
       const vendors: BackendVendor[] = await vendorsRes.json();
 
@@ -191,9 +188,9 @@ export default function ShopPage() {
       const productsArrays = await Promise.all(allProductsPromises);
       const allBackendProducts = productsArrays.flat();
 
-      // Transform to frontend format
+      // Transform to frontend format with all required Product fields
       let transformedProducts: ProductWithOutlet[] = allBackendProducts.map((p) => ({
-        // Original Product fields
+        // Required Product fields
         id: p.product_id.toString(),
         name: p.product_name,
         title: p.product_name,
@@ -201,16 +198,19 @@ export default function ShopPage() {
         price: p.price || p.base_price,
         image: parseProductImage(p.product_images),
         category: p.category_name || 'Other',
-        rating: 4.5, // Default, you might want to add this to backend
+        rating: 4.5,
         reviews: 0,
         inStock: p.is_available && p.stock > 0,
         stock: p.stock,
         featured: p.is_featured || false,
-        brand: p.brand,
-        size: p.size_specification,
-        unit: p.unit_of_measure,
+        brand: p.brand || '',
+        size: p.size_specification || '',
+        unit: p.unit_of_measure || '',
+        is_active: p.is_available,
+        isActive: p.is_available,
+        is_featured: p.is_featured || false,
         
-        // Backend fields
+        // Additional backend fields
         product_id: p.product_id,
         product_name: p.product_name,
         product_code: p.product_code,
@@ -235,8 +235,8 @@ export default function ShopPage() {
           p => 
             p.name.toLowerCase().includes(search) ||
             p.description.toLowerCase().includes(search) ||
-            p.brand?.toLowerCase().includes(search) ||
-            p.vendor_name?.toLowerCase().includes(search)
+            (p.brand && p.brand.toLowerCase().includes(search)) ||
+            (p.vendor_name && p.vendor_name.toLowerCase().includes(search))
         );
       }
 
