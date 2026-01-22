@@ -67,11 +67,6 @@ interface BackendCategory {
 
 // Extended Product type - properly typed
 interface ProductWithOutlet extends Product {
-  product_id?: number;
-  product_name?: string;
-  product_code?: string;
-  base_price?: number;
-  product_images?: string;
   outlet_id?: string;
   outlet_name?: string;
   vendor_name?: string;
