@@ -1,11 +1,20 @@
 // src/components/ProductCard.tsx
-import { Product, Outlet } from '@/lib/types';
+import { ProductCategory, Outlet } from '@/lib/types';
 import { useCart } from '@/lib/hooks/useCart';
 import { ShoppingCart } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface ProductCardProps {
-  product: Product;
+  product: {
+    id: string;
+    product_name?: string;
+    title?: string;
+    image: string;
+    price: number;
+    stock?: number;
+    description?: string;
+    category?: string | ProductCategory;
+  };
   outlet: Outlet;
   compact?: boolean;
 }
