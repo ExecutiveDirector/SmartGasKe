@@ -66,10 +66,33 @@ interface BackendCategory {
 }
 
 // Extended Product type - properly typed
-interface ProductWithOutlet extends Product {
-  outlet_id?: string;
-  outlet_name?: string;
-  vendor_name?: string;
+interface ProductWithOutlet {
+  id: string;
+  name: string;
+  title: string;
+  description: string;
+  price: number;
+  image: string;
+  category: string;
+  rating: number;
+  reviews: number;
+  inStock: boolean;
+  stock: number;
+  featured: boolean;
+  brand: string;
+  size: string;
+  unit: string;
+  is_active: boolean;
+  isActive: boolean;
+  is_featured: boolean;
+  product_id: number;
+  product_name: string;
+  product_code: string;
+  base_price: number;
+  product_images: string;
+  outlet_id: string;
+  outlet_name: string;
+  vendor_name: string;
 }
 
 export default function ShopPage() {
