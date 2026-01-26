@@ -1,29 +1,20 @@
 // src/components/ProductCard.tsx
-import { ProductCategory, Outlet } from '@/lib/types';
+import { Product, Outlet } from '@/lib/types';
 import { useCart } from '@/lib/hooks/useCart';
 import { ShoppingCart } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface ProductCardProps {
-  product: {
-    id: string;
-    product_name?: string;
-    title?: string;
-    image: string;
-    price: number;
-    stock?: number;
-    description?: string;
-    category?: string | ProductCategory;
-  };
+  product: Product;
   outlet: Outlet;
   compact?: boolean;
 }
 
 export default function ProductCard({ product, outlet, compact = false }: ProductCardProps) {
   const { addToCart } = useCart();
-
+  
   // Fallback product name
-  const productDisplayName = product.product_name || product.title || 'Unnamed Product';
+  const productDisplayName = product.name || product.title || 'Unnamed Product';
 
   const handleAddToCart = () => {
     addToCart(product, outlet);
