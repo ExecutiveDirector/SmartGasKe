@@ -1,5 +1,6 @@
 // ============================================================
 // FILE: src/lib/types.ts
+// Comprehensive Type Definitions for AquaGas Application
 // ============================================================
 
 // User & Authentication Types
@@ -32,7 +33,7 @@ export interface AuthResponse {
   user: User;
 }
 
-// Product Types (Updated to match backend)
+// Product Category Types
 export interface ProductCategory {
   category_id: number;
   category_name: string;
@@ -42,35 +43,72 @@ export interface ProductCategory {
   is_active?: boolean;
 }
 
+// Product Types (UPDATED - Fixed to resolve build errors)
 export interface Product {
+  // Primary identifiers
   id: string;
   product_id: number;
+  
+  // Product names (both formats for compatibility)
+  name: string;
   title: string;
   product_name: string;
   product_code?: string;
+  
+  // Product details
   brand?: string;
   description?: string;
-  size_specification?: string;
-  sizeSpecification?: string;
-  unit_of_measure?: string;
+  size?: string; // Frontend format
+  size_specification?: string; // Backend format
+  sizeSpecification?: string; // Alternative format
+  unit?: string; // Frontend format
+  unit_of_measure?: string; // Backend format
+  
+  // Pricing
   price: number;
   base_price: number;
   min_price?: number;
   max_price?: number;
+  
+  // Physical properties
   weight_kg?: number;
-  image: string;
-  images?: string[];
-  product_images?: any;
+  
+  // Images (multiple formats for compatibility)
+  image: string; // Primary display image
+  images?: string[]; // Array of image URLs
+  product_images?: any; // Raw backend format (JSON string or array)
+  
+  // Technical specifications
   specifications?: any;
   safety_certifications?: any;
   storage_requirements?: any;
+  
+  // Status flags (CRITICAL - Required by ProductCard)
   is_active: boolean;
   isActive: boolean;
   is_featured: boolean;
-  stock?: number;
+  featured: boolean; // Frontend alias
+  
+  // Inventory
+  stock: number;
+  inStock: boolean; // Computed from stock
   availability?: string;
-  rating?: number;
-  category?: ProductCategory;
+  
+  // Ratings & Reviews
+  rating: number;
+  reviews: number;
+  
+  // Category
+  category: string | ProductCategory;
+  category_id?: number;
+  
+  // Vendor/Outlet information
+  outlet_id?: string;
+  outlet_name?: string;
+  vendor_name?: string;
+  vendor_id?: number;
+  
+  // Availability locations
   available_at?: VendorLocation[];
 }
 
@@ -102,7 +140,34 @@ export interface CreateProductData {
   specifications?: Record<string, any>;
 }
 
-// Vendor & Outlet Types (Updated to match backend)
+// Backend Product Types (for API responses)
+export interface BackendProduct {
+  product_id: number;
+  product_name: string;
+  product_code: string;
+  brand: string;
+  base_price: number;
+  description: string;
+  product_images: string; // JSON string
+  category_name: string;
+  stock: number;
+  price: number;
+  is_available: boolean;
+  outlet_name: string;
+  vendor_name: string;
+  size_specification: string;
+  unit_of_measure: string;
+  is_featured?: boolean;
+  category_id?: number;
+}
+
+export interface BackendCategory {
+  category_id: number;
+  category_name: string;
+  description: string;
+}
+
+// Vendor & Outlet Types
 export interface VendorLocation {
   outlet_id: number;
   outlet_name: string;
@@ -142,6 +207,29 @@ export interface Vendor {
   rating: number;
   outlets: VendorOutlet[];
   is_active?: boolean;
+}
+
+export interface BackendVendor {
+  vendor_id: number;
+  business_name: string;
+  business_email: string;
+  business_phone: string;
+  is_active: boolean;
+  is_featured: boolean;
+  rating: number;
+  total_reviews: number;
+  vendor_outlets?: BackendOutlet[];
+}
+
+export interface BackendOutlet {
+  outlet_id: number;
+  outlet_name: string;
+  outlet_code: string;
+  latitude: number;
+  longitude: number;
+  address_line_1: string;
+  city: string;
+  county: string;
 }
 
 export interface Outlet {
@@ -225,10 +313,17 @@ export interface AvailabilityResponse {
   locations: VendorLocation[];
 }
 
-// Cart Types
-export interface CartItem extends Product {
-  outlet: Outlet;
+// Cart Types (UPDATED - Fixed for ProductCard compatibility)
+export interface CartItem {
+  product: Product; // Full product object
+  outlet: Outlet; // Associated outlet
   quantity: number;
+}
+
+export interface Cart {
+  items: CartItem[];
+  total: number;
+  itemCount: number;
 }
 
 // Order Types
@@ -300,7 +395,7 @@ export interface AddMoneyData {
   phone_number?: string;
 }
 
-// API Response Types (Updated to match backend)
+// API Response Types
 export interface ApiResponse<T> {
   success?: boolean;
   data?: T;
@@ -331,4 +426,21 @@ export interface ApiError {
   error: string;
   message: string;
   status?: number;
-  }
+}
+
+// Filter Types (for shop page)
+export interface FilterOptions {
+  search?: string;
+  category?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  inStockOnly?: boolean;
+  featured?: boolean;
+  brand?: string;
+  sortBy?: 'price-asc' | 'price-desc' | 'name' | 'featured' | 'rating';
+}
+
+// Product with Outlet (extended type for shop pages)
+export interface ProductWithOutlet extends Product {
+  // This type is already compatible since Product now includes all required fields
+}
