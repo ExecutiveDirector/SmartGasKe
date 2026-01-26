@@ -1,6 +1,6 @@
 // ============================================================
 // FILE: src/pages/shop/index.tsx
-// Shop Main Page - Display all products with filters (FIXED TYPES)
+// Shop Main Page - Display all products with filters (FIXED)
 // ============================================================
 
 import React, { useState, useEffect } from 'react';
@@ -65,7 +65,6 @@ interface BackendCategory {
   description: string;
 }
 
-// Extended Product type - properly typed
 interface ProductWithOutlet {
   id: string;
   name: string;
@@ -107,12 +106,10 @@ export default function ShopPage() {
   const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 20;
 
-  // Fetch initial data
   useEffect(() => {
     fetchInitialData();
   }, []);
 
-  // Fetch products when filters or page change
   useEffect(() => {
     if (!loading) {
       fetchProducts();
@@ -123,14 +120,21 @@ export default function ShopPage() {
     try {
       setLoading(true);
 
-      // Fetch all data in parallel
+      // Fetch vendors and categories in parallel
       const [vendorsRes, categoriesRes] = await Promise.all([
-        fetch(`${API_URL}/vendors?page=1&limit=50`).then(r => r.json()),
-        fetch(`${API_URL}/products/categories`).then(r => r.json()).catch(() => []),
+        fetch(`${API_URL}/vendors?page=1&limit=50`),
+        fetch(`${API_URL}/products/categories`),
       ]);
 
-      // Process vendors and outlets
-      const vendors: BackendVendor[] = vendorsRes;
+      // Check response status
+      if (!vendorsRes.ok) {
+        throw new Error(`Vendors API failed: ${vendorsRes.status}`);
+      }
+
+      const vendorsData = await vendorsRes.json();
+      
+      // Handle vendors response - backend returns array directly
+      const vendors: BackendVendor[] = Array.isArray(vendorsData) ? vendorsData : [];
       const allOutlets: Outlet[] = [];
 
       vendors.forEach((vendor) => {
@@ -156,17 +160,20 @@ export default function ShopPage() {
 
       setOutlets(allOutlets);
 
-      // Process categories
-      const cats: BackendCategory[] = categoriesRes;
-      const categoryNames = cats.map((cat) => cat.category_name);
-      setCategories(['All', ...categoryNames]);
+      // Handle categories
+      if (categoriesRes.ok) {
+        const categoriesData = await categoriesRes.json();
+        const cats: BackendCategory[] = Array.isArray(categoriesData) ? categoriesData : [];
+        const categoryNames = cats.map((cat) => cat.category_name);
+        setCategories(['All', ...categoryNames]);
+      }
 
       // Fetch initial products
       await fetchProducts();
 
     } catch (error: any) {
       console.error('Error fetching initial data:', error);
-      toast.error('Failed to load shop data. Please check your connection.');
+      toast.error('Failed to load shop data. Please refresh the page.');
     } finally {
       setLoading(false);
     }
@@ -174,28 +181,43 @@ export default function ShopPage() {
 
   const fetchProducts = async () => {
     try {
-      // Build query params
-      const params = new URLSearchParams({
-        page: currentPage.toString(),
-        limit: itemsPerPage.toString(),
-      });
-
-      if (searchTerm) params.append('search', searchTerm);
-      
-      // Fetch all vendors
+      // Fetch all active vendors
       const vendorsRes = await fetch(`${API_URL}/vendors?page=1&limit=50`);
-      const vendors: BackendVendor[] = await vendorsRes.json();
+      if (!vendorsRes.ok) {
+        throw new Error('Failed to fetch vendors');
+      }
+
+      const vendorsData = await vendorsRes.json();
+      const vendors: BackendVendor[] = Array.isArray(vendorsData) ? vendorsData : [];
 
       // Fetch products from each vendor
       const allProductsPromises = vendors
         .filter(v => v.is_active)
         .map(async (vendor) => {
           try {
+            // Build query params
+            const params = new URLSearchParams({
+              page: '1',
+              limit: '100', // Get more products per vendor
+            });
+
+            if (searchTerm) params.append('search', searchTerm);
+
             const productsRes = await fetch(
               `${API_URL}/vendors/${vendor.vendor_id}/products?${params.toString()}`
             );
-            if (!productsRes.ok) return [];
-            const vendorProducts: BackendProduct[] = await productsRes.json();
+            
+            if (!productsRes.ok) {
+              console.warn(`Failed to fetch products for vendor ${vendor.vendor_id}`);
+              return [];
+            }
+
+            const productsData = await productsRes.json();
+            
+            // Backend returns array directly
+            const vendorProducts: BackendProduct[] = Array.isArray(productsData) ? productsData : [];
+            
+            console.log(`Vendor ${vendor.vendor_id} returned ${vendorProducts.length} products`);
             return vendorProducts;
           } catch (err) {
             console.error(`Error fetching products for vendor ${vendor.vendor_id}:`, err);
@@ -206,7 +228,9 @@ export default function ShopPage() {
       const productsArrays = await Promise.all(allProductsPromises);
       const allBackendProducts = productsArrays.flat();
 
-      // Transform to frontend format with all required Product fields
+      console.log(`Total products fetched: ${allBackendProducts.length}`);
+
+      // Transform to frontend format
       let transformedProducts: ProductWithOutlet[] = allBackendProducts.map((p) => ({
         // Required Product fields
         id: p.product_id.toString(),
@@ -258,6 +282,8 @@ export default function ShopPage() {
         );
       }
 
+      console.log(`After filters: ${transformedProducts.length} products`);
+
       // Separate featured products
       const featured = transformedProducts.filter(p => p.featured).slice(0, 4);
       setFeaturedProducts(featured);
@@ -272,7 +298,7 @@ export default function ShopPage() {
 
     } catch (error: any) {
       console.error('Error fetching products:', error);
-      toast.error('Failed to load products');
+      toast.error('Failed to load products. Please try again.');
     }
   };
 
@@ -287,12 +313,9 @@ export default function ShopPage() {
   };
 
   const getOutletForProduct = (product: ProductWithOutlet): Outlet | null => {
-    // Find outlet by name match
     if (product.outlet_name) {
       return outlets.find((o) => o.name === product.outlet_name) || null;
     }
-    
-    // Fallback: return first outlet if available
     return outlets.length > 0 ? outlets[0] : null;
   };
 
