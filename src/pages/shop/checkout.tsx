@@ -1,6 +1,6 @@
 // ============================================================
 // FILE: src/pages/checkout/index.tsx
-// FIXED: Enhanced Checkout with Auth Token Support
+// UPDATED: Simplified checkout without payment method selection
 // ============================================================
 
 import React, { useState, useEffect } from 'react';
@@ -12,7 +12,6 @@ import {
   Mail,
   Phone,
   MapPin,
-  CreditCard,
   Truck,
   Check,
   Loader,
@@ -28,7 +27,7 @@ import toast from 'react-hot-toast';
 export default function CheckoutPage() {
   const router = useRouter();
   const { cart, total: cartTotal, itemCount, clearCart, getCartOutlet } = useCart();
-  const { user, isAuthenticated, getToken } = useAuth(); // ✅ Get token method
+  const { user, isAuthenticated, getToken } = useAuth();
   
   const [submitting, setSubmitting] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
@@ -40,13 +39,12 @@ export default function CheckoutPage() {
   const deliveryFee = subtotal > 5000 ? 0 : 200;
   const total = subtotal + tax + deliveryFee;
 
-  // Form state
+  // Form state - NO payment method field
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
     address: '',
-    paymentMethod: 'mpesa',
     notes: '',
   });
 
@@ -103,43 +101,7 @@ export default function CheckoutPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // ✅ FIXED: Handle Pesapal payment with proper token
-  const handlePesapalPayment = async (orderId: string) => {
-    try {
-      const token = getToken ? getToken() : null;
-
-      const response = await fetch('/api/payments/initiate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` }),
-        },
-        body: JSON.stringify({
-          order_id: orderId,
-          customer_email: formData.email,
-          customer_phone: formData.phone,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Failed to initialize payment');
-      }
-
-      if (result.redirect_url) {
-        // Redirect to Pesapal payment page
-        window.location.href = result.redirect_url;
-      } else {
-        throw new Error('Payment redirect URL not received');
-      }
-    } catch (error: any) {
-      console.error('Pesapal payment error:', error);
-      throw new Error(error.message || 'Failed to initialize payment');
-    }
-  };
-
-  // ✅ FIXED: Handle form submission with proper auth
+  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -164,7 +126,7 @@ export default function CheckoutPage() {
         throw new Error('Outlet ID is missing');
       }
 
-      // Prepare order data
+      // Prepare order data (NO payment_method field)
       const orderData = {
         order_id: newOrderId,
         user_id: user?.id || 'guest',
@@ -174,7 +136,6 @@ export default function CheckoutPage() {
         customer_email: formData.email,
         customer_phone: formData.phone,
         delivery_address: formData.address,
-        payment_method: formData.paymentMethod,
         order_notes: formData.notes || '',
         items: cart.map((item) => ({
           product_id: item.id || item.product_id,
@@ -196,11 +157,11 @@ export default function CheckoutPage() {
         is_guest: !user || user.id === 'guest',
       });
 
-      // ✅ Get auth token if available
+      // Get auth token if available
       const token = getToken ? getToken() : null;
 
-      // ✅ Create order with auth header
-      const response = await fetch('/api/orders/create', {
+      // Step 1: Create draft order
+      const orderResponse = await fetch('/api/orders/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -209,35 +170,57 @@ export default function CheckoutPage() {
         body: JSON.stringify(orderData),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
+      if (!orderResponse.ok) {
+        const errorData = await orderResponse.json();
         throw new Error(errorData.error || 'Failed to create order');
       }
 
-      const result = await response.json();
-      const createdOrderId = result.order_id || result.order?.order_id || newOrderId;
+      const orderResult = await orderResponse.json();
+      const createdOrderId = orderResult.order_id || orderResult.order?.order_id || newOrderId;
       setOrderId(createdOrderId);
 
       console.log('✅ Order created:', createdOrderId);
 
-      // Handle payment based on method
-      if (formData.paymentMethod === 'mpesa' || formData.paymentMethod === 'card') {
-        // Redirect to Pesapal for payment
-        await handlePesapalPayment(createdOrderId);
-      } else if (formData.paymentMethod === 'cash_on_delivery') {
-        // Cash on delivery - just confirm order
-        clearCart();
-        setOrderPlaced(true);
-        toast.success('Order placed successfully! Pay on delivery.');
+      // Step 2: Initiate Pesapal payment (user selects payment method on Pesapal page)
+      const paymentResponse = await fetch('/api/payments/initiate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+        },
+        body: JSON.stringify({
+          order_id: createdOrderId,
+          customer_email: formData.email,
+          customer_phone: formData.phone,
+        }),
+      });
+
+      if (!paymentResponse.ok) {
+        const errorData = await paymentResponse.json();
+        throw new Error(errorData.error || 'Failed to initialize payment');
       }
+
+      const paymentResult = await paymentResponse.json();
+
+      if (!paymentResult.success || !paymentResult.redirect_url) {
+        throw new Error('Payment redirect URL not received');
+      }
+
+      // Clear cart before redirect
+      clearCart();
+
+      // Redirect to Pesapal payment page
+      // User will select payment method (M-Pesa, Card, etc.) on Pesapal
+      window.location.href = paymentResult.redirect_url;
+
     } catch (error: any) {
-      console.error('Order creation error:', error);
-      toast.error(error.message || 'Failed to place order. Please try again.');
+      console.error('Checkout error:', error);
+      toast.error(error.message || 'Failed to process checkout. Please try again.');
       setSubmitting(false);
     }
   };
 
-  // Success screen (unchanged)
+  // Success screen (shown after payment callback)
   if (orderPlaced) {
     return (
       <>
@@ -447,85 +430,33 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
-                {/* Payment Method */}
-                <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
-                  <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                    <CreditCard size={24} className="text-blue-600" />
-                    Payment Method
-                  </h2>
-
-                  <div className="space-y-3">
-                    {/* M-Pesa */}
-                    <label
-                      className={`flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition ${
-                        formData.paymentMethod === 'mpesa'
-                          ? 'border-green-500 bg-green-50 shadow-md'
-                          : 'border-gray-200 hover:border-green-300 hover:bg-green-50'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="paymentMethod"
-                        value="mpesa"
-                        checked={formData.paymentMethod === 'mpesa'}
-                        onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
-                        className="w-5 h-5 text-green-600"
-                      />
-                      <Phone size={24} className="text-green-600" />
-                      <div className="flex-1">
-                        <p className="font-bold text-gray-800">M-Pesa</p>
-                        <p className="text-sm text-gray-600">Pay via M-Pesa mobile money</p>
-                      </div>
-                      <span className="bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full">
-                        Popular
-                      </span>
-                    </label>
-
-                    {/* Card */}
-                    <label
-                      className={`flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition ${
-                        formData.paymentMethod === 'card'
-                          ? 'border-blue-500 bg-blue-50 shadow-md'
-                          : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="paymentMethod"
-                        value="card"
-                        checked={formData.paymentMethod === 'card'}
-                        onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
-                        className="w-5 h-5 text-blue-600"
-                      />
-                      <CreditCard size={24} className="text-blue-600" />
-                      <div className="flex-1">
-                        <p className="font-bold text-gray-800">Credit/Debit Card</p>
-                        <p className="text-sm text-gray-600">Visa, Mastercard accepted</p>
-                      </div>
-                    </label>
-
-                    {/* Cash on Delivery */}
-                    <label
-                      className={`flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition ${
-                        formData.paymentMethod === 'cash_on_delivery'
-                          ? 'border-orange-500 bg-orange-50 shadow-md'
-                          : 'border-gray-200 hover:border-orange-300 hover:bg-orange-50'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="paymentMethod"
-                        value="cash_on_delivery"
-                        checked={formData.paymentMethod === 'cash_on_delivery'}
-                        onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
-                        className="w-5 h-5 text-orange-600"
-                      />
-                      <Truck size={24} className="text-orange-600" />
-                      <div className="flex-1">
-                        <p className="font-bold text-gray-800">Cash on Delivery</p>
-                        <p className="text-sm text-gray-600">Pay when you receive your order</p>
-                      </div>
-                    </label>
+                {/* Payment Info Banner */}
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl p-6">
+                  <h3 className="text-lg font-bold text-gray-800 mb-3">
+                    💳 Payment Options
+                  </h3>
+                  <p className="text-gray-700 mb-4">
+                    After placing your order, you'll be redirected to Pesapal's secure payment page where you can choose:
+                  </p>
+                  <ul className="space-y-2 text-gray-700">
+                    <li className="flex items-center gap-2">
+                      <Phone size={16} className="text-green-600" />
+                      <span><strong>M-Pesa</strong> - Pay with mobile money</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Shield size={16} className="text-blue-600" />
+                      <span><strong>Credit/Debit Card</strong> - Visa, Mastercard</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check size={16} className="text-purple-600" />
+                      <span><strong>Bank Transfer</strong> - Direct bank payment</span>
+                    </li>
+                  </ul>
+                  <div className="mt-4 p-3 bg-white rounded-lg border border-blue-200">
+                    <p className="text-sm text-gray-600 flex items-center gap-2">
+                      <Shield size={16} className="text-green-600" />
+                      All payments are secured by Pesapal with 256-bit encryption
+                    </p>
                   </div>
                 </div>
 
@@ -543,14 +474,18 @@ export default function CheckoutPage() {
                   ) : (
                     <>
                       <Check size={24} />
-                      Place Order - KES {total.toFixed(0).toLocaleString()}
+                      Proceed to Payment - KES {total.toFixed(0).toLocaleString()}
                     </>
                   )}
                 </button>
+
+                <p className="text-center text-sm text-gray-500">
+                  By placing your order, you agree to our terms and conditions
+                </p>
               </form>
             </div>
 
-            {/* Order Summary (Sticky) - Unchanged */}
+            {/* Order Summary (Sticky) */}
             <div className="lg:col-span-1">
               <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-4 border border-gray-100">
                 <h2 className="text-2xl font-bold text-gray-800 mb-6">Order Summary</h2>
@@ -619,7 +554,7 @@ export default function CheckoutPage() {
                     </div>
                     <div className="flex-1">
                       <p className="text-sm font-bold text-gray-800">Secure Checkout</p>
-                      <p className="text-xs text-gray-600">256-bit encrypted payment</p>
+                      <p className="text-xs text-gray-600">Powered by Pesapal</p>
                     </div>
                   </div>
                 </div>
