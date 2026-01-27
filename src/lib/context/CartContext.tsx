@@ -87,15 +87,28 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     }
 
     // Normalize IDs
-    const productId = (product.id || product.product_id).toString();
-    const outletId = (outlet.id || outlet.outlet_id).toString();
+    const productId = (product.id || product.product_id)?.toString();
+    const outletId = (outlet.id || outlet.outlet_id)?.toString();
+
+    // Additional validation for IDs
+    if (!productId) {
+      toast.error('Product ID is missing');
+      return;
+    }
+
+    if (!outletId) {
+      toast.error('Outlet ID is missing');
+      return;
+    }
 
     setCart((prevCart) => {
       // Check if product from same outlet is already in cart
       const existingItemIndex = prevCart.findIndex(
-        (item) => 
-          (item.id || item.product_id).toString() === productId &&
-          (item.outlet.id || item.outlet.outlet_id).toString() === outletId
+        (item) => {
+          const itemProductId = (item.id || item.product_id)?.toString();
+          const itemOutletId = (item.outlet.id || item.outlet.outlet_id)?.toString();
+          return itemProductId === productId && itemOutletId === outletId;
+        }
       );
 
       if (existingItemIndex > -1) {
@@ -117,7 +130,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
 
       // Validate cart outlet consistency (all items must be from same outlet)
       if (prevCart.length > 0) {
-        const firstCartOutletId = (prevCart[0].outlet.id || prevCart[0].outlet.outlet_id).toString();
+        const firstCartOutletId = (prevCart[0].outlet.id || prevCart[0].outlet.outlet_id)?.toString();
         
         if (firstCartOutletId !== outletId) {
           const firstOutletName = prevCart[0].outlet.name || prevCart[0].outlet.outlet_name || 'another outlet';
@@ -152,8 +165,8 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   const removeFromCart = (productId: string, outletId: string) => {
     setCart((prevCart) =>
       prevCart.filter((item) => {
-        const itemProductId = (item.id || item.product_id).toString();
-        const itemOutletId = (item.outlet.id || item.outlet.outlet_id).toString();
+        const itemProductId = (item.id || item.product_id)?.toString();
+        const itemOutletId = (item.outlet.id || item.outlet.outlet_id)?.toString();
         return !(itemProductId === productId && itemOutletId === outletId);
       })
     );
@@ -171,8 +184,8 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
 
     setCart((prevCart) =>
       prevCart.map((item) => {
-        const itemProductId = (item.id || item.product_id).toString();
-        const itemOutletId = (item.outlet.id || item.outlet.outlet_id).toString();
+        const itemProductId = (item.id || item.product_id)?.toString();
+        const itemOutletId = (item.outlet.id || item.outlet.outlet_id)?.toString();
 
         if (itemProductId === productId && itemOutletId === outletId) {
           const stockLimit = item.stock ?? Infinity;
@@ -209,8 +222,8 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
    */
   const isInCart = (productId: string, outletId: string): boolean => {
     return cart.some((item) => {
-      const itemProductId = (item.id || item.product_id).toString();
-      const itemOutletId = (item.outlet.id || item.outlet.outlet_id).toString();
+      const itemProductId = (item.id || item.product_id)?.toString();
+      const itemOutletId = (item.outlet.id || item.outlet.outlet_id)?.toString();
       return itemProductId === productId && itemOutletId === outletId;
     });
   };
