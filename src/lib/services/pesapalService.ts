@@ -47,6 +47,7 @@ interface PesapalOrderResponse {
   redirect_url: string;
   error: any;
   status: string;
+  message?: string;
 }
 
 interface PesapalTransactionStatus {
