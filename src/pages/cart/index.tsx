@@ -7,7 +7,7 @@ import React, { useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { useCart } from '@/lib/hooks/useCart';
+import { useCart } from '@/lib/context/CartContext';
 import { Trash2, Plus, Minus, ShoppingBag, ArrowRight, MapPin, Store, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -18,15 +18,15 @@ export default function CartPage() {
     removeFromCart,
     updateQuantity,
     clearCart,
-    getCartTotal,
-    getItemCount,
+    total: cartTotal,
+    itemCount,
     getCartOutlet,
   } = useCart();
 
   const [isClearing, setIsClearing] = useState(false);
 
   const cartOutlet = getCartOutlet();
-  const subtotal = getCartTotal();
+  const subtotal = cartTotal;
   const tax = subtotal * 0.16; // 16% VAT
   const deliveryFee = 200; // Fixed delivery fee
   const total = subtotal + tax + deliveryFee;
@@ -89,7 +89,7 @@ export default function CartPage() {
   return (
     <>
       <Head>
-        <title>Shopping Cart ({getItemCount()}) - AquaGas</title>
+        <title>Shopping Cart ({itemCount}) - AquaGas</title>
       </Head>
 
       <div className="min-h-screen bg-gray-50 py-8">
@@ -98,7 +98,7 @@ export default function CartPage() {
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-800 mb-2">Shopping Cart</h1>
             <p className="text-gray-600">
-              {getItemCount()} {getItemCount() === 1 ? 'item' : 'items'} in your cart
+              {itemCount} {itemCount === 1 ? 'item' : 'items'} in your cart
             </p>
           </div>
 
@@ -145,18 +145,18 @@ export default function CartPage() {
               {/* Cart Items List */}
               <div className="space-y-4">
                 {cart.map((item) => {
-                  const product = item.product;
-                  const productId = (product.id || product.product_id).toString();
+                  // item is a CartItem which extends Product, so all product props are directly on item
+                  const productId = (item.id || item.product_id).toString();
                   const outletId = (item.outlet.id || item.outlet.outlet_id).toString();
                   const productImage =
-                    product.image ||
-                    (product.product_images
+                    item.image ||
+                    (item.product_images
                       ? (() => {
                           try {
                             const images =
-                              typeof product.product_images === 'string'
-                                ? JSON.parse(product.product_images)
-                                : product.product_images;
+                              typeof item.product_images === 'string'
+                                ? JSON.parse(item.product_images)
+                                : item.product_images;
                             return Array.isArray(images) && images[0]
                               ? images[0]
                               : '/images/placeholder-product.jpg';
@@ -175,23 +175,23 @@ export default function CartPage() {
                         {/* Product Image */}
                         <img
                           src={productImage}
-                          alt={product.name || product.title}
+                          alt={item.name || item.title}
                           className="w-24 h-24 object-cover rounded-lg flex-shrink-0"
                         />
 
                         {/* Product Details */}
                         <div className="flex-1">
                           <h3 className="font-semibold text-lg text-gray-800 mb-1">
-                            {product.name || product.title || product.product_name}
+                            {item.name || item.title || item.product_name}
                           </h3>
 
-                          {product.brand && (
-                            <p className="text-sm text-gray-600 mb-2">{product.brand}</p>
+                          {item.brand && (
+                            <p className="text-sm text-gray-600 mb-2">{item.brand}</p>
                           )}
 
-                          {(product.size || product.size_specification) && (
+                          {(item.size || item.size_specification) && (
                             <p className="text-sm text-gray-500 mb-2">
-                              Size: {product.size || product.size_specification}
+                              Size: {item.size || item.size_specification}
                             </p>
                           )}
 
@@ -212,7 +212,7 @@ export default function CartPage() {
 
                               <button
                                 onClick={() => updateQuantity(productId, outletId, item.quantity + 1)}
-                                disabled={product.stock && item.quantity >= product.stock}
+                                disabled={item.stock && item.quantity >= item.stock}
                                 className="bg-gray-100 hover:bg-gray-200 p-2 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
                                 aria-label="Increase quantity"
                               >
@@ -223,16 +223,16 @@ export default function CartPage() {
                             {/* Price */}
                             <div className="text-right">
                               <p className="text-blue-600 font-bold text-lg">
-                                KES {(product.price * item.quantity).toLocaleString()}
+                                KES {(item.price * item.quantity).toLocaleString()}
                               </p>
                               <p className="text-sm text-gray-500">
-                                KES {product.price.toLocaleString()} each
+                                KES {item.price.toLocaleString()} each
                               </p>
                             </div>
                           </div>
 
                           {/* Stock Warning */}
-                          {product.stock && item.quantity >= product.stock && (
+                          {item.stock && item.quantity >= item.stock && (
                             <p className="text-sm text-orange-600 font-medium mt-2">
                               Maximum available quantity
                             </p>
@@ -273,7 +273,7 @@ export default function CartPage() {
 
                 <div className="space-y-4 mb-6">
                   <div className="flex justify-between text-gray-600">
-                    <span>Subtotal ({getItemCount()} items)</span>
+                    <span>Subtotal ({itemCount} items)</span>
                     <span className="font-semibold">KES {subtotal.toLocaleString()}</span>
                   </div>
 
