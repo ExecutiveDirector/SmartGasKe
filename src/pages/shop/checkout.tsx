@@ -1,6 +1,6 @@
 // ============================================================
 // FILE: src/pages/checkout/index.tsx
-// Enhanced Checkout Page with Pesapal Payment Integration
+// FIXED: Enhanced Checkout with Auth Token Support
 // ============================================================
 
 import React, { useState, useEffect } from 'react';
@@ -16,7 +16,6 @@ import {
   Truck,
   Check,
   Loader,
-  Wallet as WalletIcon,
   ArrowLeft,
   AlertCircle,
   Shield,
@@ -24,13 +23,12 @@ import {
 } from 'lucide-react';
 import { useCart } from '@/lib/context/CartContext';
 import { useAuth } from '@/lib/context/AuthContext';
-import pesapalService from '@/lib/services/pesapalService';
 import toast from 'react-hot-toast';
 
 export default function CheckoutPage() {
   const router = useRouter();
   const { cart, total: cartTotal, itemCount, clearCart, getCartOutlet } = useCart();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, getToken } = useAuth(); // ✅ Get token method
   
   const [submitting, setSubmitting] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
@@ -79,12 +77,10 @@ export default function CheckoutPage() {
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    // Name validation
     if (!formData.name || formData.name.trim().length < 2) {
       newErrors.name = 'Name must be at least 2 characters';
     }
 
-    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!formData.email) {
       newErrors.email = 'Email is required';
@@ -92,7 +88,6 @@ export default function CheckoutPage() {
       newErrors.email = 'Invalid email format';
     }
 
-    // Phone validation (Kenyan format)
     const phoneRegex = /^(\+?254|0)[17]\d{8}$/;
     if (!formData.phone) {
       newErrors.phone = 'Phone number is required';
@@ -100,7 +95,6 @@ export default function CheckoutPage() {
       newErrors.phone = 'Invalid Kenyan phone number (e.g., 0712345678)';
     }
 
-    // Address validation
     if (!formData.address || formData.address.trim().length < 10) {
       newErrors.address = 'Please provide a complete delivery address (at least 10 characters)';
     }
@@ -109,23 +103,33 @@ export default function CheckoutPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Handle Pesapal payment
+  // ✅ FIXED: Handle Pesapal payment with proper token
   const handlePesapalPayment = async (orderId: string) => {
     try {
-      const paymentData = {
-        orderId,
-        amount: total,
-        description: `AquaGas Order #${orderId.slice(0, 8)} - ${itemCount} items`,
-        customerEmail: formData.email,
-        customerPhone: formData.phone,
-        customerName: formData.name,
-      };
+      const token = getToken ? getToken() : null;
 
-      const response = await pesapalService.createOrder(paymentData);
+      const response = await fetch('/api/payments/initiate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+        },
+        body: JSON.stringify({
+          order_id: orderId,
+          customer_email: formData.email,
+          customer_phone: formData.phone,
+        }),
+      });
 
-      if (response.redirect_url) {
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Failed to initialize payment');
+      }
+
+      if (result.redirect_url) {
         // Redirect to Pesapal payment page
-        window.location.href = response.redirect_url;
+        window.location.href = result.redirect_url;
       } else {
         throw new Error('Payment redirect URL not received');
       }
@@ -135,7 +139,7 @@ export default function CheckoutPage() {
     }
   };
 
-  // Handle form submission
+  // ✅ FIXED: Handle form submission with proper auth
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -147,16 +151,12 @@ export default function CheckoutPage() {
     setSubmitting(true);
 
     try {
-      // Get cart outlet
       const outlet = getCartOutlet();
       if (!outlet) {
         throw new Error('No outlet found for cart items');
       }
 
-      // Generate order ID
       const newOrderId = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-      // Get outlet_id and vendor_id
       const outletId = outlet.id || outlet.outlet_id;
       const vendorId = outlet.vendor_id;
 
@@ -164,10 +164,10 @@ export default function CheckoutPage() {
         throw new Error('Outlet ID is missing');
       }
 
-      // Prepare order data matching backend expectations
+      // Prepare order data
       const orderData = {
         order_id: newOrderId,
-user_id: user?.id ?? 'guest',
+        user_id: user?.id || 'guest',
         outlet_id: outletId,
         vendor_id: vendorId,
         customer_name: formData.name,
@@ -193,15 +193,18 @@ user_id: user?.id ?? 'guest',
       console.log('📦 Creating order:', {
         order_id: newOrderId,
         outlet_id: outletId,
-        items_count: cart.length,
-        total,
+        is_guest: !user || user.id === 'guest',
       });
 
-      // Save order to backend
+      // ✅ Get auth token if available
+      const token = getToken ? getToken() : null;
+
+      // ✅ Create order with auth header
       const response = await fetch('/api/orders/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
         },
         body: JSON.stringify(orderData),
       });
@@ -234,7 +237,7 @@ user_id: user?.id ?? 'guest',
     }
   };
 
-  // Success screen
+  // Success screen (unchanged)
   if (orderPlaced) {
     return (
       <>
@@ -281,7 +284,6 @@ user_id: user?.id ?? 'guest',
               </Link>
             </div>
 
-            {/* Trust Badge */}
             <div className="mt-8 pt-8 border-t border-gray-200">
               <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
                 <Shield size={18} className="text-green-600" />
@@ -303,7 +305,6 @@ user_id: user?.id ?? 'guest',
 
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 py-8">
         <div className="container mx-auto px-4">
-          {/* Header */}
           <Link
             href="/cart"
             className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-6 font-semibold transition"
@@ -549,12 +550,11 @@ user_id: user?.id ?? 'guest',
               </form>
             </div>
 
-            {/* Order Summary (Sticky) */}
+            {/* Order Summary (Sticky) - Unchanged */}
             <div className="lg:col-span-1">
               <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-4 border border-gray-100">
                 <h2 className="text-2xl font-bold text-gray-800 mb-6">Order Summary</h2>
 
-                {/* Cart Items */}
                 <div className="space-y-3 mb-6 max-h-64 overflow-y-auto">
                   {cart.map((item) => (
                     <div
@@ -581,7 +581,6 @@ user_id: user?.id ?? 'guest',
                   ))}
                 </div>
 
-                {/* Price Breakdown */}
                 <div className="space-y-3 mb-6">
                   <div className="flex justify-between text-gray-700">
                     <span className="font-medium">Subtotal</span>
@@ -613,7 +612,6 @@ user_id: user?.id ?? 'guest',
                   </div>
                 </div>
 
-                {/* Security Badge */}
                 <div className="bg-gradient-to-r from-green-50 to-blue-50 border-2 border-green-200 rounded-xl p-4">
                   <div className="flex items-center gap-3">
                     <div className="bg-green-500 p-2 rounded-lg">
@@ -626,7 +624,6 @@ user_id: user?.id ?? 'guest',
                   </div>
                 </div>
 
-                {/* Trust Indicators */}
                 <div className="grid grid-cols-2 gap-3 mt-4">
                   <div className="text-center p-3 bg-gray-50 rounded-lg">
                     <Package size={20} className="mx-auto text-blue-600 mb-1" />
