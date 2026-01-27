@@ -1,9 +1,9 @@
 // ============================================================
 // FILE: src/pages/cart/index.tsx
-// Enhanced Cart Page with Fixed Image Display and Improved UI
+// Enhanced Cart Page with Proper Image Handling (Matches Home Page)
 // ============================================================
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -23,6 +23,7 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { getProductImageUrl } from '@/lib/utils/imageUtils';
 
 export default function CartPage() {
   const router = useRouter();
@@ -46,52 +47,6 @@ export default function CartPage() {
   const tax = subtotal * 0.16; // 16% VAT
   const deliveryFee = subtotal > 5000 ? 0 : 200; // Free delivery over KES 5,000
   const total = subtotal + tax + deliveryFee;
-
-  // Helper function to get product image with multiple fallback attempts
-  const getProductImage = (item: any): string => {
-    // Priority 1: Direct image property
-    if (item.image && typeof item.image === 'string' && item.image.trim()) {
-      return item.image;
-    }
-
-    // Priority 2: product_images array
-    if (item.product_images) {
-      try {
-        const images = typeof item.product_images === 'string' 
-          ? JSON.parse(item.product_images) 
-          : item.product_images;
-        
-        if (Array.isArray(images) && images.length > 0 && images[0]) {
-          return images[0];
-        }
-      } catch (error) {
-        console.warn('Failed to parse product_images:', error);
-      }
-    }
-
-    // Priority 3: images array (alternative naming)
-    if (item.images) {
-      try {
-        const images = typeof item.images === 'string' 
-          ? JSON.parse(item.images) 
-          : item.images;
-        
-        if (Array.isArray(images) && images.length > 0 && images[0]) {
-          return images[0];
-        }
-      } catch (error) {
-        console.warn('Failed to parse images:', error);
-      }
-    }
-
-    // Priority 4: image_url property
-    if (item.image_url && typeof item.image_url === 'string' && item.image_url.trim()) {
-      return item.image_url;
-    }
-
-    // Fallback: placeholder image
-    return '/images/placeholder-product.jpg';
-  };
 
   const handleClearCart = async () => {
     if (window.confirm('Are you sure you want to remove all items from your cart?')) {
@@ -299,7 +254,8 @@ export default function CartPage() {
                     return null;
                   }
 
-                  const productImage = getProductImage(item);
+                  // Use the same image extraction method as home page
+                  const productImage = getProductImageUrl(item);
                   const isRemoving = removingItems.has(itemKey);
                   const maxStock = item.stock || 999;
                   const atMaxStock = item.quantity >= maxStock;
@@ -315,11 +271,11 @@ export default function CartPage() {
                         <div className="flex gap-5">
                           {/* Product Image */}
                           <div className="relative flex-shrink-0">
-                            <div className="w-28 h-28 rounded-xl overflow-hidden bg-gray-100 shadow-md">
+                            <div className="w-32 h-32 rounded-xl overflow-hidden bg-gray-100 shadow-md ring-2 ring-gray-100">
                               <img
                                 src={productImage}
                                 alt={item.name || item.title || 'Product'}
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
                                 onError={(e) => {
                                   const target = e.target as HTMLImageElement;
                                   if (target.src !== '/images/placeholder-product.jpg') {
@@ -329,8 +285,8 @@ export default function CartPage() {
                               />
                             </div>
                             {item.brand && (
-                              <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2">
-                                <span className="bg-blue-600 text-white text-xs px-3 py-1 rounded-full font-semibold shadow-md">
+                              <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 z-10">
+                                <span className="bg-gradient-to-r from-blue-600 to-blue-700 text-white text-xs px-3 py-1 rounded-full font-semibold shadow-lg">
                                   {item.brand}
                                 </span>
                               </div>
@@ -341,14 +297,20 @@ export default function CartPage() {
                           <div className="flex-1 min-w-0">
                             <div className="flex justify-between items-start mb-3">
                               <div className="flex-1 pr-4">
-                                <h3 className="font-bold text-lg text-gray-900 mb-1 line-clamp-2">
+                                <h3 className="font-bold text-lg text-gray-900 mb-1 line-clamp-2 leading-tight">
                                   {item.name || item.title || item.product_name}
                                 </h3>
 
                                 {(item.size || item.size_specification) && (
-                                  <p className="text-sm text-gray-600 flex items-center gap-1">
+                                  <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
                                     <Package size={14} />
-                                    Size: {item.size || item.size_specification}
+                                    <span>Size: {item.size || item.size_specification}</span>
+                                  </p>
+                                )}
+
+                                {item.category && (
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    {item.category}
                                   </p>
                                 )}
                               </div>
@@ -357,35 +319,36 @@ export default function CartPage() {
                               <button
                                 onClick={() => handleRemoveItem(productId, outletId)}
                                 disabled={isRemoving}
-                                className="text-red-600 hover:text-red-700 p-2 hover:bg-red-50 rounded-lg transition flex-shrink-0"
+                                className="text-red-600 hover:text-red-700 p-2 hover:bg-red-50 rounded-lg transition flex-shrink-0 group"
                                 aria-label="Remove item"
+                                title="Remove from cart"
                               >
-                                <Trash2 size={20} />
+                                <Trash2 size={20} className="group-hover:scale-110 transition-transform" />
                               </button>
                             </div>
 
-                            <div className="flex items-center justify-between mt-4">
+                            <div className="flex items-center justify-between mt-4 flex-wrap gap-3">
                               {/* Quantity Controls */}
-                              <div className="flex items-center gap-3 bg-gray-50 rounded-xl p-1">
+                              <div className="flex items-center gap-2 bg-gray-50 rounded-xl p-1 shadow-sm">
                                 <button
                                   onClick={() => handleUpdateQuantity(productId, outletId, item.quantity - 1)}
-                                  className="bg-white hover:bg-gray-100 p-2.5 rounded-lg transition shadow-sm hover:shadow"
+                                  className="bg-white hover:bg-blue-50 text-gray-700 hover:text-blue-600 p-2.5 rounded-lg transition shadow-sm hover:shadow active:scale-95"
                                   aria-label="Decrease quantity"
                                 >
-                                  <Minus size={16} className="text-gray-700" />
+                                  <Minus size={16} />
                                 </button>
 
-                                <span className="font-bold text-gray-900 min-w-[3rem] text-center text-lg">
+                                <span className="font-bold text-gray-900 min-w-[3rem] text-center text-lg px-2">
                                   {item.quantity}
                                 </span>
 
                                 <button
                                   onClick={() => handleUpdateQuantity(productId, outletId, item.quantity + 1)}
                                   disabled={atMaxStock}
-                                  className="bg-white hover:bg-gray-100 p-2.5 rounded-lg transition shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed"
+                                  className="bg-white hover:bg-blue-50 text-gray-700 hover:text-blue-600 p-2.5 rounded-lg transition shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
                                   aria-label="Increase quantity"
                                 >
-                                  <Plus size={16} className="text-gray-700" />
+                                  <Plus size={16} />
                                 </button>
                               </div>
 
@@ -402,7 +365,7 @@ export default function CartPage() {
 
                             {/* Stock Warning */}
                             {atMaxStock && (
-                              <div className="mt-3 bg-orange-50 border border-orange-200 rounded-lg px-3 py-2">
+                              <div className="mt-3 bg-gradient-to-r from-orange-50 to-yellow-50 border border-orange-200 rounded-lg px-3 py-2">
                                 <p className="text-sm text-orange-700 font-medium flex items-center gap-2">
                                   <AlertCircle size={14} />
                                   Maximum available quantity reached
@@ -418,29 +381,37 @@ export default function CartPage() {
               </div>
 
               {/* Clear Cart Button */}
-              <div className="flex justify-between items-center pt-4 border-t border-gray-200">
+              <div className="flex justify-between items-center pt-4 border-t-2 border-gray-200">
                 <button
                   onClick={handleClearCart}
                   disabled={isClearing}
-                  className="text-red-600 hover:text-red-700 font-semibold flex items-center gap-2 hover:bg-red-50 px-4 py-2 rounded-lg transition disabled:opacity-50"
+                  className="text-red-600 hover:text-red-700 font-semibold flex items-center gap-2 hover:bg-red-50 px-4 py-2.5 rounded-lg transition disabled:opacity-50 group"
                 >
-                  <Trash2 size={18} />
-                  Clear All Items
+                  <Trash2 size={18} className="group-hover:scale-110 transition-transform" />
+                  <span>Clear All Items</span>
                 </button>
+                
+                <p className="text-sm text-gray-500">
+                  Total items: <span className="font-semibold text-gray-700">{itemCount}</span>
+                </p>
               </div>
             </div>
 
             {/* Order Summary */}
             <div className="lg:col-span-1">
-              <div className="bg-white rounded-2xl shadow-xl p-6 sticky top-24">
+              <div className="bg-white rounded-2xl shadow-xl p-6 sticky top-24 border border-gray-100">
                 <h2 className="text-2xl font-bold text-gray-900 mb-6 pb-4 border-b-2 border-gray-100">
                   Order Summary
                 </h2>
 
                 <div className="space-y-4 mb-6">
                   <div className="flex justify-between text-gray-700">
-                    <span className="font-medium">Subtotal ({itemCount} items)</span>
+                    <span className="font-medium">Subtotal</span>
                     <span className="font-bold">KES {subtotal.toLocaleString()}</span>
+                  </div>
+
+                  <div className="text-xs text-gray-500 pl-4">
+                    {itemCount} {itemCount === 1 ? 'item' : 'items'}
                   </div>
 
                   <div className="flex justify-between text-gray-700">
@@ -449,26 +420,32 @@ export default function CartPage() {
                   </div>
 
                   <div className="flex justify-between text-gray-700">
-                    <div>
-                      <span className="font-medium">Delivery Fee</span>
+                    <div className="flex items-center gap-2">
+                      <Truck size={16} className="text-gray-500" />
+                      <span className="font-medium">Delivery</span>
                       {deliveryFee === 0 && (
-                        <span className="ml-2 text-green-600 text-xs font-semibold">FREE</span>
+                        <span className="ml-1 text-green-600 text-xs font-bold uppercase bg-green-50 px-2 py-0.5 rounded">
+                          FREE
+                        </span>
                       )}
                     </div>
-                    <span className="font-bold">
-                      {deliveryFee === 0 ? (
-                        <span className="text-green-600">FREE</span>
-                      ) : (
-                        `KES ${deliveryFee.toLocaleString()}`
-                      )}
+                    <span className={`font-bold ${deliveryFee === 0 ? 'text-green-600' : ''}`}>
+                      {deliveryFee === 0 ? 'FREE' : `KES ${deliveryFee.toLocaleString()}`}
                     </span>
                   </div>
 
                   {subtotal < 5000 && subtotal > 0 && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                      <p className="text-xs text-blue-700 font-medium">
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-3 my-4">
+                      <p className="text-xs text-blue-800 font-semibold flex items-center gap-2">
+                        <Truck size={14} />
                         Add KES {(5000 - subtotal).toLocaleString()} more for free delivery!
                       </p>
+                      <div className="mt-2 bg-white rounded-full h-2 overflow-hidden">
+                        <div 
+                          className="bg-gradient-to-r from-blue-500 to-indigo-500 h-full transition-all duration-300"
+                          style={{ width: `${(subtotal / 5000) * 100}%` }}
+                        />
+                      </div>
                     </div>
                   )}
 
@@ -482,7 +459,7 @@ export default function CartPage() {
 
                 <button
                   onClick={handleCheckout}
-                  className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-4 px-4 rounded-xl hover:from-blue-700 hover:to-blue-800 transition font-bold text-lg flex items-center justify-center gap-3 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                  className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-4 px-4 rounded-xl hover:from-blue-700 hover:to-blue-800 transition font-bold text-lg flex items-center justify-center gap-3 shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 active:scale-[0.98]"
                 >
                   <span>Proceed to Checkout</span>
                   <ArrowRight size={22} />
@@ -490,24 +467,30 @@ export default function CartPage() {
 
                 <Link
                   href="/shop"
-                  className="block w-full text-center text-blue-600 hover:text-blue-700 font-semibold mt-4 py-2 hover:bg-blue-50 rounded-lg transition"
+                  className="block w-full text-center text-blue-600 hover:text-blue-700 font-semibold mt-4 py-2.5 hover:bg-blue-50 rounded-lg transition"
                 >
                   Continue Shopping
                 </Link>
 
                 {/* Trust Badges */}
                 <div className="grid grid-cols-3 gap-3 mt-6 pt-6 border-t border-gray-200">
-                  <div className="text-center">
-                    <Shield size={20} className="mx-auto text-green-600 mb-1" />
-                    <p className="text-xs text-gray-600 font-medium">Secure</p>
+                  <div className="text-center group">
+                    <div className="bg-green-50 rounded-lg p-2 mx-auto w-fit group-hover:bg-green-100 transition">
+                      <Shield size={20} className="text-green-600" />
+                    </div>
+                    <p className="text-xs text-gray-600 font-medium mt-1">Secure</p>
                   </div>
-                  <div className="text-center">
-                    <Truck size={20} className="mx-auto text-blue-600 mb-1" />
-                    <p className="text-xs text-gray-600 font-medium">Fast</p>
+                  <div className="text-center group">
+                    <div className="bg-blue-50 rounded-lg p-2 mx-auto w-fit group-hover:bg-blue-100 transition">
+                      <Truck size={20} className="text-blue-600" />
+                    </div>
+                    <p className="text-xs text-gray-600 font-medium mt-1">Fast</p>
                   </div>
-                  <div className="text-center">
-                    <Package size={20} className="mx-auto text-purple-600 mb-1" />
-                    <p className="text-xs text-gray-600 font-medium">Quality</p>
+                  <div className="text-center group">
+                    <div className="bg-purple-50 rounded-lg p-2 mx-auto w-fit group-hover:bg-purple-100 transition">
+                      <Package size={20} className="text-purple-600" />
+                    </div>
+                    <p className="text-xs text-gray-600 font-medium mt-1">Quality</p>
                   </div>
                 </div>
               </div>
