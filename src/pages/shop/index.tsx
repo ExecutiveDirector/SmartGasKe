@@ -106,9 +106,12 @@ export default function ShopPage() {
 
           // Category filter
           if (categoryFilter !== 'All') {
-            filteredProducts = filteredProducts.filter(
-              (p: Product) => p.category === categoryFilter
-            );
+            filteredProducts = filteredProducts.filter((p: Product) => {
+              const categoryName = typeof p.category === 'string' 
+                ? p.category 
+                : p.category?.category_name;
+              return categoryName === categoryFilter;
+            });
           }
 
           // Search filter
@@ -125,7 +128,12 @@ export default function ShopPage() {
           if (filteredProducts.length > 0) {
             // Collect categories
             filteredProducts.forEach((p: Product) => {
-              if (p.category) allCategories.add(p.category);
+              if (p.category) {
+                const categoryName = typeof p.category === 'string' 
+                  ? p.category 
+                  : p.category.category_name;
+                allCategories.add(categoryName);
+              }
               if (p.is_featured || p.featured) featured.push(p);
             });
 
