@@ -114,7 +114,7 @@ export default function OutletProductsSection({
             key={product.id || product.product_id}
             product={product}
             outlet={outlet}
-            showOutletInfo={false} // Don't show outlet info in card since it's in the header
+            compact={true}
           />
         ))}
       </div>
