@@ -1,12 +1,12 @@
 // ============================================================
 // FILE: src/pages/shop/checkout.tsx
-// Enhanced Checkout Page with Pesapal Payment Integration
+// FULL CLEAN REWRITE — Type-Safe, Secure, Production Ready
 // ============================================================
 
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
-import Link from 'next/link';
 import { useRouter } from 'next/router';
+import toast from 'react-hot-toast';
 import {
   User,
   Mail,
@@ -14,17 +14,33 @@ import {
   MapPin,
   CreditCard,
   Truck,
-  Check,
   Loader,
   Shield,
-  Package,
   ArrowLeft,
-  AlertCircle,
 } from 'lucide-react';
+
 import { useCart } from '@/lib/context/CartContext';
 import { useAuth } from '@/lib/context/AuthContext';
 import pesapalService from '@/lib/services/pesapalService';
-import toast from 'react-hot-toast';
+
+// ============================================================
+// TYPES
+// ============================================================
+
+type FormData = {
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  paymentMethod: 'mpesa' | 'card' | 'cash_on_delivery';
+  notes: string;
+};
+
+type FormErrors = Record<string, string>;
+
+// ============================================================
+// COMPONENT
+// ============================================================
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -33,16 +49,23 @@ export default function CheckoutPage() {
 
   const [submitting, setSubmitting] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
-  const [orderId, setOrderId] = useState('');
+  const [orderId, setOrderId] = useState<string>('');
+  const [errors, setErrors] = useState<FormErrors>({});
 
-  // Pricing
+  // ============================================================
+  // PRICING LOGIC
+  // ============================================================
+
   const subtotal = cartTotal;
   const tax = subtotal * 0.16;
   const deliveryFee = subtotal > 5000 ? 0 : 200;
   const total = subtotal + tax + deliveryFee;
 
-  // Form state
-  const [formData, setFormData] = useState({
+  // ============================================================
+  // FORM STATE
+  // ============================================================
+
+  const [formData, setFormData] = useState<FormData>({
     name: '',
     email: '',
     phone: '',
@@ -51,17 +74,20 @@ export default function CheckoutPage() {
     notes: '',
   });
 
-  // Form errors
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  // ============================================================
+  // REDIRECT IF CART EMPTY
+  // ============================================================
 
-  // Redirect if cart is empty
   useEffect(() => {
     if (cart.length === 0 && !orderPlaced) {
       router.push('/cart');
     }
   }, [cart, orderPlaced, router]);
 
-  // Pre-fill form with user data
+  // ============================================================
+  // PREFILL USER DATA
+  // ============================================================
+
   useEffect(() => {
     if (user) {
       setFormData((prev) => ({
@@ -74,9 +100,24 @@ export default function CheckoutPage() {
     }
   }, [user]);
 
-  // Validate form
+  // ============================================================
+  // FORM HANDLERS
+  // ============================================================
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => ({ ...prev, [name]: '' }));
+  };
+
+  // ============================================================
+  // VALIDATION
+  // ============================================================
+
   const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
+    const newErrors: FormErrors = {};
 
     if (!formData.name || formData.name.trim().length < 2) {
       newErrors.name = 'Name must be at least 2 characters';
@@ -90,58 +131,61 @@ export default function CheckoutPage() {
     }
 
     const phoneRegex = /^(\+?254|0)[17]\d{8}$/;
+    const cleanedPhone = formData.phone.replace(/\s/g, '');
+
     if (!formData.phone) {
       newErrors.phone = 'Phone number is required';
-    } else if (!phoneRegex.test(formData.phone.replace(/\s/g, ''))) {
+    } else if (!phoneRegex.test(cleanedPhone)) {
       newErrors.phone = 'Invalid Kenyan phone number (e.g., 0712345678)';
     }
 
     if (!formData.address || formData.address.trim().length < 10) {
-      newErrors.address = 'Please provide a complete delivery address (at least 10 characters)';
+      newErrors.address = 'Please enter a full delivery address';
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // Handle Pesapal payment
+  // ============================================================
+  // PESAPAL PAYMENT
+  // ============================================================
+
   const handlePesapalPayment = async (orderId: string) => {
-    try {
-      const paymentData = {
-        orderId,
-        amount: total,
-        description: `AquaGas Order #${orderId.slice(0, 8)} - ${itemCount} items`,
-        customerEmail: formData.email,
-        customerPhone: formData.phone,
-        customerName: formData.name,
-      };
+    const paymentData = {
+      orderId,
+      amount: total,
+      description: `Order #${orderId.slice(0, 8)} — ${itemCount} items`,
+      customerEmail: formData.email,
+      customerPhone: formData.phone,
+      customerName: formData.name,
+    };
 
-      const response = await pesapalService.createOrder(paymentData);
+    const response = await pesapalService.createOrder(paymentData);
 
-      if (response.redirect_url) {
-        window.location.href = response.redirect_url;
-      } else {
-        throw new Error('Payment redirect URL not received');
-      }
-    } catch (error: any) {
-      console.error('Pesapal payment error:', error);
-      throw new Error(error.message || 'Failed to initialize payment');
+    if (!response?.redirect_url) {
+      throw new Error('Failed to initialize payment');
     }
+
+    window.location.href = response.redirect_url;
   };
 
-  // Handle form submission
+  // ============================================================
+  // SUBMIT ORDER
+  // ============================================================
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Require login
     if (!isAuthenticated || !user) {
-      toast.error('You must be logged in to place an order.');
+      toast.error('You must log in to place an order.');
       router.push('/auth/login');
       return;
     }
 
     if (!validateForm()) {
-      toast.error('Please fix the errors in the form');
+      toast.error('Fix the form errors before submitting.');
       return;
     }
 
@@ -149,25 +193,24 @@ export default function CheckoutPage() {
 
     try {
       const outlet = getCartOutlet();
-      if (!outlet) throw new Error('No outlet found for cart items');
+      if (!outlet) throw new Error('No outlet found for cart');
 
-      const newOrderId = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      const outletId = outlet.id || outlet.outlet_id;
-      const vendorId = outlet.vendor_id;
-
-      if (!outletId) throw new Error('Outlet ID is missing');
+      const orderIdGenerated = `ORD-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
       const orderData = {
-        order_id: newOrderId,
+        order_id: orderIdGenerated,
         user_id: user.id,
-        outlet_id: outletId,
-        vendor_id: vendorId,
+        outlet_id: outlet.id || outlet.outlet_id,
+        vendor_id: outlet.vendor_id,
+
         customer_name: formData.name,
         customer_email: formData.email,
         customer_phone: formData.phone,
         delivery_address: formData.address,
+
         payment_method: formData.paymentMethod,
-        order_notes: formData.notes || '',
+        order_notes: formData.notes,
+
         items: cart.map((item) => ({
           product_id: item.id || item.product_id,
           product_name: item.name || item.title || item.product_name,
@@ -175,50 +218,55 @@ export default function CheckoutPage() {
           price: item.price,
           image: item.image,
         })),
+
         subtotal,
         tax,
         delivery_fee: deliveryFee,
         total,
+
         status: 'draft',
       };
 
-      console.log('📦 Creating order:', {
-        order_id: newOrderId,
-        outlet_id: outletId,
-        items_count: cart.length,
-        total,
-      });
+      // Get token safely
+      const token = localStorage.getItem('authToken');
 
+      if (!token) {
+        toast.error('Session expired. Please log in again.');
+        router.push('/auth/login');
+        return;
+      }
+
+      // Send order
       const response = await fetch('/api/orders/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user.token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(orderData),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create order');
+        const err = await response.json();
+        throw new Error(err.error || 'Order creation failed');
       }
 
       const result = await response.json();
-      const createdOrderId = result.order_id || result.order?.order_id || newOrderId;
+      const createdOrderId = result.order_id || orderIdGenerated;
+
       setOrderId(createdOrderId);
 
-      console.log('✅ Order created:', createdOrderId);
-
-      if (formData.paymentMethod === 'mpesa' || formData.paymentMethod === 'card') {
-        await handlePesapalPayment(createdOrderId);
-      } else if (formData.paymentMethod === 'cash_on_delivery') {
+      // Handle payment
+      if (formData.paymentMethod === 'cash_on_delivery') {
         clearCart();
         setOrderPlaced(true);
-        toast.success('Order placed successfully! Pay on delivery.');
+        toast.success('Order placed successfully!');
+      } else {
+        await handlePesapalPayment(createdOrderId);
       }
     } catch (error: any) {
-      console.error('Order creation error:', error);
-      toast.error(error.message || 'Failed to place order. Please try again.');
+      console.error('Checkout Error:', error);
+      toast.error(error.message || 'Checkout failed');
       setSubmitting(false);
     }
   };
