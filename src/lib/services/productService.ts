@@ -340,6 +340,15 @@ class ProductService {
   // ============================================================
 
   /**
+   * Helper: Get category name from product.category (string or object)
+   */
+  private getCategoryName(category: string | ProductCategory | undefined): string | undefined {
+    if (!category) return undefined;
+    if (typeof category === 'string') return category;
+    return category.category_name;
+  }
+
+  /**
    * Filter products by multiple criteria (client-side)
    */
   filterProducts(
@@ -354,8 +363,11 @@ class ProductService {
     }
   ): Product[] {
     return products.filter((product) => {
-      if (filters.category && product.category?.category_name !== filters.category) {
-        return false;
+      if (filters.category) {
+        const categoryName = this.getCategoryName(product.category);
+        if (categoryName !== filters.category) {
+          return false;
+        }
       }
 
       if (filters.brand && product.brand !== filters.brand) {
@@ -400,7 +412,9 @@ class ProductService {
           comparison = a.price - b.price;
           break;
         case 'name':
-          comparison = a.title.localeCompare(b.title);
+          const aName = a.title || a.name || a.product_name || '';
+          const bName = b.title || b.name || b.product_name || '';
+          comparison = aName.localeCompare(bName);
           break;
         case 'rating':
           comparison = (a.rating || 0) - (b.rating || 0);
@@ -421,7 +435,7 @@ class ProductService {
    */
   groupByCategory(products: Product[]): Record<string, Product[]> {
     return products.reduce((acc, product) => {
-      const categoryName = product.category?.category_name || 'Uncategorized';
+      const categoryName = this.getCategoryName(product.category) || 'Uncategorized';
       if (!acc[categoryName]) {
         acc[categoryName] = [];
       }
