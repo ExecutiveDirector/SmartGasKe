@@ -1,8 +1,7 @@
 // ============================================================
 // FILE: src/lib/context/AuthContext.tsx
-// Auth Context - Global authentication state management
+// FIXED: Auth Context with getToken method for checkout
 // ============================================================
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -18,6 +17,7 @@ export interface AuthContextType {
   logout: () => Promise<void>;
   updateUser: (userData: Partial<User>) => void;
   refreshUser: () => Promise<void>;
+  getToken: () => string | null; // ✅ ADDED
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -62,9 +62,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (email: string, password: string) => {
     try {
       const response = await authService.login({ email, password });
-
       if (!response?.data) throw new Error('Login failed: No response data');
-
+      
       localStorage.setItem('authToken', response.data.token);
       setUser(response.data.user ?? null);
     } catch (error) {
@@ -76,9 +75,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const register = async (userData: { name: string; email: string; password: string; phone: string }) => {
     try {
       const response = await authService.register(userData);
-
       if (!response?.data) throw new Error('Registration failed: No response data');
-
+      
       localStorage.setItem('authToken', response.data.token);
       setUser(response.data.user ?? null);
     } catch (error) {
@@ -112,6 +110,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // ✅ NEW: Get authentication token
+  const getToken = (): string | null => {
+    if (typeof window === 'undefined') {
+      return null; // Server-side rendering
+    }
+    
+    try {
+      return localStorage.getItem('authToken');
+    } catch (error) {
+      console.error('Failed to get token:', error);
+      return null;
+    }
+  };
+
   const value: AuthContextType = {
     user,
     isAuthenticated: !!user,
@@ -121,6 +133,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     updateUser,
     refreshUser,
+    getToken, 
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
