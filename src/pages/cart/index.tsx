@@ -1,6 +1,6 @@
 // ============================================================
 // FILE: src/pages/cart/index.tsx
-// Enhanced Cart Page with Proper Image Handling (Matches Home Page)
+// Enhanced Cart Page - Matches ProductCard Image Logic
 // ============================================================
 
 import React, { useState } from 'react';
@@ -23,7 +23,6 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { getProductImageUrl } from '@/lib/utils/imageUtils';
 
 export default function CartPage() {
   const router = useRouter();
@@ -47,6 +46,35 @@ export default function CartPage() {
   const tax = subtotal * 0.16; // 16% VAT
   const deliveryFee = subtotal > 5000 ? 0 : 200; // Free delivery over KES 5,000
   const total = subtotal + tax + deliveryFee;
+
+  /**
+   * Get product image - EXACTLY matches ProductCard logic
+   */
+  const getProductImage = (item: any): string => {
+    // Priority 1: Direct image property (pre-extracted)
+    if (item.image) return item.image;
+    
+    // Priority 2: Extract from product_images (same as ProductCard)
+    if (item.product_images) {
+      try {
+        const images = typeof item.product_images === 'string' 
+          ? JSON.parse(item.product_images) 
+          : item.product_images;
+        return Array.isArray(images) && images.length > 0 
+          ? images[0] 
+          : '/images/placeholder-product.jpg';
+      } catch {
+        // If parsing fails, check if it's already a URL string
+        if (typeof item.product_images === 'string' && 
+            (item.product_images.startsWith('http') || item.product_images.startsWith('/'))) {
+          return item.product_images;
+        }
+        return '/images/placeholder-product.jpg';
+      }
+    }
+    
+    return '/images/placeholder-product.jpg';
+  };
 
   const handleClearCart = async () => {
     if (window.confirm('Are you sure you want to remove all items from your cart?')) {
@@ -254,8 +282,8 @@ export default function CartPage() {
                     return null;
                   }
 
-                  // Use the same image extraction method as home page
-                  const productImage = getProductImageUrl(item);
+                  // Get image using same logic as ProductCard
+                  const productImage = getProductImage(item);
                   const isRemoving = removingItems.has(itemKey);
                   const maxStock = item.stock || 999;
                   const atMaxStock = item.quantity >= maxStock;
@@ -436,11 +464,11 @@ export default function CartPage() {
 
                   {subtotal < 5000 && subtotal > 0 && (
                     <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-3 my-4">
-                      <p className="text-xs text-blue-800 font-semibold flex items-center gap-2">
+                      <p className="text-xs text-blue-800 font-semibold flex items-center gap-2 mb-2">
                         <Truck size={14} />
                         Add KES {(5000 - subtotal).toLocaleString()} more for free delivery!
                       </p>
-                      <div className="mt-2 bg-white rounded-full h-2 overflow-hidden">
+                      <div className="bg-white rounded-full h-2 overflow-hidden">
                         <div 
                           className="bg-gradient-to-r from-blue-500 to-indigo-500 h-full transition-all duration-300"
                           style={{ width: `${(subtotal / 5000) * 100}%` }}
