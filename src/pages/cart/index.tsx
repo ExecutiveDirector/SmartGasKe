@@ -1,6 +1,6 @@
 // ============================================================
 // FILE: src/pages/cart/index.tsx
-// Enhanced Cart Page - Matches ProductCard Image Logic
+// Enhanced Cart Page - Uses Pre-Extracted Images from CartContext
 // ============================================================
 
 import React, { useState } from 'react';
@@ -46,35 +46,6 @@ export default function CartPage() {
   const tax = subtotal * 0.16; // 16% VAT
   const deliveryFee = subtotal > 5000 ? 0 : 200; // Free delivery over KES 5,000
   const total = subtotal + tax + deliveryFee;
-
-  /**
-   * Get product image - EXACTLY matches ProductCard logic
-   */
-  const getProductImage = (item: any): string => {
-    // Priority 1: Direct image property (pre-extracted)
-    if (item.image) return item.image;
-    
-    // Priority 2: Extract from product_images (same as ProductCard)
-    if (item.product_images) {
-      try {
-        const images = typeof item.product_images === 'string' 
-          ? JSON.parse(item.product_images) 
-          : item.product_images;
-        return Array.isArray(images) && images.length > 0 
-          ? images[0] 
-          : '/images/placeholder-product.jpg';
-      } catch {
-        // If parsing fails, check if it's already a URL string
-        if (typeof item.product_images === 'string' && 
-            (item.product_images.startsWith('http') || item.product_images.startsWith('/'))) {
-          return item.product_images;
-        }
-        return '/images/placeholder-product.jpg';
-      }
-    }
-    
-    return '/images/placeholder-product.jpg';
-  };
 
   const handleClearCart = async () => {
     if (window.confirm('Are you sure you want to remove all items from your cart?')) {
@@ -282,8 +253,8 @@ export default function CartPage() {
                     return null;
                   }
 
-                  // Get image using same logic as ProductCard
-                  const productImage = getProductImage(item);
+                  // Image is already extracted and stored in cart by CartContext
+                  const productImage = item.image || '/images/placeholder-product.jpg';
                   const isRemoving = removingItems.has(itemKey);
                   const maxStock = item.stock || 999;
                   const atMaxStock = item.quantity >= maxStock;
@@ -338,7 +309,7 @@ export default function CartPage() {
 
                                 {item.category && (
                                   <p className="text-xs text-gray-500 mt-1">
-                                    {item.category}
+                                    {typeof item.category === 'string' ? item.category : String(item.category)}
                                   </p>
                                 )}
                               </div>
