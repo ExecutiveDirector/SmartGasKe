@@ -1,228 +1,258 @@
 // ============================================================
 // FILE: src/pages/shop/index.tsx
-// Shop Page - Fetches data like Flutter app (outlet-based)
+// Enhanced Shop Page - Products Grouped by Outlets
 // ============================================================
 
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
-import Link from 'next/link';
-import { ChevronRight, Loader, MapPin } from 'lucide-react';
+import { ChevronRight, Loader, MapPin, SlidersHorizontal } from 'lucide-react';
 import ProductCard from '@/components/ProductCard';
-import VendorCard from '@/components/VendorCard';
+import OutletProductsSection from '@/components/OutletProductsSection';
 import FilterComponent from '@/components/Filter';
 import { Product, Outlet } from '@/lib/types';
 import toast from 'react-hot-toast';
 
-// Matches Flutter's OutletProducts structure
-interface OutletProducts {
-  outletId: string;
-  outletName: string;
-  vendorName: string;
-  distance?: number;
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://aquagas-backend.onrender.com/api/v1';
+
+interface OutletWithProducts {
+  outlet: Outlet;
   products: Product[];
 }
 
 export default function ShopPage() {
-  const [nearbyOutlets, setNearbyOutlets] = useState<OutletProducts[]>([]);
+  const [outletsWithProducts, setOutletsWithProducts] = useState<OutletWithProducts[]>([]);
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [categories, setCategories] = useState<string[]>(['All']);
-  const [sortFilter, setSortFilter] = useState<'nearest' | 'priceAsc' | 'priceDesc' | 'rating' | 'availability'>('nearest');
-  const [radius, setRadius] = useState(20); // km
-  
-  // User location - get from browser geolocation or use default
-  const [userLat, setUserLat] = useState(-1.2921); // Default: Nairobi
-  const [userLng, setUserLng] = useState(36.8219);
+  const [radiusKm, setRadiusKm] = useState(20);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [sortBy, setSortBy] = useState<'nearest' | 'price-asc' | 'price-desc' | 'rating'>('nearest');
 
   useEffect(() => {
     getUserLocation();
   }, []);
 
   useEffect(() => {
-    if (userLat && userLng) {
-      fetchProducts(userLat, userLng);
+    if (userLocation) {
+      fetchNearbyProducts();
     }
-  }, [userLat, userLng, radius]);
+  }, [userLocation, radiusKm, searchTerm, categoryFilter, sortBy]);
 
-  useEffect(() => {
-    applyFilters();
-  }, [sortFilter, categoryFilter, searchTerm]);
-
+  /**
+   * Get user's current location
+   */
   const getUserLocation = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setUserLat(position.coords.latitude);
-          setUserLng(position.coords.longitude);
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
         },
         (error) => {
-          console.warn('Geolocation error:', error);
-          // Use default location (Nairobi)
-          toast.info('Using default location: Nairobi');
+          console.error('Error getting location:', error);
+          // Default to Nairobi coordinates
+          setUserLocation({ lat: -1.2921, lng: 36.8219 });
+          toast.error('Could not get your location. Showing results for Nairobi.');
         }
       );
+    } else {
+      // Default to Nairobi coordinates
+      setUserLocation({ lat: -1.2921, lng: 36.8219 });
+      toast.error('Geolocation not supported. Showing results for Nairobi.');
     }
   };
 
-  // Mirrors Flutter's _fetchProducts method
-  const fetchProducts = async (lat: number, lng: number) => {
-    setLoading(true);
-    
+  /**
+   * Fetch products grouped by nearby outlets
+   */
+  const fetchNearbyProducts = async () => {
+    if (!userLocation) return;
+
     try {
-      // Call your backend API that returns outlets with products
-      // This matches your Flutter ProductService.fetchProducts
-      const token = localStorage.getItem('token'); // Adjust based on your auth implementation
-      
+      setLoading(true);
+
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/products?lat=${lat}&lng=${lng}&radius=${radius}`,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-          }
-        }
+        `${API_URL}/products/nearby?lat=${userLocation.lat}&lng=${userLocation.lng}&radius=${radiusKm}`
       );
 
       if (!response.ok) {
-        throw new Error('Failed to fetch products');
+        throw new Error('Failed to fetch nearby products');
       }
 
       const data = await response.json();
       
-      // Backend should return: { [vendorName]: { [outletId]: OutletProducts } }
-      // Flatten the nested structure like Flutter does
-      const allOutlets: OutletProducts[] = [];
-      
-      for (const vendorName in data) {
-        for (const outletId in data[vendorName]) {
-          allOutlets.push(data[vendorName][outletId]);
-        }
-      }
+      console.log('Nearby products response:', data);
 
-      // If no outlets found within radius, try fetching ALL products (radius = 0)
-      if (allOutlets.length === 0 && radius > 0) {
-        console.log('No outlets within radius. Fetching all products...');
-        const fallbackResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/products?lat=${lat}&lng=${lng}&radius=0`,
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-            }
-          }
-        );
+      // Parse the response structure (vendors -> outlets -> products)
+      const vendors = Array.isArray(data.vendors) ? data.vendors : [];
+      const allOutletsWithProducts: OutletWithProducts[] = [];
+      const allCategories = new Set<string>();
+      const featured: Product[] = [];
+
+      vendors.forEach((vendor: any) => {
+        const outlets = vendor.outlets || [];
         
-        if (fallbackResponse.ok) {
-          const fallbackData = await fallbackResponse.json();
-          for (const vendorName in fallbackData) {
-            for (const outletId in fallbackData[vendorName]) {
-              allOutlets.push(fallbackData[vendorName][outletId]);
-            }
-          }
-        }
-      }
+        outlets.forEach((outletData: any) => {
+          const products = (outletData.products || [])
+            .filter((p: any) => p.is_available || p.isActive)
+            .map((p: any) => parseProduct(p, vendor, outletData));
 
-      setNearbyOutlets(allOutlets);
-      
-      // Extract unique categories
-      const uniqueCategories = new Set<string>();
-      allOutlets.forEach(outlet => {
-        outlet.products.forEach(product => {
-          if (product.category) {
-            const categoryName = typeof product.category === 'string' 
-              ? product.category 
-              : product.category.category_name;
-            uniqueCategories.add(categoryName);
+          // Apply filters
+          let filteredProducts = products;
+
+          // Category filter
+          if (categoryFilter !== 'All') {
+            filteredProducts = filteredProducts.filter(
+              (p: Product) => p.category === categoryFilter
+            );
+          }
+
+          // Search filter
+          if (searchTerm) {
+            const search = searchTerm.toLowerCase();
+            filteredProducts = filteredProducts.filter(
+              (p: Product) =>
+                p.name?.toLowerCase().includes(search) ||
+                p.description?.toLowerCase().includes(search) ||
+                p.brand?.toLowerCase().includes(search)
+            );
+          }
+
+          if (filteredProducts.length > 0) {
+            // Collect categories
+            filteredProducts.forEach((p: Product) => {
+              if (p.category) allCategories.add(p.category);
+              if (p.is_featured || p.featured) featured.push(p);
+            });
+
+            const outlet: Outlet = {
+              id: outletData.outlet_id?.toString() || '',
+              outlet_id: outletData.outlet_id,
+              name: outletData.outlet_name || '',
+              outlet_name: outletData.outlet_name,
+              vendor: vendor.name || vendor.business_name || '',
+              vendor_id: vendor.vendor_id,
+              vendor_name: vendor.name || vendor.business_name,
+              distance: outletData.distance_km || 0,
+              distance_km: outletData.distance_km,
+              rating: vendor.rating || 4.0,
+              reviews: vendor.total_reviews || 0,
+              address: outletData.location?.address || outletData.address_line_1 || '',
+              phone: vendor.business_phone || outletData.phone || '',
+              contact_phone: vendor.business_phone || outletData.phone,
+              featured: vendor.is_featured || false,
+              is_active: vendor.is_active !== false,
+              latitude: outletData.location?.latitude,
+              longitude: outletData.location?.longitude,
+              city: outletData.city,
+              county: outletData.county,
+            };
+
+            allOutletsWithProducts.push({
+              outlet,
+              products: filteredProducts,
+            });
           }
         });
       });
-      setCategories(['All', ...Array.from(uniqueCategories).sort()]);
-      
-    } catch (error) {
-      console.error('Error fetching products:', error);
+
+      // Sort outlets
+      sortOutlets(allOutletsWithProducts);
+
+      setOutletsWithProducts(allOutletsWithProducts);
+      setFeaturedProducts(featured.slice(0, 4));
+      setCategories(['All', ...Array.from(allCategories)]);
+
+    } catch (error: any) {
+      console.error('Error fetching nearby products:', error);
       toast.error('Failed to load products. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Mirrors Flutter's _applyFilter method
-  const applyFilters = () => {
-    let filteredOutlets = [...nearbyOutlets];
+  /**
+   * Parse product from backend format
+   */
+  const parseProduct = (p: any, vendor: any, outlet: any): Product => {
+    return {
+      id: p.product_id?.toString() || p.id?.toString() || '',
+      product_id: p.product_id,
+      name: p.product_name || p.name || '',
+      title: p.product_name || p.name || '',
+      product_name: p.product_name || p.name,
+      description: p.description || '',
+      price: p.price || p.base_price || 0,
+      base_price: p.base_price || p.price || 0,
+      image: parseProductImage(p.product_images || p.image),
+      product_images: p.product_images,
+      category: p.category_name || p.category || 'Other',
+      rating: p.rating || 4.5,
+      reviews: p.reviews || 0,
+      inStock: p.stock > 0,
+      stock: p.stock || 0,
+      featured: p.is_featured || false,
+      is_featured: p.is_featured || false,
+      brand: p.brand || '',
+      size: p.size_specification || '',
+      size_specification: p.size_specification,
+      unit: p.unit_of_measure || '',
+      unit_of_measure: p.unit_of_measure,
+      is_active: p.is_available !== false,
+      isActive: p.is_available !== false,
+      outlet_id: outlet.outlet_id?.toString(),
+      outlet_name: outlet.outlet_name,
+      vendor_name: vendor.name || vendor.business_name,
+      vendor_id: vendor.vendor_id,
+    };
+  };
 
-    // Apply category filter
-    if (categoryFilter !== 'All') {
-      filteredOutlets = filteredOutlets.map(outlet => ({
-        ...outlet,
-        products: outlet.products.filter(product => {
-          const categoryName = typeof product.category === 'string' 
-            ? product.category 
-            : product.category?.category_name;
-          return categoryName === categoryFilter;
-        })
-      })).filter(outlet => outlet.products.length > 0);
+  /**
+   * Parse product image from JSON string or array
+   */
+  const parseProductImage = (images: any): string => {
+    if (!images) return '/images/placeholder-product.jpg';
+    
+    try {
+      const imageArray = typeof images === 'string' ? JSON.parse(images) : images;
+      return Array.isArray(imageArray) && imageArray[0] 
+        ? imageArray[0] 
+        : '/images/placeholder-product.jpg';
+    } catch {
+      return typeof images === 'string' ? images : '/images/placeholder-product.jpg';
     }
+  };
 
-    // Apply search filter
-    if (searchTerm.trim()) {
-      const search = searchTerm.toLowerCase();
-      filteredOutlets = filteredOutlets.map(outlet => ({
-        ...outlet,
-        products: outlet.products.filter(product => 
-          product.title.toLowerCase().includes(search) ||
-          product.description?.toLowerCase().includes(search) ||
-          product.brand?.toLowerCase().includes(search)
-        )
-      })).filter(outlet => outlet.products.length > 0);
-    }
-
-    // Apply sorting
-    switch (sortFilter) {
-      case 'nearest':
-        filteredOutlets.sort((a, b) => {
-          const distA = a.distance ?? Infinity;
-          const distB = b.distance ?? Infinity;
-          return distA - distB;
-        });
-        break;
-
-      case 'priceAsc':
-        filteredOutlets.sort((a, b) => {
-          const minPriceA = a.products.length === 0 ? Infinity : Math.min(...a.products.map(p => p.price));
-          const minPriceB = b.products.length === 0 ? Infinity : Math.min(...b.products.map(p => p.price));
+  /**
+   * Sort outlets based on selected criteria
+   */
+  const sortOutlets = (outlets: OutletWithProducts[]) => {
+    outlets.sort((a, b) => {
+      switch (sortBy) {
+        case 'nearest':
+          return (a.outlet.distance || 0) - (b.outlet.distance || 0);
+        
+        case 'price-asc':
+          const minPriceA = Math.min(...a.products.map(p => p.price));
+          const minPriceB = Math.min(...b.products.map(p => p.price));
           return minPriceA - minPriceB;
-        });
-        break;
-
-      case 'priceDesc':
-        filteredOutlets.sort((a, b) => {
-          const maxPriceA = a.products.length === 0 ? 0 : Math.max(...a.products.map(p => p.price));
-          const maxPriceB = b.products.length === 0 ? 0 : Math.max(...b.products.map(p => p.price));
+        
+        case 'price-desc':
+          const maxPriceA = Math.max(...a.products.map(p => p.price));
+          const maxPriceB = Math.max(...b.products.map(p => p.price));
           return maxPriceB - maxPriceA;
-        });
-        break;
-
-      case 'rating':
-        filteredOutlets.sort((a, b) => {
-          const avgRatingA = a.products.length === 0 ? 0 : 
-            a.products.reduce((sum, p) => sum + (p.rating || 0), 0) / a.products.length;
-          const avgRatingB = b.products.length === 0 ? 0 : 
-            b.products.reduce((sum, p) => sum + (p.rating || 0), 0) / b.products.length;
-          return avgRatingB - avgRatingA;
-        });
-        break;
-
-      case 'availability':
-        filteredOutlets.sort((a, b) => {
-          const availableA = a.products.filter(p => p.stock > 0).length;
-          const availableB = b.products.filter(p => p.stock > 0).length;
-          return availableB - availableA;
-        });
-        break;
-    }
-
-    setNearbyOutlets(filteredOutlets);
+        
+        case 'rating':
+          return b.outlet.rating - a.outlet.rating;
+        
+        default:
+          return 0;
+      }
+    });
   };
 
   if (loading) {
@@ -234,7 +264,7 @@ export default function ShopPage() {
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="text-center">
             <Loader className="animate-spin text-blue-600 mx-auto mb-4" size={48} />
-            <p className="text-gray-600">Loading nearby outlets...</p>
+            <p className="text-gray-600">Finding nearby products...</p>
           </div>
         </div>
       </>
@@ -244,121 +274,141 @@ export default function ShopPage() {
   return (
     <>
       <Head>
-        <title>Shop - AquaGas</title>
-        <meta name="description" content="Shop for LPG cylinders and accessories" />
+        <title>Shop Nearby - AquaGas</title>
+        <meta name="description" content="Shop for LPG products from nearby outlets" />
       </Head>
 
       <div className="min-h-screen bg-gray-50">
         {/* Hero Banner */}
-        <div className="bg-gradient-to-r from-green-600 to-green-800 text-white py-12">
+        <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-12">
           <div className="container mx-auto px-4">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">Shop LPG Products</h1>
-            <p className="text-xl mb-4">Find the best gas cylinders and accessories near you</p>
-            <div className="flex items-center gap-2 text-green-100">
-              <MapPin size={20} />
-              <span>Showing outlets within {radius} km</span>
-            </div>
+            <h1 className="text-4xl md:text-5xl font-bold mb-4 text-center">
+              Shop Nearby
+            </h1>
+            <p className="text-xl text-center mb-6">
+              Find LPG products from outlets near you
+            </p>
+            
+            {userLocation && (
+              <div className="flex items-center justify-center gap-2 text-sm">
+                <MapPin size={16} />
+                <span>Showing results within {radiusKm} km</span>
+              </div>
+            )}
           </div>
         </div>
 
         <div className="container mx-auto px-4 py-8">
-          {/* Filter Bar */}
-          <div className="mb-8 bg-white rounded-lg shadow-sm p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Featured Products */}
+          {featuredProducts.length > 0 && (
+            <div className="mb-12">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-3xl font-bold text-gray-800">Featured Products</h2>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {featuredProducts.map((product) => {
+                  const outlet = outletsWithProducts.find(
+                    o => o.products.some(p => p.id === product.id)
+                  )?.outlet;
+                  
+                  return outlet ? (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      outlet={outlet}
+                      compact={true}
+                    />
+                  ) : null;
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Filters */}
+          <div className="mb-8 bg-white rounded-xl shadow-md p-6 border border-gray-100">
+            <div className="flex items-center gap-2 mb-4">
+              <SlidersHorizontal size={20} className="text-blue-600" />
+              <h3 className="text-lg font-semibold text-gray-800">Filters</h3>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               {/* Search */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Search
-                </label>
-                <input
-                  type="text"
-                  placeholder="Search products..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                />
-              </div>
+              <input
+                type="text"
+                placeholder="Search products..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
 
-              {/* Category Filter */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Category
-                </label>
-                <select
-                  value={categoryFilter}
-                  onChange={(e) => setCategoryFilter(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                >
-                  {categories.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
-              </div>
+              {/* Category */}
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                {categories.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
 
-              {/* Sort Filter */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Sort By
-                </label>
-                <select
-                  value={sortFilter}
-                  onChange={(e) => setSortFilter(e.target.value as any)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                >
-                  <option value="nearest">Nearest</option>
-                  <option value="priceAsc">Price: Low to High</option>
-                  <option value="priceDesc">Price: High to Low</option>
-                  <option value="rating">Top Rated</option>
-                  <option value="availability">In Stock</option>
-                </select>
-              </div>
+              {/* Sort */}
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="nearest">Nearest First</option>
+                <option value="price-asc">Price: Low to High</option>
+                <option value="price-desc">Price: High to Low</option>
+                <option value="rating">Highest Rated</option>
+              </select>
 
-              {/* Radius Slider */}
+              {/* Radius */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Search Radius: {radius} km
+                <label className="block text-sm text-gray-600 mb-1">
+                  Radius: {radiusKm} km
                 </label>
                 <input
                   type="range"
-                  min="1"
+                  min="5"
                   max="50"
-                  value={radius}
-                  onChange={(e) => setRadius(Number(e.target.value))}
+                  step="5"
+                  value={radiusKm}
+                  onChange={(e) => setRadiusKm(Number(e.target.value))}
                   className="w-full"
                 />
               </div>
             </div>
           </div>
 
-          {/* Outlets List - Mirrors Flutter's VendorProductsSection */}
-          {nearbyOutlets.length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-lg shadow-sm">
-              <div className="max-w-md mx-auto">
-                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <MapPin size={48} className="text-gray-400" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-800 mb-2">No outlets found</h3>
-                <p className="text-gray-600 mb-6">
-                  Try increasing the search radius or adjusting your filters
-                </p>
-                <button
-                  onClick={() => {
-                    setRadius(50);
-                    setCategoryFilter('All');
-                    setSearchTerm('');
-                  }}
-                  className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-semibold"
-                >
-                  Reset Filters
-                </button>
-              </div>
+          {/* Outlets with Products */}
+          {outletsWithProducts.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-600 text-lg mb-4">
+                No products found within {radiusKm} km
+              </p>
+              <button
+                onClick={() => {
+                  setRadiusKm(50);
+                  setSearchTerm('');
+                  setCategoryFilter('All');
+                }}
+                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition"
+              >
+                Expand Search
+              </button>
             </div>
           ) : (
-            <div className="space-y-6">
-              {nearbyOutlets.map((outlet) => (
-                <OutletSection
-                  key={outlet.outletId}
-                  outlet={outlet}
+            <div className="space-y-8">
+              {outletsWithProducts.map((item) => (
+                <OutletProductsSection
+                  key={item.outlet.id || item.outlet.outlet_id}
+                  outlet={item.outlet}
+                  products={item.products}
+                  showOutletHeader={true}
                 />
               ))}
             </div>
@@ -367,92 +417,4 @@ export default function ShopPage() {
       </div>
     </>
   );
-}
-
-// Component that mirrors Flutter's VendorProductsSection
-function OutletSection({ outlet }: { outlet: OutletProducts }) {
-  return (
-    <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-      {/* Outlet Header */}
-      <div className="p-6 border-b">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-green-100 rounded-lg flex items-center justify-center">
-              <MapPin size={28} className="text-green-700" />
-            </div>
-            <div>
-              <h3 className="text-xl font-bold text-gray-900">{outlet.outletName}</h3>
-              <p className="text-sm text-gray-600">{outlet.vendorName}</p>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            {outlet.distance && (
-              <div className={`px-4 py-2 rounded-full font-semibold text-sm ${
-                outlet.distance <= 5 
-                  ? 'bg-green-100 text-green-800'
-                  : outlet.distance <= 10
-                  ? 'bg-blue-100 text-blue-800'
-                  : 'bg-orange-100 text-orange-800'
-              }`}>
-                <MapPin size={14} className="inline mr-1" />
-                {outlet.distance.toFixed(1)} km
-              </div>
-            )}
-            
-            <Link
-              href={`/shop/${outlet.outletId}`}
-              className="text-green-600 hover:text-green-700 font-semibold flex items-center gap-1"
-            >
-              View All
-              <ChevronRight size={18} />
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      {/* Horizontal Product Scroll */}
-      <div className="p-6">
-        <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
-          {outlet.products.map((product) => (
-            <div key={product.id} className="flex-shrink-0" style={{ width: '280px' }}>
-              <ProductCard 
-                product={product} 
-                outlet={{
-                  id: outlet.outletId,
-                  name: outlet.outletName,
-                  vendor: outlet.vendorName,
-                  is_active: true,
-                  rating: 0,
-                  reviews: 0,
-                  address: '',
-                  phone: '',
-                  featured: false
-                }} 
-                compact={true}
-              />
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Add this CSS to hide scrollbar but keep functionality
-const styles = `
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
-}
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-`;
-
-// Inject styles
-if (typeof document !== 'undefined') {
-  const styleSheet = document.createElement('style');
-  styleSheet.textContent = styles;
-  document.head.appendChild(styleSheet);
 }
