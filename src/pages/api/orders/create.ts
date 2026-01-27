@@ -1,6 +1,6 @@
 // ============================================================
 // FILE: src/pages/api/orders/create.ts
-// Order Creation API Route - Connects to Backend
+// FIXED: Order Creation API with Proper Auth Token Forwarding
 // ============================================================
 
 import type { NextApiRequest, NextApiResponse } from 'next';
@@ -22,11 +22,13 @@ export default async function handler(
       order_id: orderData.order_id,
       items_count: orderData.items?.length,
       total: orderData.total,
+      user_id: orderData.user_id,
+      is_guest: !orderData.user_id || orderData.user_id === 'guest',
     });
 
-    // Transform Next.js order data to match backend expectations
+    // ✅ Transform Next.js order data to match backend expectations
     const backendOrderData = {
-      user_id: orderData.user_id || 'guest', // Use 'guest' for unauthenticated orders
+      user_id: orderData.user_id || 'guest',
       outlet_id: orderData.outlet_id,
       vendor_id: orderData.vendor_id,
       items: orderData.items.map((item: any) => ({
@@ -40,24 +42,28 @@ export default async function handler(
       customer_phone: orderData.customer_phone,
       delivery_notes: orderData.order_notes,
       delivery_address: orderData.delivery_address,
-      delivery_latitude: null, // Add if you have geolocation
+      delivery_latitude: null,
       delivery_longitude: null,
       is_guest: !orderData.user_id || orderData.user_id === 'guest',
     };
 
+    // ✅ Extract auth token from request header
+    const authToken = req.headers.authorization;
+
     console.log('🚀 Sending to backend:', {
       url: `${API_URL}/orders/draft`,
       is_guest: backendOrderData.is_guest,
+      has_auth_token: !!authToken,
     });
 
-    // Create draft order in backend
+    // ✅ Create draft order with proper headers
     const response = await fetch(`${API_URL}/orders/draft`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        // Add auth token if available
-        ...(req.headers.authorization && {
-          'Authorization': req.headers.authorization,
+        // ✅ Forward auth token to backend if present
+        ...(authToken && {
+          'Authorization': authToken,
         }),
       },
       body: JSON.stringify(backendOrderData),
@@ -76,7 +82,7 @@ export default async function handler(
 
     console.log('✅ Order created successfully:', responseData.order?.order_id);
 
-    // Return success response
+    // ✅ Return success response
     return res.status(201).json({
       success: true,
       order_id: responseData.order.order_id || responseData.order.id,
@@ -84,7 +90,6 @@ export default async function handler(
       message: 'Order created successfully',
       order: responseData.order,
     });
-
   } catch (error: any) {
     console.error('❌ Order creation error:', error);
     
