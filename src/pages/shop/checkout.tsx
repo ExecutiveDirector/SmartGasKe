@@ -167,7 +167,7 @@ export default function CheckoutPage() {
       // Prepare order data matching backend expectations
       const orderData = {
         order_id: newOrderId,
-        user_id: user?.id || user?.user_id || 'guest', // Use 'guest' for unauthenticated
+user_id: user?.id ?? 'guest',
         outlet_id: outletId,
         vendor_id: vendorId,
         customer_name: formData.name,
