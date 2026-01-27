@@ -146,8 +146,14 @@ export default function CartPage() {
               <div className="space-y-4">
                 {cart.map((item) => {
                   // item is a CartItem which extends Product, so all product props are directly on item
-                  const productId = (item.id || item.product_id).toString();
-                  const outletId = (item.outlet.id || item.outlet.outlet_id).toString();
+                  const productId = (item.id || item.product_id)?.toString() || '';
+                  const outletId = (item.outlet.id || item.outlet.outlet_id)?.toString() || '';
+                  
+                  if (!productId || !outletId) {
+                    console.warn('Cart item missing required IDs:', item);
+                    return null;
+                  }
+
                   const productImage =
                     item.image ||
                     (item.product_images
