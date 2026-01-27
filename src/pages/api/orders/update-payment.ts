@@ -1,11 +1,13 @@
 // ============================================================
 // FILE: src/pages/api/orders/update-payment.ts
-// Payment Status Update API Route
+// Payment Status Update API Route (Pesapal Callback)
 // ============================================================
 
 import type { NextApiRequest, NextApiResponse } from 'next';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://aquagas-backend.onrender.com/api/v1';
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  'https://aquagas-backend.onrender.com/api/v1';
 
 export default async function handler(
   req: NextApiRequest,
@@ -18,76 +20,94 @@ export default async function handler(
   try {
     const {
       order_id,
-      tracking_id,
       payment_status,
-      payment_method,
+      tracking_id,
       confirmation_code,
-      amount,
     } = req.body;
 
-    console.log('💳 Updating payment status:', {
-      order_id,
-      tracking_id,
-      payment_status,
-    });
-
-    if (!order_id) {
+    if (!order_id || payment_status === undefined) {
       return res.status(400).json({
         success: false,
-        error: 'Order ID is required',
+        error: 'order_id and payment_status are required',
       });
     }
 
-    // Map Pesapal payment status codes to backend status
-    const statusMapping: { [key: string]: string } = {
-      '0': 'failed',      // INVALID
-      '1': 'paid',        // COMPLETED
-      '2': 'failed',      // FAILED
-      '3': 'refunded',    // REVERSED
-    };
-
-    const mappedStatus = statusMapping[payment_status] || 'pending';
-
-    // Update payment status in backend
-    const response = await fetch(`${API_URL}/orders/${order_id}/payment-status`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(req.headers.authorization && {
-          'Authorization': req.headers.authorization,
-        }),
-      },
-      body: JSON.stringify({
-        payment_status: mappedStatus,
-        transaction_id: tracking_id || confirmation_code,
-        payment_reference: tracking_id,
-      }),
+    console.log('💳 Pesapal payment update:', {
+      order_id,
+      payment_status,
+      tracking_id,
     });
 
-    const responseData = await response.json();
+    /**
+     * Pesapal status codes:
+     * 0 - INVALID
+     * 1 - COMPLETED
+     * 2 - FAILED
+     * 3 - REVERSED
+     */
+    const statusMap: Record<string, string> = {
+      '0': 'failed',
+      '1': 'paid',
+      '2': 'failed',
+      '3': 'refunded',
+    };
 
-    if (!response.ok) {
-      console.error('❌ Backend payment update error:', responseData);
-      return res.status(response.status).json({
-        success: false,
-        error: responseData.error || 'Failed to update payment status',
-      });
+    const mappedStatus =
+      statusMap[String(payment_status)] || 'pending';
+
+    const backendResponse = await fetch(
+      `${API_URL}/orders/${order_id}/payment-status`,
+      {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(req.headers.authorization && {
+            Authorization: req.headers.authorization,
+          }),
+        },
+        body: JSON.stringify({
+          payment_status: mappedStatus,
+          transaction_id:
+            tracking_id || confirmation_code,
+          payment_reference: tracking_id,
+          payment_method: 'pesapal',
+        }),
+      }
+    );
+
+    const data = await backendResponse.json();
+
+    if (!backendResponse.ok) {
+      console.error(
+        '❌ Backend rejected payment update:',
+        data
+      );
+      return res
+        .status(backendResponse.status)
+        .json({
+          success: false,
+          error:
+            data.error ||
+            'Failed to update payment status',
+        });
     }
 
-    console.log('✅ Payment status updated:', mappedStatus);
+    console.log(
+      '✅ Payment updated successfully:',
+      mappedStatus
+    );
 
     return res.status(200).json({
       success: true,
       message: 'Payment status updated',
-      order: responseData.order,
+      order: data.order,
     });
-
   } catch (error: any) {
     console.error('❌ Payment update error:', error);
-    
+
     return res.status(500).json({
       success: false,
-      error: error.message || 'Failed to update payment status',
+      error: error.message || 'Internal server error',
     });
   }
 }
