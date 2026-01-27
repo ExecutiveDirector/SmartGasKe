@@ -1,12 +1,12 @@
 // ============================================================
-// FILE: src/pages/shop/checkout.tsx
-// FULL CLEAN REWRITE — Type-Safe, Secure, Production Ready
+// FILE: src/pages/checkout/index.tsx
+// Enhanced Checkout Page with Pesapal Payment Integration
 // ============================================================
 
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
-import toast from 'react-hot-toast';
 import {
   User,
   Mail,
@@ -14,58 +14,36 @@ import {
   MapPin,
   CreditCard,
   Truck,
+  Check,
   Loader,
-  Shield,
+  Wallet as WalletIcon,
   ArrowLeft,
+  AlertCircle,
+  Shield,
+  Package,
 } from 'lucide-react';
-
 import { useCart } from '@/lib/context/CartContext';
 import { useAuth } from '@/lib/context/AuthContext';
 import pesapalService from '@/lib/services/pesapalService';
-
-// ============================================================
-// TYPES
-// ============================================================
-
-type FormData = {
-  name: string;
-  email: string;
-  phone: string;
-  address: string;
-  paymentMethod: 'mpesa' | 'card' | 'cash_on_delivery';
-  notes: string;
-};
-
-type FormErrors = Record<string, string>;
-
-// ============================================================
-// COMPONENT
-// ============================================================
+import toast from 'react-hot-toast';
 
 export default function CheckoutPage() {
   const router = useRouter();
   const { cart, total: cartTotal, itemCount, clearCart, getCartOutlet } = useCart();
   const { user, isAuthenticated } = useAuth();
-
+  
   const [submitting, setSubmitting] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
-  const [orderId, setOrderId] = useState<string>('');
-  const [errors, setErrors] = useState<FormErrors>({});
+  const [orderId, setOrderId] = useState('');
 
-  // ============================================================
-  // PRICING LOGIC
-  // ============================================================
-
+  // Pricing
   const subtotal = cartTotal;
   const tax = subtotal * 0.16;
   const deliveryFee = subtotal > 5000 ? 0 : 200;
   const total = subtotal + tax + deliveryFee;
 
-  // ============================================================
-  // FORM STATE
-  // ============================================================
-
-  const [formData, setFormData] = useState<FormData>({
+  // Form state
+  const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
@@ -74,20 +52,17 @@ export default function CheckoutPage() {
     notes: '',
   });
 
-  // ============================================================
-  // REDIRECT IF CART EMPTY
-  // ============================================================
+  // Form errors
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Redirect if cart is empty
   useEffect(() => {
     if (cart.length === 0 && !orderPlaced) {
       router.push('/cart');
     }
   }, [cart, orderPlaced, router]);
 
-  // ============================================================
-  // PREFILL USER DATA
-  // ============================================================
-
+  // Pre-fill form with user data
   useEffect(() => {
     if (user) {
       setFormData((prev) => ({
@@ -100,29 +75,16 @@ export default function CheckoutPage() {
     }
   }, [user]);
 
-  // ============================================================
-  // FORM HANDLERS
-  // ============================================================
-
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    setErrors((prev) => ({ ...prev, [name]: '' }));
-  };
-
-  // ============================================================
-  // VALIDATION
-  // ============================================================
-
+  // Validate form
   const validateForm = (): boolean => {
-    const newErrors: FormErrors = {};
+    const newErrors: Record<string, string> = {};
 
+    // Name validation
     if (!formData.name || formData.name.trim().length < 2) {
       newErrors.name = 'Name must be at least 2 characters';
     }
 
+    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!formData.email) {
       newErrors.email = 'Email is required';
@@ -130,87 +92,90 @@ export default function CheckoutPage() {
       newErrors.email = 'Invalid email format';
     }
 
+    // Phone validation (Kenyan format)
     const phoneRegex = /^(\+?254|0)[17]\d{8}$/;
-    const cleanedPhone = formData.phone.replace(/\s/g, '');
-
     if (!formData.phone) {
       newErrors.phone = 'Phone number is required';
-    } else if (!phoneRegex.test(cleanedPhone)) {
+    } else if (!phoneRegex.test(formData.phone.replace(/\s/g, ''))) {
       newErrors.phone = 'Invalid Kenyan phone number (e.g., 0712345678)';
     }
 
+    // Address validation
     if (!formData.address || formData.address.trim().length < 10) {
-      newErrors.address = 'Please enter a full delivery address';
+      newErrors.address = 'Please provide a complete delivery address (at least 10 characters)';
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // ============================================================
-  // PESAPAL PAYMENT
-  // ============================================================
-
+  // Handle Pesapal payment
   const handlePesapalPayment = async (orderId: string) => {
-    const paymentData = {
-      orderId,
-      amount: total,
-      description: `Order #${orderId.slice(0, 8)} — ${itemCount} items`,
-      customerEmail: formData.email,
-      customerPhone: formData.phone,
-      customerName: formData.name,
-    };
+    try {
+      const paymentData = {
+        orderId,
+        amount: total,
+        description: `AquaGas Order #${orderId.slice(0, 8)} - ${itemCount} items`,
+        customerEmail: formData.email,
+        customerPhone: formData.phone,
+        customerName: formData.name,
+      };
 
-    const response = await pesapalService.createOrder(paymentData);
+      const response = await pesapalService.createOrder(paymentData);
 
-    if (!response?.redirect_url) {
-      throw new Error('Failed to initialize payment');
+      if (response.redirect_url) {
+        // Redirect to Pesapal payment page
+        window.location.href = response.redirect_url;
+      } else {
+        throw new Error('Payment redirect URL not received');
+      }
+    } catch (error: any) {
+      console.error('Pesapal payment error:', error);
+      throw new Error(error.message || 'Failed to initialize payment');
     }
-
-    window.location.href = response.redirect_url;
   };
 
-  // ============================================================
-  // SUBMIT ORDER
-  // ============================================================
-
+  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Require login
-    if (!isAuthenticated || !user) {
-      toast.error('You must log in to place an order.');
-      router.push('/auth/login');
-      return;
-    }
-
     if (!validateForm()) {
-      toast.error('Fix the form errors before submitting.');
+      toast.error('Please fix the errors in the form');
       return;
     }
 
     setSubmitting(true);
 
     try {
+      // Get cart outlet
       const outlet = getCartOutlet();
-      if (!outlet) throw new Error('No outlet found for cart');
+      if (!outlet) {
+        throw new Error('No outlet found for cart items');
+      }
 
-      const orderIdGenerated = `ORD-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      // Generate order ID
+      const newOrderId = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
+      // Get outlet_id and vendor_id
+      const outletId = outlet.id || outlet.outlet_id;
+      const vendorId = outlet.vendor_id;
+
+      if (!outletId) {
+        throw new Error('Outlet ID is missing');
+      }
+
+      // Prepare order data matching backend expectations
       const orderData = {
-        order_id: orderIdGenerated,
-        user_id: user.id,
-        outlet_id: outlet.id || outlet.outlet_id,
-        vendor_id: outlet.vendor_id,
-
+        order_id: newOrderId,
+user_id: user?.id ?? 'guest',
+        outlet_id: outletId,
+        vendor_id: vendorId,
         customer_name: formData.name,
         customer_email: formData.email,
         customer_phone: formData.phone,
         delivery_address: formData.address,
-
         payment_method: formData.paymentMethod,
-        order_notes: formData.notes,
-
+        order_notes: formData.notes || '',
         items: cart.map((item) => ({
           product_id: item.id || item.product_id,
           product_name: item.name || item.title || item.product_name,
@@ -218,55 +183,53 @@ export default function CheckoutPage() {
           price: item.price,
           image: item.image,
         })),
-
         subtotal,
         tax,
         delivery_fee: deliveryFee,
         total,
-
         status: 'draft',
       };
 
-      // Get token safely
-      const token = localStorage.getItem('authToken');
+      console.log('📦 Creating order:', {
+        order_id: newOrderId,
+        outlet_id: outletId,
+        items_count: cart.length,
+        total,
+      });
 
-      if (!token) {
-        toast.error('Session expired. Please log in again.');
-        router.push('/auth/login');
-        return;
-      }
-
-      // Send order
+      // Save order to backend
       const response = await fetch('/api/orders/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(orderData),
       });
 
       if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || 'Order creation failed');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create order');
       }
 
       const result = await response.json();
-      const createdOrderId = result.order_id || orderIdGenerated;
-
+      const createdOrderId = result.order_id || result.order?.order_id || newOrderId;
       setOrderId(createdOrderId);
 
-      // Handle payment
-      if (formData.paymentMethod === 'cash_on_delivery') {
+      console.log('✅ Order created:', createdOrderId);
+
+      // Handle payment based on method
+      if (formData.paymentMethod === 'mpesa' || formData.paymentMethod === 'card') {
+        // Redirect to Pesapal for payment
+        await handlePesapalPayment(createdOrderId);
+      } else if (formData.paymentMethod === 'cash_on_delivery') {
+        // Cash on delivery - just confirm order
         clearCart();
         setOrderPlaced(true);
-        toast.success('Order placed successfully!');
-      } else {
-        await handlePesapalPayment(createdOrderId);
+        toast.success('Order placed successfully! Pay on delivery.');
       }
     } catch (error: any) {
-      console.error('Checkout Error:', error);
-      toast.error(error.message || 'Checkout failed');
+      console.error('Order creation error:', error);
+      toast.error(error.message || 'Failed to place order. Please try again.');
       setSubmitting(false);
     }
   };
@@ -278,28 +241,47 @@ export default function CheckoutPage() {
         <Head>
           <title>Order Confirmed - AquaGas</title>
         </Head>
+
         <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 flex items-center justify-center py-12 px-4">
           <div className="bg-white rounded-2xl shadow-2xl p-8 md:p-12 max-w-md w-full text-center">
             <div className="w-24 h-24 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
               <Check size={48} className="text-white" />
             </div>
-            <h2 className="text-3xl font-bold text-gray-800 mb-3">Order Confirmed!</h2>
+            
+            <h2 className="text-3xl font-bold text-gray-800 mb-3">
+              Order Confirmed!
+            </h2>
+            
             <p className="text-gray-600 mb-2">Thank you for your order</p>
+            
             <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 mb-6">
               <p className="text-sm text-gray-600 mb-1">Order Number</p>
-              <p className="text-2xl font-bold text-blue-600">#{orderId.slice(0, 12)}</p>
+              <p className="text-2xl font-bold text-blue-600">
+                #{orderId.slice(0, 12)}
+              </p>
             </div>
+            
             <p className="text-gray-600 mb-8 leading-relaxed">
               We'll deliver your gas cylinder soon. You can track your order status in your orders page.
             </p>
+            
             <div className="space-y-3">
-              <Link href="/orders" className="block w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-4 rounded-xl hover:from-blue-700 hover:to-blue-800 transition font-semibold shadow-lg hover:shadow-xl">
+              <Link
+                href="/orders"
+                className="block w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-4 rounded-xl hover:from-blue-700 hover:to-blue-800 transition font-semibold shadow-lg hover:shadow-xl"
+              >
                 View My Orders
               </Link>
-              <Link href="/shop" className="block w-full border-2 border-gray-300 text-gray-700 py-4 rounded-xl hover:border-blue-600 hover:text-blue-600 transition font-semibold">
+              
+              <Link
+                href="/shop"
+                className="block w-full border-2 border-gray-300 text-gray-700 py-4 rounded-xl hover:border-blue-600 hover:text-blue-600 transition font-semibold"
+              >
                 Continue Shopping
               </Link>
             </div>
+
+            {/* Trust Badge */}
             <div className="mt-8 pt-8 border-t border-gray-200">
               <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
                 <Shield size={18} className="text-green-600" />
@@ -311,6 +293,7 @@ export default function CheckoutPage() {
       </>
     );
   }
+
   return (
     <>
       <Head>
