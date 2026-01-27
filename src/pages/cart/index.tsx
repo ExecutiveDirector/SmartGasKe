@@ -218,7 +218,7 @@ export default function CartPage() {
 
                               <button
                                 onClick={() => updateQuantity(productId, outletId, item.quantity + 1)}
-                                disabled={item.stock && item.quantity >= item.stock}
+                                disabled={!!(item.stock && item.quantity >= item.stock)}
                                 className="bg-gray-100 hover:bg-gray-200 p-2 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
                                 aria-label="Increase quantity"
                               >
