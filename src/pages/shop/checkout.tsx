@@ -156,16 +156,26 @@ export default function CheckoutPage() {
       // Generate order ID
       const newOrderId = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-      // Prepare order data
+      // Get outlet_id and vendor_id
+      const outletId = outlet.id || outlet.outlet_id;
+      const vendorId = outlet.vendor_id;
+
+      if (!outletId) {
+        throw new Error('Outlet ID is missing');
+      }
+
+      // Prepare order data matching backend expectations
       const orderData = {
         order_id: newOrderId,
+        user_id: user?.id || user?.user_id || 'guest', // Use 'guest' for unauthenticated
+        outlet_id: outletId,
+        vendor_id: vendorId,
         customer_name: formData.name,
         customer_email: formData.email,
         customer_phone: formData.phone,
         delivery_address: formData.address,
         payment_method: formData.paymentMethod,
         order_notes: formData.notes || '',
-        outlet_id: outlet.id || outlet.outlet_id,
         items: cart.map((item) => ({
           product_id: item.id || item.product_id,
           product_name: item.name || item.title || item.product_name,
@@ -177,8 +187,15 @@ export default function CheckoutPage() {
         tax,
         delivery_fee: deliveryFee,
         total,
-        status: 'pending',
+        status: 'draft',
       };
+
+      console.log('📦 Creating order:', {
+        order_id: newOrderId,
+        outlet_id: outletId,
+        items_count: cart.length,
+        total,
+      });
 
       // Save order to backend
       const response = await fetch('/api/orders/create', {
@@ -190,16 +207,20 @@ export default function CheckoutPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create order');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create order');
       }
 
       const result = await response.json();
-      setOrderId(result.order_id || newOrderId);
+      const createdOrderId = result.order_id || result.order?.order_id || newOrderId;
+      setOrderId(createdOrderId);
+
+      console.log('✅ Order created:', createdOrderId);
 
       // Handle payment based on method
       if (formData.paymentMethod === 'mpesa' || formData.paymentMethod === 'card') {
         // Redirect to Pesapal for payment
-        await handlePesapalPayment(newOrderId);
+        await handlePesapalPayment(createdOrderId);
       } else if (formData.paymentMethod === 'cash_on_delivery') {
         // Cash on delivery - just confirm order
         clearCart();
