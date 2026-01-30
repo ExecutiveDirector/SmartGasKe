@@ -1,6 +1,6 @@
 // ============================================================
 // FILE: src/pages/api/orders/create.ts
-// FULLY FIXED: Order Creation API with Proper Error Handling
+// FINAL FIX: Matches your backend controller expectations
 // ============================================================
 
 import type { NextApiRequest, NextApiResponse } from 'next';
@@ -11,7 +11,6 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  // Only allow POST requests
   if (req.method !== 'POST') {
     return res.status(405).json({ 
       success: false,
@@ -22,14 +21,15 @@ export default async function handler(
   try {
     const orderData = req.body;
 
-    // Validate required fields
-    if (!orderData.outlet_id) {
-      return res.status(400).json({
-        success: false,
-        error: 'outlet_id is required',
-      });
-    }
+    console.log('📦 Next.js API: Received order data:', {
+      has_outlet_id: !!orderData.outlet_id,
+      has_vendor_name: !!orderData.vendor_name || !!orderData.vendorName,
+      items_count: orderData.items?.length,
+      total: orderData.total,
+      user_id: orderData.user_id,
+    });
 
+    // ✅ Minimal validation - let backend handle the rest
     if (!orderData.items || !Array.isArray(orderData.items) || orderData.items.length === 0) {
       return res.status(400).json({
         success: false,
@@ -44,129 +44,170 @@ export default async function handler(
       });
     }
 
-    if (!orderData.customer_email || !orderData.customer_phone) {
+    // ✅ For guest orders, validate contact info
+    const isGuest = !orderData.user_id || 
+                    orderData.user_id === 'guest' || 
+                    orderData.user_id?.toString().startsWith('guest_');
+    
+    if (isGuest && !orderData.customer_email && !orderData.customer_phone) {
       return res.status(400).json({
         success: false,
-        error: 'Customer email and phone are required',
+        error: 'Guest checkout requires customer email or phone',
       });
     }
 
-    console.log('📦 API: Creating order:', {
-      order_id: orderData.order_id,
-      items_count: orderData.items?.length,
-      total: orderData.total,
-      user_id: orderData.user_id,
-      is_guest: !orderData.user_id || orderData.user_id === 'guest',
-    });
-
-    // ✅ Transform Next.js order data to match backend expectations
+    // ✅ Transform to backend format - handle all field variations
     const backendOrderData = {
-      user_id: orderData.user_id || 'guest',
-      outlet_id: orderData.outlet_id,
-      vendor_id: orderData.vendor_id,
+      // User identification
+      user_id: orderData.user_id || `guest_${Date.now()}`,
+      is_guest: isGuest,
+      
+      // Vendor/Outlet - send all variations, backend will handle
+      outlet_id: orderData.outlet_id || null,
+      vendor_id: orderData.vendor_id || null,
+      vendor_name: orderData.vendor_name || orderData.vendorName || orderData.outlet_name || null,
+      vendorName: orderData.vendorName || orderData.vendor_name || null,
+      
+      // Items - normalize to backend format
       items: orderData.items.map((item: any) => ({
-        product_id: item.product_id,
-        product_name: item.product_name,
-        quantity: item.quantity,
-        unit_price: item.price,
+        id: item.product_id || item.id,
+        product_id: item.product_id || item.id,
+        name: item.product_name || item.name || `Product ${item.product_id || item.id}`,
+        product_name: item.product_name || item.name || `Product ${item.product_id || item.id}`,
+        quantity: parseInt(item.quantity),
+        unit_price: parseFloat(item.price || item.unit_price),
+        price: parseFloat(item.price || item.unit_price),
       })),
-      total_price: orderData.total,
-      customer_email: orderData.customer_email,
-      customer_phone: orderData.customer_phone,
-      delivery_notes: orderData.order_notes || '',
-      delivery_address: orderData.delivery_address,
-      delivery_latitude: null,
-      delivery_longitude: null,
-      is_guest: !orderData.user_id || orderData.user_id === 'guest',
+      
+      // Pricing
+      total_price: parseFloat(orderData.total),
+      
+      // Customer contact
+      customer_email: orderData.customer_email || orderData.email || null,
+      customer_phone: orderData.customer_phone || orderData.phone || null,
+      
+      // Delivery
+      delivery_address: orderData.delivery_address || orderData.address || null,
+      delivery_latitude: orderData.delivery_latitude || orderData.latitude || null,
+      delivery_longitude: orderData.delivery_longitude || orderData.longitude || null,
+      delivery_notes: orderData.delivery_notes || orderData.order_notes || orderData.notes || null,
     };
 
-    // ✅ Extract auth token from request header
-    const authToken = req.headers.authorization;
-
-    console.log('🚀 API: Sending to backend:', {
+    console.log('🚀 Next.js API: Sending to backend:', {
       url: `${API_URL}/orders/draft`,
+      user_id: backendOrderData.user_id,
       is_guest: backendOrderData.is_guest,
-      has_auth_token: !!authToken,
+      has_outlet: !!backendOrderData.outlet_id,
+      has_vendor_name: !!backendOrderData.vendor_name,
+      items_count: backendOrderData.items.length,
+      total_price: backendOrderData.total_price,
     });
 
-    // ✅ Create draft order with proper headers
+    // ✅ Extract auth token
+    const authToken = req.headers.authorization;
+
+    // ✅ Call backend
     const response = await fetch(`${API_URL}/orders/draft`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        // ✅ Forward auth token to backend if present
-        ...(authToken && {
-          'Authorization': authToken,
-        }),
+        'Accept': 'application/json',
+        ...(authToken && { 'Authorization': authToken }),
       },
       body: JSON.stringify(backendOrderData),
     });
 
-    // ✅ Check if response is JSON
+    console.log('📥 Backend response status:', response.status);
+
+    // ✅ Check response type
     const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
-      console.error('❌ Backend returned non-JSON response:', {
+    if (!contentType?.includes('application/json')) {
+      const text = await response.text();
+      console.error('❌ Backend returned non-JSON:', {
         status: response.status,
         contentType,
+        body: text.substring(0, 500),
       });
-      
-      const text = await response.text();
-      console.error('Response body:', text.substring(0, 500));
       
       return res.status(500).json({
         success: false,
         error: 'Backend service error',
-        details: 'Backend returned invalid response format',
+        details: 'Invalid response format from backend',
       });
     }
 
     const responseData = await response.json();
 
+    // ✅ Handle backend errors
     if (!response.ok) {
-      console.error('❌ Backend error:', responseData);
+      console.error('❌ Backend error:', {
+        status: response.status,
+        error: responseData.error,
+        details: responseData.details,
+      });
+      
       return res.status(response.status).json({
         success: false,
         error: responseData.error || 'Failed to create order',
-        details: responseData.details,
+        details: responseData.details || responseData.message,
       });
     }
 
-    console.log('✅ API: Order created successfully:', responseData.order?.order_id);
+    console.log('✅ Next.js API: Order created:', {
+      order_id: responseData.order?.order_id,
+      order_number: responseData.order?.order_number,
+    });
 
-    // ✅ Return success response
+    // ✅ Return success
     return res.status(201).json({
       success: true,
-      order_id: responseData.order.order_id || responseData.order.id,
-      order_number: responseData.order.order_number,
-      message: 'Order created successfully',
+      order_id: responseData.order?.order_id || responseData.order?.id,
+      order_number: responseData.order?.order_number,
+      message: responseData.message || 'Order created successfully',
       order: responseData.order,
     });
+
   } catch (error: any) {
-    console.error('❌ API: Order creation error:', error);
+    console.error('❌ Next.js API: Unexpected error:', error);
     
-    // Handle network errors
-    if (error.message.includes('fetch failed') || error.code === 'ECONNREFUSED') {
+    // Network errors
+    if (error.cause?.code === 'ECONNREFUSED' || 
+        error.message?.includes('fetch failed') ||
+        error.code === 'ECONNREFUSED') {
       return res.status(503).json({
         success: false,
         error: 'Backend service unavailable',
-        details: 'Could not connect to backend server',
+        details: 'Could not connect to backend server. Please try again later.',
       });
     }
 
-    // Handle JSON parsing errors
-    if (error.message.includes('JSON')) {
+    // Timeout errors
+    if (error.name === 'AbortError' || error.message?.includes('timeout')) {
+      return res.status(504).json({
+        success: false,
+        error: 'Request timeout',
+        details: 'Backend server took too long to respond',
+      });
+    }
+
+    // JSON parsing errors
+    if (error instanceof SyntaxError || error.message?.includes('JSON')) {
       return res.status(500).json({
         success: false,
         error: 'Invalid response from backend',
-        details: 'Backend returned non-JSON response',
+        details: 'Backend returned malformed data',
       });
     }
 
     // Generic error
     return res.status(500).json({
       success: false,
-      error: error.message || 'Failed to create order',
-      details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      error: 'Internal server error',
+      message: error.message || 'An unexpected error occurred',
+      ...(process.env.NODE_ENV === 'development' && { 
+        stack: error.stack,
+        type: error.name,
+      }),
     });
   }
 }
