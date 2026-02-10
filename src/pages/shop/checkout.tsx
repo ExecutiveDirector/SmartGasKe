@@ -213,13 +213,15 @@ export default function CheckoutPage() {
         token,
       });
 
+      const parsedOrderResponse = await safeParseJson(orderResponse);
+
       if (!orderResponse.ok) {
         const errorData = await orderResponse.json();
         console.error('❌ Order creation failed:', errorData);
         throw new Error(errorData.error || errorData.details || 'Failed to create order');
       }
 
-      const orderResult = await orderResponse.json();
+      const orderResult = parsedOrderResponse.data;
       const createdOrderId = orderResult.order_id || orderResult.order?.order_id || newOrderId;
       setOrderId(createdOrderId);
 
@@ -242,13 +244,15 @@ export default function CheckoutPage() {
         token,
       });
 
+      const parsedPaymentResponse = await safeParseJson(paymentResponse);
+
       if (!paymentResponse.ok) {
         const errorData = await paymentResponse.json();
         console.error('❌ Payment initiation failed:', errorData);
         throw new Error(errorData.error || 'Failed to initialize payment');
       }
 
-      const paymentResult = await paymentResponse.json();
+      const paymentResult = parsedPaymentResponse.data;
 
       if (!paymentResult.success || !paymentResult.redirect_url) {
         throw new Error('Payment redirect URL not received');
