@@ -1,6 +1,6 @@
 // ============================================================
 // FILE: src/pages/checkout/index.tsx
-// UPDATED: Fixed field naming to match backend expectations
+// UPDATED: Fixed safeParseJson error and improved error handling
 // ============================================================
 
 import React, { useState, useEffect } from 'react';
@@ -105,41 +105,6 @@ export default function CheckoutPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const postWithFallback = async ({
-    internalPath,
-    fallbackUrl,
-    payload,
-    token,
-  }: {
-    internalPath: string;
-    fallbackUrl: string;
-    payload: any;
-    token?: string | null;
-  }) => {
-    const headers = {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-    };
-
-    const internalResponse = await fetch(internalPath, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(payload),
-    });
-
-    // Fallback to backend if Next.js API route not found
-    if (internalResponse.status === 404) {
-      console.warn(`⚠️ ${internalPath} not found. Falling back to backend endpoint.`);
-      return fetch(fallbackUrl, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(payload),
-      });
-    }
-
-    return internalResponse;
-  };
-
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -205,21 +170,32 @@ export default function CheckoutPage() {
       // Get auth token if available
       const token = getToken ? getToken() : null;
 
-      // ✅ Step 1: Create draft order
-      const orderResponse = await postWithFallback({
-        internalPath: '/api/orders/create',
-        fallbackUrl: `${normalizeApiBase(API_URL)}/orders/draft`,
-        payload: orderData,
-        token,
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+        ...(token && { Authorization: `Bearer ${token}` }),
+      };
+
+      // ✅ Step 1: Create draft order via Next.js API route
+      const orderResponse = await fetch('/api/orders/create', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(orderData),
       });
 
-      if (!orderResponse.ok) {
-        const errorData = await orderResponse.json();
-        console.error('❌ Order creation failed:', errorData);
-        throw new Error(errorData.error || errorData.details || 'Failed to create order');
+      // ✅ Handle response properly
+      let orderResult;
+      try {
+        orderResult = await orderResponse.json();
+      } catch (parseError) {
+        console.error('❌ Failed to parse order response:', parseError);
+        throw new Error('Invalid response from server');
       }
 
-      const orderResult = await orderResponse.json();
+      if (!orderResponse.ok) {
+        console.error('❌ Order creation failed:', orderResult);
+        throw new Error(orderResult.error || orderResult.details || 'Failed to create order');
+      }
+
       const createdOrderId = orderResult.order_id || orderResult.order?.order_id || newOrderId;
       setOrderId(createdOrderId);
 
@@ -235,20 +211,25 @@ export default function CheckoutPage() {
         customer_phone: formData.phone,
       };
 
-      const paymentResponse = await postWithFallback({
-        internalPath: '/api/payments/initiate',
-        fallbackUrl: `${normalizeApiBase(API_URL)}/payments/initiate`,
-        payload: paymentPayload,
-        token,
+      const paymentResponse = await fetch('/api/payments/initiate', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(paymentPayload),
       });
 
-      if (!paymentResponse.ok) {
-        const errorData = await paymentResponse.json();
-        console.error('❌ Payment initiation failed:', errorData);
-        throw new Error(errorData.error || 'Failed to initialize payment');
+      // ✅ Handle payment response
+      let paymentResult;
+      try {
+        paymentResult = await paymentResponse.json();
+      } catch (parseError) {
+        console.error('❌ Failed to parse payment response:', parseError);
+        throw new Error('Invalid payment response from server');
       }
 
-      const paymentResult = await paymentResponse.json();
+      if (!paymentResponse.ok) {
+        console.error('❌ Payment initiation failed:', paymentResult);
+        throw new Error(paymentResult.error || 'Failed to initialize payment');
+      }
 
       if (!paymentResult.success || !paymentResult.redirect_url) {
         throw new Error('Payment redirect URL not received');
