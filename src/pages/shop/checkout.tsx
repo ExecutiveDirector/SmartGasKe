@@ -110,14 +110,12 @@ export default function CheckoutPage() {
   const postWithFallback = async ({
     internalPath,
     fallbackUrl,
-    internalPayload,
-    fallbackPayload,
+    payload,
     token,
   }: {
     internalPath: string;
     fallbackUrl: string;
-    internalPayload: any;
-    fallbackPayload?: any;
+    payload: any;
     token?: string | null;
   }) => {
     const headers = {
@@ -128,7 +126,7 @@ export default function CheckoutPage() {
     const internalResponse = await fetch(internalPath, {
       method: 'POST',
       headers,
-      body: JSON.stringify(internalPayload),
+      body: JSON.stringify(payload),
     });
 
     // Some deployments host this app without Next.js API routes.
@@ -138,7 +136,7 @@ export default function CheckoutPage() {
       return fetch(fallbackUrl, {
         method: 'POST',
         headers,
-        body: JSON.stringify(fallbackPayload ?? internalPayload),
+        body: JSON.stringify(payload),
       });
     }
 
@@ -236,8 +234,7 @@ export default function CheckoutPage() {
       const orderResponse = await postWithFallback({
         internalPath: '/api/orders/create',
         fallbackUrl: `${normalizeApiBase(API_URL)}/orders/draft`,
-        internalPayload: orderData,
-        fallbackPayload: toBackendOrderPayload(orderData),
+        payload: toBackendOrderPayload(orderData),
         token,
       });
 
@@ -262,7 +259,7 @@ export default function CheckoutPage() {
       const paymentResponse = await postWithFallback({
         internalPath: '/api/payments/initiate',
         fallbackUrl: `${normalizeApiBase(API_URL)}/payments/initiate`,
-        internalPayload: paymentPayload,
+        payload: paymentPayload,
         token,
       });
 
