@@ -7,6 +7,19 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://aquagas-backend.onrender.com/api/v1';
 
+const normalizeApiBase = (url: string) => url.replace(/\/$/, '');
+
+const buildOrderDraftUrls = (baseUrl: string) => {
+  const normalized = normalizeApiBase(baseUrl);
+  const urls = [`${normalized}/orders/draft`];
+
+  if (normalized.endsWith('/api/v1')) {
+    urls.push(`${normalized.replace('/api/v1', '/api')}/orders/draft`);
+  }
+
+  return [...new Set(urls)];
+};
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -58,8 +71,10 @@ export default async function handler(
     }
 
     // ✅ No transformation needed - checkout already sends correct format
+    const candidateUrls = buildOrderDraftUrls(API_URL);
+
     console.log('🚀 Next.js API: Sending to backend:', {
-      url: `${API_URL}/orders/draft`,
+      candidate_urls: candidateUrls,
       user_id: orderData.user_id,
       is_guest: orderData.is_guest,
       has_outlet: !!orderData.outlet_id,
@@ -71,30 +86,44 @@ export default async function handler(
     // ✅ Extract auth token
     const authToken = req.headers.authorization;
 
-    // ✅ Call backend - send data directly
-    const response = await fetch(`${API_URL}/orders/draft`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        ...(authToken && { 'Authorization': authToken }),
-      },
-      body: JSON.stringify(orderData),  // ✅ Send directly, no transformation
-    });
-
-    console.log('📥 Backend response status:', response.status);
-
-    // ✅ Parse backend response robustly
-    const contentType = response.headers.get('content-type') || '';
-    const rawBody = await response.text();
-
+    let response: Response | null = null;
+    let contentType = '';
+    let rawBody = '';
     let responseData: any = null;
-    if (rawBody) {
-      try {
-        responseData = JSON.parse(rawBody);
-      } catch {
-        responseData = null;
+
+    for (const url of candidateUrls) {
+      response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          ...(authToken && { Authorization: authToken }),
+        },
+        body: JSON.stringify(orderData),
+      });
+
+      console.log('📥 Backend response status:', { url, status: response.status });
+
+      contentType = response.headers.get('content-type') || '';
+      rawBody = await response.text();
+
+      responseData = null;
+      if (rawBody) {
+        try {
+          responseData = JSON.parse(rawBody);
+        } catch {
+          responseData = null;
+        }
       }
+
+      // Retry on 404 because some deployments use /api/orders/* instead of /api/v1/orders/*
+      if (response.status !== 404) {
+        break;
+      }
+    }
+
+    if (!response) {
+      throw new Error('No backend response received');
     }
 
     if (!responseData) {

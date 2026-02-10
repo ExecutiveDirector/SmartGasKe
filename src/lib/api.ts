@@ -571,7 +571,7 @@ export const orderService = {
    * Get all orders for current user
    */
   getOrders: async (params?: OrderQueryParams): Promise<PaginatedResponse<Order>> => {
-    const response = await api.get<PaginatedResponse<Order>>('/orders', { params });
+    const response = await api.get<PaginatedResponse<Order>>('/orders/user', { params });
     return response.data;
   },
 
