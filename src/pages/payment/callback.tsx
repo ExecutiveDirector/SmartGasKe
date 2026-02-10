@@ -32,7 +32,7 @@ export default function PaymentCallbackPage() {
       setStatus('loading');
       setMessage('Verifying your payment...');
 
-      const response = await fetch('/api/payment/callback', {
+      const response = await fetch('/api/payments/callback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
