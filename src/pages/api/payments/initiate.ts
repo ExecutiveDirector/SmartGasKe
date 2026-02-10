@@ -89,8 +89,8 @@ export default async function handler(
     });
 
     // ✅ FIX: Corrected fetch syntax (was missing parentheses)
-    fetch(`${API_URL}/orders/${order_id}/payment`, {
-      method: 'PATCH',
+    fetch(`${API_URL}/orders/${order_id}/payment-status`, {
+      method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
         ...(authHeader && { Authorization: authHeader }),

@@ -52,7 +52,7 @@ export default async function handler(
     const response = await fetch(
       `${API_URL}/orders/${order_id}/payment-status`,
       {
-        method: 'PATCH',
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           ...(req.headers.authorization && {

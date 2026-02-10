@@ -32,7 +32,7 @@ import type {
 } from './types';
 
 // API Base URL from environment variable
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://aquagas-backend.onrender.com/api';
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://aquagas-backend.onrender.com/api/v1').replace(/\/$/, '');
 
 // Create axios instance
 const api: AxiosInstance = axios.create({
@@ -571,7 +571,7 @@ export const orderService = {
    * Get all orders for current user
    */
   getOrders: async (params?: OrderQueryParams): Promise<PaginatedResponse<Order>> => {
-    const response = await api.get<PaginatedResponse<Order>>('/orders', { params });
+    const response = await api.get<PaginatedResponse<Order>>('/orders/user', { params });
     return response.data;
   },
 
