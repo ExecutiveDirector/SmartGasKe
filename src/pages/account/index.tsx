@@ -54,26 +54,33 @@ export default function AccountDashboard() {
   }, [isAuthenticated, user]);
 
 const fetchDashboardData = async () => {
+  setLoading(true);
+
   try {
-    setLoading(true);
-
-    // Fetch recent orders
     const ordersResponse = await orderService.getOrders({ limit: 5 });
-    setRecentOrders(ordersResponse?.data ?? []); // Safe fallback
-
-    // Fetch wallet balance
-    const balanceResponse = await walletService.getBalance();
-    setWalletBalance(balanceResponse?.data?.balance ?? 0); // Safe fallback
-
-    // Fetch recent transactions
-    const transactionsResponse = await walletService.getTransactions({ limit: 5 });
-    setRecentTransactions(transactionsResponse?.data ?? []); // Safe fallback
+    setRecentOrders(ordersResponse?.data ?? []);
   } catch (error: any) {
-    console.error('Error fetching dashboard data:', error);
-    toast.error('Failed to load dashboard data');
-  } finally {
-    setLoading(false);
+    console.error('Error fetching recent orders:', error);
+    setRecentOrders([]);
   }
+
+  try {
+    const balanceResponse = await walletService.getBalance();
+    setWalletBalance(balanceResponse?.data?.balance ?? 0);
+  } catch (error: any) {
+    console.error('Error fetching wallet balance:', error);
+    setWalletBalance(0);
+  }
+
+  try {
+    const transactionsResponse = await walletService.getTransactions({ limit: 5 });
+    setRecentTransactions(transactionsResponse?.data ?? []);
+  } catch (error: any) {
+    console.error('Error fetching wallet transactions:', error);
+    setRecentTransactions([]);
+  }
+
+  setLoading(false);
 };
   const handleLogout = async () => {
     try {
