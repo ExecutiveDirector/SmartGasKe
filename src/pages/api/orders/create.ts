@@ -1,6 +1,6 @@
 // ============================================================
 // FILE: src/pages/api/orders/create.ts
-// FINAL FIX: Matches your backend controller expectations
+// UPDATED: Fixed to accept total_price from checkout
 // ============================================================
 
 import type { NextApiRequest, NextApiResponse } from 'next';
@@ -25,11 +25,11 @@ export default async function handler(
       has_outlet_id: !!orderData.outlet_id,
       has_vendor_name: !!orderData.vendor_name || !!orderData.vendorName,
       items_count: orderData.items?.length,
-      total: orderData.total,
+      total_price: orderData.total_price,  // ✅ Changed from total
       user_id: orderData.user_id,
     });
 
-    // ✅ Minimal validation - let backend handle the rest
+    // ✅ Minimal validation
     if (!orderData.items || !Array.isArray(orderData.items) || orderData.items.length === 0) {
       return res.status(400).json({
         success: false,
@@ -37,7 +37,8 @@ export default async function handler(
       });
     }
 
-    if (!orderData.total || orderData.total <= 0) {
+    // ✅ FIX: Check for total_price (matches checkout page)
+    if (!orderData.total_price || orderData.total_price <= 0) {
       return res.status(400).json({
         success: false,
         error: 'Total amount must be greater than 0',
@@ -56,57 +57,21 @@ export default async function handler(
       });
     }
 
-    // ✅ Transform to backend format - handle all field variations
-    const backendOrderData = {
-      // User identification
-      user_id: orderData.user_id || `guest_${Date.now()}`,
-      is_guest: isGuest,
-      
-      // Vendor/Outlet - send all variations, backend will handle
-      outlet_id: orderData.outlet_id || null,
-      vendor_id: orderData.vendor_id || null,
-      vendor_name: orderData.vendor_name || orderData.vendorName || orderData.outlet_name || null,
-      vendorName: orderData.vendorName || orderData.vendor_name || null,
-      
-      // Items - normalize to backend format
-      items: orderData.items.map((item: any) => ({
-        id: item.product_id || item.id,
-        product_id: item.product_id || item.id,
-        name: item.product_name || item.name || `Product ${item.product_id || item.id}`,
-        product_name: item.product_name || item.name || `Product ${item.product_id || item.id}`,
-        quantity: parseInt(item.quantity),
-        unit_price: parseFloat(item.price || item.unit_price),
-        price: parseFloat(item.price || item.unit_price),
-      })),
-      
-      // Pricing
-      total_price: parseFloat(orderData.total),
-      
-      // Customer contact
-      customer_email: orderData.customer_email || orderData.email || null,
-      customer_phone: orderData.customer_phone || orderData.phone || null,
-      
-      // Delivery
-      delivery_address: orderData.delivery_address || orderData.address || null,
-      delivery_latitude: orderData.delivery_latitude || orderData.latitude || null,
-      delivery_longitude: orderData.delivery_longitude || orderData.longitude || null,
-      delivery_notes: orderData.delivery_notes || orderData.order_notes || orderData.notes || null,
-    };
-
+    // ✅ No transformation needed - checkout already sends correct format
     console.log('🚀 Next.js API: Sending to backend:', {
       url: `${API_URL}/orders/draft`,
-      user_id: backendOrderData.user_id,
-      is_guest: backendOrderData.is_guest,
-      has_outlet: !!backendOrderData.outlet_id,
-      has_vendor_name: !!backendOrderData.vendor_name,
-      items_count: backendOrderData.items.length,
-      total_price: backendOrderData.total_price,
+      user_id: orderData.user_id,
+      is_guest: orderData.is_guest,
+      has_outlet: !!orderData.outlet_id,
+      has_vendor_name: !!orderData.vendor_name,
+      items_count: orderData.items.length,
+      total_price: orderData.total_price,
     });
 
     // ✅ Extract auth token
     const authToken = req.headers.authorization;
 
-    // ✅ Call backend
+    // ✅ Call backend - send data directly
     const response = await fetch(`${API_URL}/orders/draft`, {
       method: 'POST',
       headers: {
@@ -114,12 +79,13 @@ export default async function handler(
         'Accept': 'application/json',
         ...(authToken && { 'Authorization': authToken }),
       },
-      body: JSON.stringify(backendOrderData),
+      body: JSON.stringify(orderData),  // ✅ Send directly, no transformation
     });
 
     console.log('📥 Backend response status:', response.status);
 
     // ✅ Parse backend response robustly (some deployments return JSON with wrong content-type)
+    // ✅ Parse backend response robustly
     const contentType = response.headers.get('content-type') || '';
     const rawBody = await response.text();
 
