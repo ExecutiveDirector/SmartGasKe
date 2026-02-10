@@ -1,6 +1,6 @@
 // ============================================================
 // FILE: src/pages/checkout/index.tsx
-// UPDATED: Simplified checkout without payment method selection
+// UPDATED: Fixed field naming to match backend expectations
 // ============================================================
 
 import React, { useState, useEffect } from 'react';
@@ -24,7 +24,6 @@ import { useCart } from '@/lib/context/CartContext';
 import { useAuth } from '@/lib/context/AuthContext';
 import toast from 'react-hot-toast';
 
-
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://aquagas-backend.onrender.com/api/v1';
 
 const normalizeApiBase = (url: string) => url.replace(/\/$/, '');
@@ -44,7 +43,7 @@ export default function CheckoutPage() {
   const deliveryFee = subtotal > 5000 ? 0 : 200;
   const total = subtotal + tax + deliveryFee;
 
-  // Form state - NO payment method field
+  // Form state
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -106,7 +105,6 @@ export default function CheckoutPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-
   const postWithFallback = async ({
     internalPath,
     fallbackUrl,
@@ -129,8 +127,7 @@ export default function CheckoutPage() {
       body: JSON.stringify(payload),
     });
 
-    // Some deployments host this app without Next.js API routes.
-    // In that case, fallback directly to the backend API.
+    // Fallback to backend if Next.js API route not found
     if (internalResponse.status === 404) {
       console.warn(`⚠️ ${internalPath} not found. Falling back to backend endpoint.`);
       return fetch(fallbackUrl, {
@@ -142,34 +139,6 @@ export default function CheckoutPage() {
 
     return internalResponse;
   };
-
-  const toBackendOrderPayload = (orderData: any) => ({
-    user_id: orderData.user_id || `guest_${Date.now()}`,
-    is_guest:
-      !orderData.user_id ||
-      orderData.user_id === 'guest' ||
-      orderData.user_id?.toString().startsWith('guest_'),
-    outlet_id: orderData.outlet_id || null,
-    vendor_id: orderData.vendor_id || null,
-    vendor_name: orderData.vendor_name || orderData.vendorName || orderData.outlet_name || null,
-    vendorName: orderData.vendorName || orderData.vendor_name || null,
-    items: orderData.items.map((item: any) => ({
-      id: item.product_id || item.id,
-      product_id: item.product_id || item.id,
-      name: item.product_name || item.name || `Product ${item.product_id || item.id}`,
-      product_name: item.product_name || item.name || `Product ${item.product_id || item.id}`,
-      quantity: parseInt(item.quantity, 10),
-      unit_price: parseFloat(item.price || item.unit_price),
-      price: parseFloat(item.price || item.unit_price),
-    })),
-    total_price: parseFloat(orderData.total),
-    customer_email: orderData.customer_email || orderData.email || null,
-    customer_phone: orderData.customer_phone || orderData.phone || null,
-    delivery_address: orderData.delivery_address || orderData.address || null,
-    delivery_latitude: orderData.delivery_latitude || orderData.latitude || null,
-    delivery_longitude: orderData.delivery_longitude || orderData.longitude || null,
-    delivery_notes: orderData.delivery_notes || orderData.order_notes || orderData.notes || null,
-  });
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
@@ -196,60 +165,70 @@ export default function CheckoutPage() {
         throw new Error('Outlet ID is missing');
       }
 
-      // Prepare order data (NO payment_method field)
+      // ✅ Prepare order data with backend-compatible field names
       const orderData = {
-        order_id: newOrderId,
-        user_id: user?.id || 'guest',
+        user_id: user?.id || `guest_${Date.now()}`,
+        is_guest: !user || user.id === 'guest',
         outlet_id: outletId,
         vendor_id: vendorId,
-        customer_name: formData.name,
-        customer_email: formData.email,
-        customer_phone: formData.phone,
-        delivery_address: formData.address,
-        order_notes: formData.notes || '',
+        vendor_name: outlet.vendor_name || outlet.name,
+        
+        // Items with correct field names
         items: cart.map((item) => ({
           product_id: item.id || item.product_id,
           product_name: item.name || item.title || item.product_name,
           quantity: item.quantity,
+          unit_price: item.price,
           price: item.price,
-          image: item.image,
         })),
-        subtotal,
-        tax,
-        delivery_fee: deliveryFee,
-        total,
-        status: 'draft',
+        
+        // Pricing
+        total_price: total,
+        
+        // Customer info
+        customer_email: formData.email,
+        customer_phone: formData.phone,
+        
+        // Delivery
+        delivery_address: formData.address,
+        delivery_notes: formData.notes || '',
       };
 
       console.log('📦 Creating order:', {
         order_id: newOrderId,
         outlet_id: outletId,
-        is_guest: !user || user.id === 'guest',
+        is_guest: orderData.is_guest,
+        total_price: orderData.total_price,
+        items_count: orderData.items.length,
       });
 
       // Get auth token if available
       const token = getToken ? getToken() : null;
 
-      // Step 1: Create draft order
+      // ✅ Step 1: Create draft order
       const orderResponse = await postWithFallback({
         internalPath: '/api/orders/create',
         fallbackUrl: `${normalizeApiBase(API_URL)}/orders/draft`,
-        payload: toBackendOrderPayload(orderData),
+        payload: orderData,
         token,
       });
 
       if (!orderResponse.ok) {
         const errorData = await orderResponse.json();
-        throw new Error(errorData.error || 'Failed to create order');
+        console.error('❌ Order creation failed:', errorData);
+        throw new Error(errorData.error || errorData.details || 'Failed to create order');
       }
 
       const orderResult = await orderResponse.json();
       const createdOrderId = orderResult.order_id || orderResult.order?.order_id || newOrderId;
       setOrderId(createdOrderId);
 
-      console.log('✅ Order created:', createdOrderId);
+      console.log('✅ Order created:', {
+        order_id: createdOrderId,
+        order_number: orderResult.order?.order_number,
+      });
 
-      // Step 2: Initiate Pesapal payment (user selects payment method on Pesapal page)
+      // ✅ Step 2: Initiate Pesapal payment
       const paymentPayload = {
         order_id: createdOrderId,
         customer_email: formData.email,
@@ -265,6 +244,7 @@ export default function CheckoutPage() {
 
       if (!paymentResponse.ok) {
         const errorData = await paymentResponse.json();
+        console.error('❌ Payment initiation failed:', errorData);
         throw new Error(errorData.error || 'Failed to initialize payment');
       }
 
@@ -274,15 +254,16 @@ export default function CheckoutPage() {
         throw new Error('Payment redirect URL not received');
       }
 
+      console.log('✅ Redirecting to payment page...');
+
       // Clear cart before redirect
       clearCart();
 
       // Redirect to Pesapal payment page
-      // User will select payment method (M-Pesa, Card, etc.) on Pesapal
       window.location.href = paymentResult.redirect_url;
 
     } catch (error: any) {
-      console.error('Checkout error:', error);
+      console.error('❌ Checkout error:', error);
       toast.error(error.message || 'Failed to process checkout. Please try again.');
       setSubmitting(false);
     }
