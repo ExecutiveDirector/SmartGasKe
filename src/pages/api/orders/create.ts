@@ -119,24 +119,32 @@ export default async function handler(
 
     console.log('📥 Backend response status:', response.status);
 
-    // ✅ Check response type
-    const contentType = response.headers.get('content-type');
-    if (!contentType?.includes('application/json')) {
-      const text = await response.text();
-      console.error('❌ Backend returned non-JSON:', {
-        status: response.status,
-        contentType,
-        body: text.substring(0, 500),
-      });
-      
-      return res.status(500).json({
-        success: false,
-        error: 'Backend service error',
-        details: 'Invalid response format from backend',
-      });
+    // ✅ Parse backend response robustly (some deployments return JSON with wrong content-type)
+    const contentType = response.headers.get('content-type') || '';
+    const rawBody = await response.text();
+
+    let responseData: any = null;
+    if (rawBody) {
+      try {
+        responseData = JSON.parse(rawBody);
+      } catch {
+        responseData = null;
+      }
     }
 
-    const responseData = await response.json();
+    if (!responseData) {
+      console.error('❌ Backend returned non-JSON payload:', {
+        status: response.status,
+        contentType,
+        body: rawBody.substring(0, 500),
+      });
+
+      return res.status(response.status || 502).json({
+        success: false,
+        error: response.ok ? 'Invalid backend response' : 'Backend service error',
+        details: rawBody || 'Backend returned an unexpected response format',
+      });
+    }
 
     // ✅ Handle backend errors
     if (!response.ok) {
