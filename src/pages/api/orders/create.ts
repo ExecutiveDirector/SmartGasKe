@@ -45,6 +45,20 @@ const buildOrderDraftUrls = (baseUrl: string) => {
   return [...new Set(urls)];
 };
 
+const fetchWithTimeout = async (url: string, init: RequestInit, timeoutMs = 12000) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, {
+      ...init,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -115,17 +129,32 @@ export default async function handler(
     let contentType = '';
     let rawBody = '';
     let responseData: any = null;
+    const upstreamErrors: string[] = [];
 
     for (const url of candidateUrls) {
-      response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-          ...(authToken && { Authorization: authToken }),
-        },
-        body: JSON.stringify(orderData),
-      });
+      try {
+        response = await fetchWithTimeout(
+          url,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Accept: 'application/json',
+              ...(authToken && { Authorization: authToken }),
+            },
+            body: JSON.stringify(orderData),
+          },
+          10000
+        );
+      } catch (requestError: any) {
+        const message = requestError?.name === 'AbortError'
+          ? `Timeout while calling ${url}`
+          : `Request failed for ${url}: ${requestError?.message || 'unknown error'}`;
+
+        upstreamErrors.push(message);
+        console.warn('⚠️ Backend request failed:', message);
+        continue;
+      }
 
       console.log('📥 Backend response status:', { url, status: response.status });
 
@@ -148,7 +177,13 @@ export default async function handler(
     }
 
     if (!response) {
-      throw new Error('No backend response received');
+      return res.status(503).json({
+        success: false,
+        error: 'Backend service unavailable',
+        details: upstreamErrors.length > 0
+          ? upstreamErrors.join(' | ')
+          : 'No backend response received',
+      });
     }
 
     if (!responseData) {
