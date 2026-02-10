@@ -55,7 +55,6 @@ export default function Document() {
         />
 
         {/* Preload critical resources */}
-        <link rel="preload" href="/fonts/inter-var.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
 
         {/* Analytics - Add your analytics code here */}
         {/* Google Analytics */}
