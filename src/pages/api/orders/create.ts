@@ -13,8 +13,14 @@ const buildOrderDraftUrls = (baseUrl: string) => {
   const normalized = normalizeApiBase(baseUrl);
   const urls = [`${normalized}/orders/draft`];
 
+  // Support environments configured with /api or /api/v1 base URLs.
   if (normalized.endsWith('/api/v1')) {
     urls.push(`${normalized.replace('/api/v1', '/api')}/orders/draft`);
+  } else if (normalized.endsWith('/api')) {
+    urls.push(`${normalized}/v1/orders/draft`);
+  } else {
+    urls.push(`${normalized}/api/v1/orders/draft`);
+    urls.push(`${normalized}/api/orders/draft`);
   }
 
   return [...new Set(urls)];
