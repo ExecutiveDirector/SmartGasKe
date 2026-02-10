@@ -182,18 +182,26 @@ export default function CheckoutPage() {
         body: JSON.stringify(orderData),
       });
 
-      // ✅ Handle response properly
-      let orderResult;
+      // ✅ Handle response robustly (supports non-JSON error payloads)
+      let orderResult: any = null;
+      const orderRawResponse = await orderResponse.text();
       try {
-        orderResult = await orderResponse.json();
+        orderResult = orderRawResponse ? JSON.parse(orderRawResponse) : null;
       } catch (parseError) {
         console.error('❌ Failed to parse order response:', parseError);
-        throw new Error('Invalid response from server');
+        orderResult = {
+          success: false,
+          error: orderRawResponse || 'Invalid response from server',
+        };
       }
 
       if (!orderResponse.ok) {
         console.error('❌ Order creation failed:', orderResult);
-        throw new Error(orderResult.error || orderResult.details || 'Failed to create order');
+        throw new Error(
+          orderResult?.error ||
+          orderResult?.details ||
+          `Failed to create order (HTTP ${orderResponse.status})`
+        );
       }
 
       const createdOrderId = orderResult.order_id || orderResult.order?.order_id || newOrderId;
