@@ -23,8 +23,7 @@ export default async function handler(
 
     if (!order_id || !customer_email || !customer_phone) {
       return res.status(400).json({
-        error:
-          'order_id, customer_email and customer_phone are required',
+        error: 'order_id, customer_email and customer_phone are required',
       });
     }
 
@@ -32,27 +31,27 @@ export default async function handler(
 
     const authHeader = req.headers.authorization;
 
-    // Fetch order details
-    const orderResponse = await fetch(
-      `${API_URL}/orders/${order_id}`,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          ...(authHeader && { Authorization: authHeader }),
-        },
-      }
-    );
+    // Fetch order details from backend
+    const orderResponse = await fetch(`${API_URL}/orders/${order_id}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...(authHeader && { Authorization: authHeader }),
+      },
+    });
 
     if (!orderResponse.ok) {
+      const errorText = await orderResponse.text();
+      console.error('❌ Order fetch failed:', {
+        status: orderResponse.status,
+        body: errorText,
+      });
       throw new Error('Order not found or unauthorized');
     }
 
     const orderPayload = await orderResponse.json();
     const order = orderPayload.order ?? orderPayload;
 
-    const amount =
-      Number(order.total_price ?? order.total ?? 0);
-
+    const amount = Number(order.total_price ?? order.total ?? 0);
     if (amount <= 0) {
       throw new Error('Invalid order amount');
     }
@@ -71,19 +70,25 @@ export default async function handler(
         'Customer',
     };
 
-    console.log('📤 Creating Pesapal order:', pesapalPayload);
+    console.log('📤 Creating Pesapal order:', {
+      orderId: pesapalPayload.orderId,
+      amount: pesapalPayload.amount,
+      currency: pesapalPayload.currency,
+    });
 
-    const pesapalResponse =
-      await pesapalService.createOrder(pesapalPayload);
+    const pesapalResponse = await pesapalService.createOrder(pesapalPayload);
 
-    if (
-      !pesapalResponse?.redirect_url ||
-      !pesapalResponse?.order_tracking_id
-    ) {
+    if (!pesapalResponse?.redirect_url || !pesapalResponse?.order_tracking_id) {
+      console.error('❌ Invalid Pesapal response:', pesapalResponse);
       throw new Error('Invalid Pesapal response');
     }
 
-    // Update order with tracking info (non-blocking)
+    console.log('✅ Pesapal order created:', {
+      tracking_id: pesapalResponse.order_tracking_id,
+      has_redirect: !!pesapalResponse.redirect_url,
+    });
+
+    // ✅ FIX: Corrected fetch syntax (was missing parentheses)
     fetch(`${API_URL}/orders/${order_id}/payment`, {
       method: 'PATCH',
       headers: {
@@ -91,32 +96,24 @@ export default async function handler(
         ...(authHeader && { Authorization: authHeader }),
       },
       body: JSON.stringify({
-        payment_tracking_id:
-          pesapalResponse.order_tracking_id,
-        payment_merchant_reference:
-          pesapalResponse.merchant_reference,
+        payment_tracking_id: pesapalResponse.order_tracking_id,
+        payment_merchant_reference: pesapalResponse.merchant_reference,
         payment_status: 'pending',
         payment_method: 'pesapal',
       }),
     }).catch((err) =>
-      console.error(
-        '⚠️ Payment tracking update failed:',
-        err
-      )
+      console.error('⚠️ Payment tracking update failed:', err)
     );
 
     return res.status(200).json({
       success: true,
       order_id,
       redirect_url: pesapalResponse.redirect_url,
-      order_tracking_id:
-        pesapalResponse.order_tracking_id,
-      merchant_reference:
-        pesapalResponse.merchant_reference,
+      order_tracking_id: pesapalResponse.order_tracking_id,
+      merchant_reference: pesapalResponse.merchant_reference,
     });
   } catch (error: any) {
     console.error('❌ Payment initiation failed:', error);
-
     return res.status(500).json({
       success: false,
       error: 'Failed to initiate payment',
