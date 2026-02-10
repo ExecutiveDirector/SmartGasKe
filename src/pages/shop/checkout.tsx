@@ -28,6 +28,22 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://aquagas-backend.onre
 
 const normalizeApiBase = (url: string) => url.replace(/\/$/, '');
 
+async function safeParseJson(response: Response) {
+  const raw = await response.text();
+
+  try {
+    return {
+      data: raw ? JSON.parse(raw) : null,
+      raw,
+    };
+  } catch {
+    return {
+      data: null,
+      raw,
+    };
+  }
+}
+
 export default function CheckoutPage() {
   const router = useRouter();
   const { cart, total: cartTotal, itemCount, clearCart, getCartOutlet } = useCart();
@@ -213,13 +229,15 @@ export default function CheckoutPage() {
         token,
       });
 
+      const parsedOrderResponse = await safeParseJson(orderResponse);
+
       if (!orderResponse.ok) {
         const errorData = await orderResponse.json();
         console.error('❌ Order creation failed:', errorData);
         throw new Error(errorData.error || errorData.details || 'Failed to create order');
       }
 
-      const orderResult = await orderResponse.json();
+      const orderResult = parsedOrderResponse.data;
       const createdOrderId = orderResult.order_id || orderResult.order?.order_id || newOrderId;
       setOrderId(createdOrderId);
 
@@ -235,6 +253,17 @@ export default function CheckoutPage() {
         customer_phone: formData.phone,
       };
 
+      // Step 2: Initiate Pesapal payment (user selects payment method on Pesapal page)
+      const paymentPayload = {
+        order_id: createdOrderId,
+        customer_email: formData.email,
+        customer_phone: formData.phone,
+      };
+
+      const paymentResponse = await postWithFallback({
+        internalPath: '/api/payments/initiate',
+        fallbackUrls: [`${apiBase}/payments/initiate`],
+        internalPayload: paymentPayload,
       const paymentResponse = await postWithFallback({
         internalPath: '/api/payments/initiate',
         fallbackUrl: `${normalizeApiBase(API_URL)}/payments/initiate`,
@@ -242,13 +271,15 @@ export default function CheckoutPage() {
         token,
       });
 
+      const parsedPaymentResponse = await safeParseJson(paymentResponse);
+
       if (!paymentResponse.ok) {
         const errorData = await paymentResponse.json();
         console.error('❌ Payment initiation failed:', errorData);
         throw new Error(errorData.error || 'Failed to initialize payment');
       }
 
-      const paymentResult = await paymentResponse.json();
+      const paymentResult = parsedPaymentResponse.data;
 
       if (!paymentResult.success || !paymentResult.redirect_url) {
         throw new Error('Payment redirect URL not received');

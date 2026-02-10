@@ -84,6 +84,7 @@ export default async function handler(
 
     console.log('📥 Backend response status:', response.status);
 
+    // ✅ Parse backend response robustly (some deployments return JSON with wrong content-type)
     // ✅ Parse backend response robustly
     const contentType = response.headers.get('content-type') || '';
     const rawBody = await response.text();
