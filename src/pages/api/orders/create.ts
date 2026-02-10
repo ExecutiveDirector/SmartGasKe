@@ -11,10 +11,34 @@ const normalizeApiBase = (url: string) => url.replace(/\/$/, '');
 
 const buildOrderDraftUrls = (baseUrl: string) => {
   const normalized = normalizeApiBase(baseUrl);
-  const urls = [`${normalized}/orders/draft`];
+  const urls: string[] = [];
+  const pathCandidates = ['/orders/draft', '/orders/create'];
 
+  const appendWithPaths = (base: string) => {
+    const cleanedBase = normalizeApiBase(base);
+    for (const path of pathCandidates) {
+      urls.push(`${cleanedBase}${path}`);
+    }
+  };
+
+  appendWithPaths(normalized);
+
+  // Support environments configured with /api, /api/v1, or bare host URL.
   if (normalized.endsWith('/api/v1')) {
-    urls.push(`${normalized.replace('/api/v1', '/api')}/orders/draft`);
+    appendWithPaths(normalized.replace('/api/v1', '/api'));
+  } else if (normalized.endsWith('/api')) {
+    appendWithPaths(`${normalized}/v1`);
+  } else {
+    appendWithPaths(`${normalized}/api/v1`);
+    appendWithPaths(`${normalized}/api`);
+  }
+
+  // Also try root-level endpoints when API_URL includes an /api* suffix.
+  try {
+    const origin = new URL(normalized).origin;
+    appendWithPaths(origin);
+  } catch {
+    // Ignore malformed URL and continue with generated candidates.
   }
 
   return [...new Set(urls)];
