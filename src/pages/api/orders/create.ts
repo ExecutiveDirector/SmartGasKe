@@ -12,7 +12,8 @@ const normalizeApiBase = (url: string) => url.replace(/\/$/, '');
 const buildOrderDraftUrls = (baseUrl: string) => {
   const normalized = normalizeApiBase(baseUrl);
   const urls: string[] = [];
-  const pathCandidates = ['/orders/draft', '/orders/create'];
+  // Try modern draft route first, then legacy create alias, then base orders route.
+  const pathCandidates = ['/orders/draft', '/orders/create', '/orders'];
 
   const appendWithPaths = (base: string) => {
     const cleanedBase = normalizeApiBase(base);
