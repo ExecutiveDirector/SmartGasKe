@@ -24,6 +24,27 @@ import { useCart } from '@/lib/context/CartContext';
 import { useAuth } from '@/lib/context/AuthContext';
 import toast from 'react-hot-toast';
 
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://aquagas-backend.onrender.com/api/v1';
+
+const normalizeApiBase = (url: string) => url.replace(/\/$/, '');
+
+const safeParseJson = async (response: Response) => {
+  const raw = await response.text();
+
+  try {
+    return {
+      data: raw ? JSON.parse(raw) : null,
+      raw,
+    };
+  } catch {
+    return {
+      data: null,
+      raw,
+    };
+  }
+};
+
 export default function CheckoutPage() {
   const router = useRouter();
   const { cart, total: cartTotal, itemCount, clearCart, getCartOutlet } = useCart();
@@ -101,6 +122,85 @@ export default function CheckoutPage() {
     return Object.keys(newErrors).length === 0;
   };
 
+
+
+  const postWithFallback = async ({
+    internalPath,
+    fallbackUrls,
+    internalPayload,
+    fallbackPayload,
+    token,
+  }: {
+    internalPath: string;
+    fallbackUrls: string[];
+    internalPayload: any;
+    fallbackPayload?: any;
+    token?: string | null;
+  }) => {
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+    };
+
+    const internalResponse = await fetch(internalPath, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(internalPayload),
+    });
+
+    if (internalResponse.status !== 404) {
+      return internalResponse;
+    }
+
+    console.warn(`⚠️ ${internalPath} not found. Falling back to backend endpoint.`);
+
+    let lastResponse: Response | null = null;
+    for (const url of fallbackUrls) {
+      const fallbackResponse = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(fallbackPayload ?? internalPayload),
+      });
+
+      lastResponse = fallbackResponse;
+
+      // Stop at first non-404 response.
+      if (fallbackResponse.status !== 404) {
+        return fallbackResponse;
+      }
+    }
+
+    return lastResponse ?? internalResponse;
+  };
+
+  const toBackendOrderPayload = (orderData: any) => ({
+    user_id: orderData.user_id || `guest_${Date.now()}`,
+    is_guest:
+      !orderData.user_id ||
+      orderData.user_id === 'guest' ||
+      orderData.user_id?.toString().startsWith('guest_'),
+    outlet_id: orderData.outlet_id || null,
+    vendor_id: orderData.vendor_id || null,
+    vendor_name: orderData.vendor_name || orderData.vendorName || orderData.outlet_name || null,
+    vendorName: orderData.vendorName || orderData.vendor_name || null,
+    items: orderData.items.map((item: any) => ({
+      id: item.product_id || item.id,
+      product_id: item.product_id || item.id,
+      name: item.product_name || item.name || `Product ${item.product_id || item.id}`,
+      product_name: item.product_name || item.name || `Product ${item.product_id || item.id}`,
+      quantity: parseInt(item.quantity, 10),
+      unit_price: parseFloat(item.price || item.unit_price),
+      price: parseFloat(item.price || item.unit_price),
+    })),
+    total_price: parseFloat(orderData.total),
+    customer_email: orderData.customer_email || orderData.email || null,
+    customer_phone: orderData.customer_phone || orderData.phone || null,
+    delivery_address: orderData.delivery_address || orderData.address || null,
+    delivery_latitude: orderData.delivery_latitude || orderData.latitude || null,
+    delivery_longitude: orderData.delivery_longitude || orderData.longitude || null,
+    delivery_notes: orderData.delivery_notes || orderData.order_notes || orderData.notes || null,
+  });
+
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -161,46 +261,58 @@ export default function CheckoutPage() {
       const token = getToken ? getToken() : null;
 
       // Step 1: Create draft order
-      const orderResponse = await fetch('/api/orders/create', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` }),
-        },
-        body: JSON.stringify(orderData),
+      const apiBase = normalizeApiBase(API_URL);
+      const orderResponse = await postWithFallback({
+        internalPath: '/api/orders/create',
+        fallbackUrls: [`${apiBase}/orders/draft`, `${apiBase}/orders/create`, `${apiBase}/orders`],
+        internalPayload: orderData,
+        fallbackPayload: toBackendOrderPayload(orderData),
+        token,
       });
 
+      const parsedOrderResponse = await safeParseJson(orderResponse);
+
       if (!orderResponse.ok) {
-        const errorData = await orderResponse.json();
-        throw new Error(errorData.error || 'Failed to create order');
+        const backendError = parsedOrderResponse.data?.error || parsedOrderResponse.data?.message;
+        throw new Error(backendError || `Failed to create order (status ${orderResponse.status})`);
       }
 
-      const orderResult = await orderResponse.json();
+      if (!parsedOrderResponse.data) {
+        throw new Error('Failed to create order: backend returned invalid response format');
+      }
+
+      const orderResult = parsedOrderResponse.data;
       const createdOrderId = orderResult.order_id || orderResult.order?.order_id || newOrderId;
       setOrderId(createdOrderId);
 
       console.log('✅ Order created:', createdOrderId);
 
       // Step 2: Initiate Pesapal payment (user selects payment method on Pesapal page)
-      const paymentResponse = await fetch('/api/payments/initiate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` }),
-        },
-        body: JSON.stringify({
-          order_id: createdOrderId,
-          customer_email: formData.email,
-          customer_phone: formData.phone,
-        }),
+      const paymentPayload = {
+        order_id: createdOrderId,
+        customer_email: formData.email,
+        customer_phone: formData.phone,
+      };
+
+      const paymentResponse = await postWithFallback({
+        internalPath: '/api/payments/initiate',
+        fallbackUrls: [`${apiBase}/payments/initiate`],
+        internalPayload: paymentPayload,
+        token,
       });
 
+      const parsedPaymentResponse = await safeParseJson(paymentResponse);
+
       if (!paymentResponse.ok) {
-        const errorData = await paymentResponse.json();
-        throw new Error(errorData.error || 'Failed to initialize payment');
+        const backendError = parsedPaymentResponse.data?.error || parsedPaymentResponse.data?.message;
+        throw new Error(backendError || `Failed to initialize payment (status ${paymentResponse.status})`);
       }
 
-      const paymentResult = await paymentResponse.json();
+      if (!parsedPaymentResponse.data) {
+        throw new Error('Failed to initialize payment: backend returned invalid response format');
+      }
+
+      const paymentResult = parsedPaymentResponse.data;
 
       if (!paymentResult.success || !paymentResult.redirect_url) {
         throw new Error('Payment redirect URL not received');
