@@ -24,6 +24,11 @@ import { useCart } from '@/lib/context/CartContext';
 import { useAuth } from '@/lib/context/AuthContext';
 import toast from 'react-hot-toast';
 
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://aquagas-backend.onrender.com/api/v1';
+
+const normalizeApiBase = (url: string) => url.replace(/\/$/, '');
+
 export default function CheckoutPage() {
   const router = useRouter();
   const { cart, total: cartTotal, itemCount, clearCart, getCartOutlet } = useCart();
@@ -101,6 +106,73 @@ export default function CheckoutPage() {
     return Object.keys(newErrors).length === 0;
   };
 
+
+  const postWithFallback = async ({
+    internalPath,
+    fallbackUrl,
+    internalPayload,
+    fallbackPayload,
+    token,
+  }: {
+    internalPath: string;
+    fallbackUrl: string;
+    internalPayload: any;
+    fallbackPayload?: any;
+    token?: string | null;
+  }) => {
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+    };
+
+    const internalResponse = await fetch(internalPath, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(internalPayload),
+    });
+
+    // Some deployments host this app without Next.js API routes.
+    // In that case, fallback directly to the backend API.
+    if (internalResponse.status === 404) {
+      console.warn(`⚠️ ${internalPath} not found. Falling back to backend endpoint.`);
+      return fetch(fallbackUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(fallbackPayload ?? internalPayload),
+      });
+    }
+
+    return internalResponse;
+  };
+
+  const toBackendOrderPayload = (orderData: any) => ({
+    user_id: orderData.user_id || `guest_${Date.now()}`,
+    is_guest:
+      !orderData.user_id ||
+      orderData.user_id === 'guest' ||
+      orderData.user_id?.toString().startsWith('guest_'),
+    outlet_id: orderData.outlet_id || null,
+    vendor_id: orderData.vendor_id || null,
+    vendor_name: orderData.vendor_name || orderData.vendorName || orderData.outlet_name || null,
+    vendorName: orderData.vendorName || orderData.vendor_name || null,
+    items: orderData.items.map((item: any) => ({
+      id: item.product_id || item.id,
+      product_id: item.product_id || item.id,
+      name: item.product_name || item.name || `Product ${item.product_id || item.id}`,
+      product_name: item.product_name || item.name || `Product ${item.product_id || item.id}`,
+      quantity: parseInt(item.quantity, 10),
+      unit_price: parseFloat(item.price || item.unit_price),
+      price: parseFloat(item.price || item.unit_price),
+    })),
+    total_price: parseFloat(orderData.total),
+    customer_email: orderData.customer_email || orderData.email || null,
+    customer_phone: orderData.customer_phone || orderData.phone || null,
+    delivery_address: orderData.delivery_address || orderData.address || null,
+    delivery_latitude: orderData.delivery_latitude || orderData.latitude || null,
+    delivery_longitude: orderData.delivery_longitude || orderData.longitude || null,
+    delivery_notes: orderData.delivery_notes || orderData.order_notes || orderData.notes || null,
+  });
+
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -161,13 +233,12 @@ export default function CheckoutPage() {
       const token = getToken ? getToken() : null;
 
       // Step 1: Create draft order
-      const orderResponse = await fetch('/api/orders/create', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` }),
-        },
-        body: JSON.stringify(orderData),
+      const orderResponse = await postWithFallback({
+        internalPath: '/api/orders/create',
+        fallbackUrl: `${normalizeApiBase(API_URL)}/orders/draft`,
+        internalPayload: orderData,
+        fallbackPayload: toBackendOrderPayload(orderData),
+        token,
       });
 
       if (!orderResponse.ok) {
@@ -182,17 +253,17 @@ export default function CheckoutPage() {
       console.log('✅ Order created:', createdOrderId);
 
       // Step 2: Initiate Pesapal payment (user selects payment method on Pesapal page)
-      const paymentResponse = await fetch('/api/payments/initiate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` }),
-        },
-        body: JSON.stringify({
-          order_id: createdOrderId,
-          customer_email: formData.email,
-          customer_phone: formData.phone,
-        }),
+      const paymentPayload = {
+        order_id: createdOrderId,
+        customer_email: formData.email,
+        customer_phone: formData.phone,
+      };
+
+      const paymentResponse = await postWithFallback({
+        internalPath: '/api/payments/initiate',
+        fallbackUrl: `${normalizeApiBase(API_URL)}/payments/initiate`,
+        internalPayload: paymentPayload,
+        token,
       });
 
       if (!paymentResponse.ok) {
