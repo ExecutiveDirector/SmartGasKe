@@ -12,8 +12,13 @@ const normalizeApiBase = (url: string) => url.replace(/\/$/, '');
 const buildOrderDraftUrls = (baseUrl: string) => {
   const normalized = normalizeApiBase(baseUrl);
   const urls: string[] = [];
-  // Try modern draft route first, then legacy create alias, then base orders route.
-  const pathCandidates = ['/orders/draft', '/orders/create', '/orders'];
+  // Try modern draft route first, then known legacy aliases.
+  const pathCandidates = [
+    '/orders/draft',
+    '/orders/create',
+    '/orders/create-order',
+    '/orders',
+  ];
 
   const appendWithPaths = (base: string) => {
     const cleanedBase = normalizeApiBase(base);
@@ -22,7 +27,18 @@ const buildOrderDraftUrls = (baseUrl: string) => {
     }
   };
 
-  appendWithPaths(normalized);
+  const baseCandidates = new Set<string>([normalized]);
+
+  // Support accidentally configured values like .../orders or .../api/v1/orders
+  for (const suffix of ['/orders', '/api/v1/orders', '/api/orders']) {
+    if (normalized.endsWith(suffix)) {
+      baseCandidates.add(normalized.slice(0, -suffix.length));
+    }
+  }
+
+  for (const baseCandidate of baseCandidates) {
+    appendWithPaths(baseCandidate);
+  }
 
   // Support environments configured with /api, /api/v1, or bare host URL.
   if (normalized.endsWith('/api/v1')) {
@@ -130,8 +146,10 @@ export default async function handler(
     let rawBody = '';
     let responseData: any = null;
     const upstreamErrors: string[] = [];
+    const attemptedUrls: string[] = [];
 
     for (const url of candidateUrls) {
+      attemptedUrls.push(url);
       try {
         response = await fetchWithTimeout(
           url,
@@ -191,12 +209,21 @@ export default async function handler(
         status: response.status,
         contentType,
         body: rawBody.substring(0, 500),
+        attempted_urls: attemptedUrls,
       });
+
+      const isRouteNotFound = response.status === 404 && /Cannot\s+POST/i.test(rawBody);
 
       return res.status(response.status || 502).json({
         success: false,
-        error: response.ok ? 'Invalid backend response' : 'Backend service error',
-        details: rawBody || 'Backend returned an unexpected response format',
+        error: isRouteNotFound
+          ? 'Order endpoint not found on backend service'
+          : response.ok
+            ? 'Invalid backend response'
+            : 'Backend service error',
+        details: isRouteNotFound
+          ? `Tried endpoints: ${attemptedUrls.join(', ')}`
+          : rawBody || 'Backend returned an unexpected response format',
       });
     }
 
