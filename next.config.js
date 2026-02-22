@@ -2,11 +2,11 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: ['localhost', 'api.aquagas.com'],
+    domains: ['localhost', 'https://aquagas-backend.onrender.com/api/v1'],
     formats: ['image/avif', 'image/webp'],
   },
   env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://api.aquagas.com',
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://aquagas-backend.onrender.com/api/v1',
     NEXT_PUBLIC_GA_ID: process.env.NEXT_PUBLIC_GA_ID,
   },
   async redirects() {
