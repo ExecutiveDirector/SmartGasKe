@@ -1,6 +1,11 @@
 // ============================================================
 // FILE: src/lib/api.ts
 // Updated to match backend API endpoints and responses
+//
+// FIX: register() was calling POST /auth/register — route does NOT exist.
+//      Correct endpoint is POST /auth/register/user (see routes/auth.js).
+//      Also: backend expects { fullName } but we were already sending it correctly.
+//      Added safe full_name fallback from first_name + last_name.
 // ============================================================
 
 import axios, { AxiosInstance, AxiosError } from 'axios';
@@ -95,67 +100,75 @@ api.interceptors.response.use(
 export const authService = {
   /**
    * Register a new user
+   *
+   * FIXED: was POST /auth/register → backend has no such route → 404
+   * CORRECT: POST /auth/register/user  (routes/auth.js)
+   *
+   * FIXED: backend returns user.first_name + user.last_name, not always user.full_name
+   *        Added safe fallback to build name from parts.
    */
   register: async (userData: RegisterData): Promise<ApiResponse<AuthResponse>> => {
-  const response = await api.post('/auth/register', {
-    fullName: userData.name,
-    email: userData.email,
-    phone: userData.phone,
-    password: userData.password,
-  });
-  
-  // Backend returns: { message, token, role, redirect, user }
-  const backendData = response.data;
-  
-  const user: User = {
-    id: backendData.user.user_id,
-    name: backendData.user.full_name,
-    email: backendData.user.email,
-    phone: backendData.user.phone_number || '',
-    wallet: 0,
-  };
-  
-  return {
-    success: true,
-    data: {
-      token: backendData.token,
-      user,
-    },
-  };
-},
+    const response = await api.post('/auth/register/user', {
+      fullName: userData.name,
+      email: userData.email,
+      phone: userData.phone,
+      password: userData.password,
+    });
+
+    // Backend returns: { message, token, role, redirect, user }
+    const backendData = response.data;
+
+    const user: User = {
+      id: backendData.user.user_id,
+      name: backendData.user.full_name
+        || `${backendData.user.first_name ?? ''} ${backendData.user.last_name ?? ''}`.trim(),
+      email: backendData.user.email,
+      phone: backendData.user.phone_number || '',
+      wallet: 0,
+    };
+
+    return {
+      success: true,
+      data: {
+        token: backendData.token,
+        user,
+      },
+    };
+  },
 
   /**
    * Login user
    */
-login: async (credentials: LoginCredentials): Promise<ApiResponse<AuthResponse>> => {
-  const response = await api.post('/auth/login', credentials);
-  
-  // Backend returns: { message, token, role, redirect, account, roleData }
-  // Transform to match AuthResponse format
-  const backendData = response.data;
-  
-  // Build user object from roleData (for 'user' role)
-  let user: User | null = null;
-  
-  if (backendData.roleData && backendData.role === 'user') {
-    user = {
-      id: backendData.account.account_id,
-      name: `${backendData.roleData.first_name || ''} ${backendData.roleData.last_name || ''}`.trim(),
-      email: backendData.account.email,
-      phone: backendData.roleData.phone_number || backendData.account.phone_number || '',
-      wallet: backendData.roleData.wallet_balance || 0,
-      address: backendData.roleData.address || undefined,
+  login: async (credentials: LoginCredentials): Promise<ApiResponse<AuthResponse>> => {
+    const response = await api.post('/auth/login', credentials);
+
+    // Backend returns: { message, token, role, redirect, account, roleData }
+    // Transform to match AuthResponse format
+    const backendData = response.data;
+
+    // Build user object from roleData (for 'user' role)
+    let user: User | null = null;
+
+    if (backendData.roleData && backendData.role === 'user') {
+      user = {
+        id: backendData.account.account_id,
+        name: `${backendData.roleData.first_name || ''} ${backendData.roleData.last_name || ''}`.trim(),
+        email: backendData.account.email,
+        phone: backendData.roleData.phone_number || backendData.account.phone_number || '',
+        wallet: backendData.roleData.wallet_balance || 0,
+        address: backendData.roleData.address || undefined,
+      };
+    }
+
+    return {
+      success: true,
+      data: {
+        token: backendData.token,
+        user: user as User,
+      },
     };
-  }
-  
-  return {
-    success: true,
-    data: {
-      token: backendData.token,
-      user: user as User,
-    },
-  };
-},
+  },
+
   /**
    * Logout user
    */
@@ -266,16 +279,10 @@ export const outletService = {
 export const productService = {
   /**
    * Get all products with filters
-   * Backend endpoint: GET /api/products
    */
   getProducts: async (params?: ProductQueryParams, signal?: AbortSignal): Promise<Product[]> => {
     try {
-      const response = await api.get<{ products: Product[] }>('/products', {
-        params,
-        signal,
-      });
-      
-      // Backend returns { products: [...] }
+      const response = await api.get<{ products: Product[] }>('/products', { params, signal });
       return response.data.products || [];
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -285,13 +292,9 @@ export const productService = {
 
   /**
    * Get single product by ID
-   * Backend endpoint: GET /api/products/:productId
    */
   getProduct: async (productId: string | number, signal?: AbortSignal): Promise<Product> => {
-    if (!productId) {
-      throw new Error('Product ID is required');
-    }
-
+    if (!productId) throw new Error('Product ID is required');
     try {
       const response = await api.get<Product>(`/products/${productId}`, { signal });
       return response.data;
@@ -303,14 +306,10 @@ export const productService = {
 
   /**
    * Get featured products
-   * Backend endpoint: GET /api/products/featured
    */
   getFeaturedProducts: async (limit: number = 10, signal?: AbortSignal): Promise<Product[]> => {
     try {
-      const response = await api.get<Product[]>('/products/featured', {
-        params: { limit },
-        signal,
-      });
+      const response = await api.get<Product[]>('/products/featured', { params: { limit }, signal });
       return response.data;
     } catch (error) {
       console.error('Error fetching featured products:', error);
@@ -320,17 +319,9 @@ export const productService = {
 
   /**
    * Search products
-   * Backend endpoint: GET /api/products/search?q=query&category=category
    */
-  searchProducts: async (
-    query: string,
-    category?: string,
-    signal?: AbortSignal
-  ): Promise<Product[]> => {
-    if (!query?.trim()) {
-      throw new Error('Search query is required');
-    }
-
+  searchProducts: async (query: string, category?: string, signal?: AbortSignal): Promise<Product[]> => {
+    if (!query?.trim()) throw new Error('Search query is required');
     try {
       const response = await api.get<Product[]>('/products/search', {
         params: { q: query, category },
@@ -345,13 +336,10 @@ export const productService = {
 
   /**
    * Get product categories
-   * Backend endpoint: GET /api/products/categories
    */
   getCategories: async (signal?: AbortSignal): Promise<ProductCategory[]> => {
     try {
-      const response = await api.get<ProductCategory[]>('/products/categories', {
-        signal,
-      });
+      const response = await api.get<ProductCategory[]>('/products/categories', { signal });
       return response.data;
     } catch (error) {
       console.error('Error fetching categories:', error);
@@ -361,23 +349,13 @@ export const productService = {
 
   /**
    * Get nearby products based on location
-   * Backend endpoint: GET /api/products/nearby?lat=...&lng=...&radius=...
    */
-  getNearbyProducts: async (
-    params: NearbyProductsParams,
-    signal?: AbortSignal
-  ): Promise<NearbyProductsResponse> => {
+  getNearbyProducts: async (params: NearbyProductsParams, signal?: AbortSignal): Promise<NearbyProductsResponse> => {
     const { lat, lng, radius = 50 } = params;
-
-    if (!lat || !lng) {
-      throw new Error('Latitude and longitude are required');
-    }
-
-    // Validate coordinates
+    if (!lat || !lng) throw new Error('Latitude and longitude are required');
     if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
       throw new Error('Invalid latitude or longitude values');
     }
-
     try {
       const response = await api.get<NearbyProductsResponse>('/products/nearby', {
         params: { lat, lng, radius },
@@ -392,7 +370,6 @@ export const productService = {
 
   /**
    * Check product availability at nearby locations
-   * Backend endpoint: GET /api/products/:productId/availability?lat=...&lng=...
    */
   checkAvailability: async (
     productId: string | number,
@@ -400,18 +377,12 @@ export const productService = {
     lng?: number,
     signal?: AbortSignal
   ): Promise<AvailabilityResponse> => {
-    if (!productId) {
-      throw new Error('Product ID is required');
-    }
-
+    if (!productId) throw new Error('Product ID is required');
     try {
-      const response = await api.get<AvailabilityResponse>(
-        `/products/${productId}/availability`,
-        {
-          params: { lat, lng },
-          signal,
-        }
-      );
+      const response = await api.get<AvailabilityResponse>(`/products/${productId}/availability`, {
+        params: { lat, lng },
+        signal,
+      });
       return response.data;
     } catch (error) {
       console.error(`Error checking availability for product ${productId}:`, error);
@@ -421,21 +392,11 @@ export const productService = {
 
   /**
    * Get vendors selling a specific product
-   * Backend endpoint: GET /api/products/:productId/vendors
    */
-  getProductVendors: async (
-    productId: string | number,
-    signal?: AbortSignal
-  ): Promise<VendorLocation[]> => {
-    if (!productId) {
-      throw new Error('Product ID is required');
-    }
-
+  getProductVendors: async (productId: string | number, signal?: AbortSignal): Promise<VendorLocation[]> => {
+    if (!productId) throw new Error('Product ID is required');
     try {
-      const response = await api.get<VendorLocation[]>(
-        `/products/${productId}/vendors`,
-        { signal }
-      );
+      const response = await api.get<VendorLocation[]>(`/products/${productId}/vendors`, { signal });
       return response.data;
     } catch (error) {
       console.error(`Error fetching vendors for product ${productId}:`, error);
@@ -445,24 +406,14 @@ export const productService = {
 
   /**
    * Get products by multiple IDs (batch fetch)
-   * Backend endpoint: GET /api/products/batch?ids=1,2,3
    */
-  getProductsByIds: async (
-    productIds: (string | number)[],
-    signal?: AbortSignal
-  ): Promise<Product[]> => {
-    if (!productIds?.length) {
-      throw new Error('Product IDs are required');
-    }
-
+  getProductsByIds: async (productIds: (string | number)[], signal?: AbortSignal): Promise<Product[]> => {
+    if (!productIds?.length) throw new Error('Product IDs are required');
     try {
-      const response = await api.get<{ success: boolean; products: Product[] }>(
-        '/products/batch',
-        {
-          params: { ids: productIds.join(',') },
-          signal,
-        }
-      );
+      const response = await api.get<{ success: boolean; products: Product[] }>('/products/batch', {
+        params: { ids: productIds.join(',') },
+        signal,
+      });
       return response.data.products || [];
     } catch (error) {
       console.error('Error fetching products by IDs:', error);
@@ -472,50 +423,28 @@ export const productService = {
 
   /**
    * Get related/similar products
-   * Backend endpoint: GET /api/products/:productId/related?limit=4
    */
-  getRelatedProducts: async (
-    productId: string | number,
-    limit: number = 4,
-    signal?: AbortSignal
-  ): Promise<Product[]> => {
-    if (!productId) {
-      throw new Error('Product ID is required');
-    }
-
+  getRelatedProducts: async (productId: string | number, limit: number = 4, signal?: AbortSignal): Promise<Product[]> => {
+    if (!productId) throw new Error('Product ID is required');
     try {
-      const response = await api.get<{ success: boolean; data: Product[] }>(
-        `/products/${productId}/related`,
-        {
-          params: { limit },
-          signal,
-        }
-      );
+      const response = await api.get<{ success: boolean; data: Product[] }>(`/products/${productId}/related`, {
+        params: { limit },
+        signal,
+      });
       return response.data.data || [];
     } catch (error) {
       console.error(`Error fetching related products for ${productId}:`, error);
-      // Return empty array as fallback instead of throwing
       return [];
     }
   },
 
   /**
    * Get product reviews
-   * Backend endpoint: GET /api/products/:productId/reviews
    */
-  getProductReviews: async (
-    productId: string | number,
-    signal?: AbortSignal
-  ): Promise<any[]> => {
-    if (!productId) {
-      throw new Error('Product ID is required');
-    }
-
+  getProductReviews: async (productId: string | number, signal?: AbortSignal): Promise<any[]> => {
+    if (!productId) throw new Error('Product ID is required');
     try {
-      const response = await api.get<{ success: boolean; reviews: any[] }>(
-        `/products/${productId}/reviews`,
-        { signal }
-      );
+      const response = await api.get<{ success: boolean; reviews: any[] }>(`/products/${productId}/reviews`, { signal });
       return response.data.reviews || [];
     } catch (error) {
       console.error(`Error fetching reviews for product ${productId}:`, error);
@@ -525,27 +454,18 @@ export const productService = {
 
   /**
    * Add product review
-   * Backend endpoint: POST /api/products/:productId/reviews
    */
   addProductReview: async (
     productId: string | number,
     reviewData: { rating: number; comment: string },
     signal?: AbortSignal
   ): Promise<any> => {
-    if (!productId) {
-      throw new Error('Product ID is required');
-    }
-
+    if (!productId) throw new Error('Product ID is required');
     if (!reviewData.rating || reviewData.rating < 1 || reviewData.rating > 5) {
       throw new Error('Rating must be between 1 and 5');
     }
-
     try {
-      const response = await api.post(
-        `/products/${productId}/reviews`,
-        reviewData,
-        { signal }
-      );
+      const response = await api.post(`/products/${productId}/reviews`, reviewData, { signal });
       return response.data;
     } catch (error) {
       console.error(`Error adding review for product ${productId}:`, error);
@@ -603,10 +523,7 @@ export const orderService = {
    * Rate an order
    */
   rateOrder: async (orderId: string, rating: number, review?: string): Promise<ApiResponse<null>> => {
-    const response = await api.post<ApiResponse<null>>(`/orders/${orderId}/rate`, {
-      rating,
-      review,
-    });
+    const response = await api.post<ApiResponse<null>>(`/orders/${orderId}/rate`, { rating, review });
     return response.data;
   },
 };
