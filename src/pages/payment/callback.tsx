@@ -1,6 +1,8 @@
 // ============================================================
 // FILE: src/pages/payment/callback.tsx
-// Payment Result Page (UI ONLY)
+// Payment Result Page
+// FIX: Show correct UI even when DB update fails but Pesapal
+//      already confirmed the payment.
 // ============================================================
 
 import { useEffect, useState } from 'react';
@@ -9,12 +11,13 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { Check, X, Loader, AlertCircle } from 'lucide-react';
 
+type Status = 'loading' | 'success' | 'failed' | 'error';
+
 export default function PaymentCallbackPage() {
   const router = useRouter();
   const { OrderTrackingId, OrderMerchantReference } = router.query;
 
-  const [status, setStatus] =
-    useState<'loading' | 'success' | 'failed' | 'error'>('loading');
+  const [status, setStatus] = useState<Status>('loading');
   const [message, setMessage] = useState('');
   const [orderId, setOrderId] = useState('');
 
@@ -27,92 +30,188 @@ export default function PaymentCallbackPage() {
     }
   }, [OrderTrackingId, OrderMerchantReference]);
 
-  const confirmPayment = async (trackingId: string, orderId: string) => {
+  const confirmPayment = async (trackingId: string, merchantReference: string) => {
     try {
       setStatus('loading');
-      setMessage('Verifying your payment...');
+      setMessage('Verifying your payment with Pesapal…');
+
+      // Retrieve the stored auth token so the API route can forward it
+      const token =
+        typeof window !== 'undefined'
+          ? localStorage.getItem('authToken')
+          : null;
 
       const response = await fetch('/api/payments/callback', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
-          order_id: orderId,
+          order_id: merchantReference,
           tracking_id: trackingId,
         }),
       });
 
       const result = await response.json();
 
-      if (!response.ok) {
-        throw new Error(result.error || 'Verification failed');
-      }
+      setOrderId(merchantReference);
 
-      setOrderId(orderId);
+      // ✅ Key fix: trust the verified Pesapal status (result.payment_status)
+      // even when the DB write failed (result.success === false).
+      const verifiedStatus: string = result.payment_status ?? '';
 
-      if (result.payment_status === 'paid') {
+      if (verifiedStatus === 'paid') {
         setStatus('success');
-        setMessage('Payment successful! Your order has been confirmed.');
-      } else if (result.payment_status === 'failed') {
-        setStatus('failed');
-        setMessage('Payment failed. Please try again.');
-      } else {
-        setStatus('error');
-        setMessage('Payment status unclear. Please contact support.');
+        setMessage(
+          result.success
+            ? 'Payment successful! Your order has been confirmed.'
+            : 'Payment received by Pesapal. Your order will be confirmed shortly — please check your orders page.'
+        );
+        return;
       }
-    } catch (err: any) {
-      console.error(err);
+
+      if (verifiedStatus === 'failed' || verifiedStatus === 'refunded') {
+        setStatus('failed');
+        setMessage('Payment was not completed. Please try again or contact support.');
+        return;
+      }
+
+      // HTTP-level error with no usable payment_status
+      if (!response.ok) {
+        throw new Error(result.error || `Server error (${response.status})`);
+      }
+
+      // Pending / unknown
       setStatus('error');
-      setMessage(err.message || 'Payment verification error');
+      setMessage(
+        'Payment status is unclear. Please check your orders page or contact support.'
+      );
+    } catch (err: any) {
+      console.error('Payment verification error:', err);
+      setStatus('error');
+      setMessage(
+        err.message || 'Could not verify payment. Please contact support.'
+      );
     }
   };
 
-  // UI rendering stays exactly as you already wrote it
-  // (loader / success / failed / error blocks unchanged)
-
+  // ── Loading ────────────────────────────────────────────────
   if (status === 'loading') {
     return (
       <>
-        <Head><title>Verifying Payment</title></Head>
-        <div className="min-h-screen flex items-center justify-center">
-          <Loader className="animate-spin" size={48} />
+        <Head>
+          <title>Verifying Payment – AquaGas</title>
+        </Head>
+        <div className="min-h-screen flex flex-col items-center justify-center gap-4 text-gray-700">
+          <Loader className="animate-spin text-blue-600" size={48} />
+          <p className="text-lg font-medium">{message || 'Verifying your payment…'}</p>
         </div>
       </>
     );
   }
 
+  // ── Success ────────────────────────────────────────────────
   if (status === 'success') {
     return (
       <>
-        <Head><title>Payment Successful</title></Head>
-        <div className="text-center">
-          <Check size={64} />
-          <p>{message}</p>
-          <Link href="/orders">View Orders</Link>
+        <Head>
+          <title>Payment Successful – AquaGas</title>
+        </Head>
+        <div className="min-h-screen flex items-center justify-center px-4 bg-gray-50">
+          <div className="bg-white rounded-2xl shadow-xl p-10 max-w-md w-full text-center">
+            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Check size={40} className="text-green-600" />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-800 mb-3">Payment Successful</h1>
+            <p className="text-gray-600 mb-6">{message}</p>
+            {orderId && (
+              <p className="text-sm text-gray-500 mb-6">
+                Reference: <span className="font-mono font-semibold">{orderId}</span>
+              </p>
+            )}
+            <div className="space-y-3">
+              <Link
+                href="/orders"
+                className="block w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition"
+              >
+                View My Orders
+              </Link>
+              <Link
+                href="/shop"
+                className="block w-full border-2 border-gray-200 text-gray-700 py-3 rounded-xl font-semibold hover:border-blue-400 transition"
+              >
+                Continue Shopping
+              </Link>
+            </div>
+          </div>
         </div>
       </>
     );
   }
 
+  // ── Failed ─────────────────────────────────────────────────
   if (status === 'failed') {
     return (
       <>
-        <Head><title>Payment Failed</title></Head>
-        <div className="text-center">
-          <X size={64} />
-          <p>{message}</p>
-          <Link href="/checkout">Try Again</Link>
+        <Head>
+          <title>Payment Failed – AquaGas</title>
+        </Head>
+        <div className="min-h-screen flex items-center justify-center px-4 bg-gray-50">
+          <div className="bg-white rounded-2xl shadow-xl p-10 max-w-md w-full text-center">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <X size={40} className="text-red-600" />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-800 mb-3">Payment Failed</h1>
+            <p className="text-gray-600 mb-6">{message}</p>
+            <div className="space-y-3">
+              <Link
+                href="/cart"
+                className="block w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition"
+              >
+                Try Again
+              </Link>
+              <Link
+                href="/contact"
+                className="block w-full border-2 border-gray-200 text-gray-700 py-3 rounded-xl font-semibold hover:border-blue-400 transition"
+              >
+                Contact Support
+              </Link>
+            </div>
+          </div>
         </div>
       </>
     );
   }
 
+  // ── Error / Unknown ────────────────────────────────────────
   return (
     <>
-      <Head><title>Payment Error</title></Head>
-      <div className="text-center">
-        <AlertCircle size={64} />
-        <p>{message}</p>
-        <Link href="/contact">Contact Support</Link>
+      <Head>
+        <title>Payment Status Unknown – AquaGas</title>
+      </Head>
+      <div className="min-h-screen flex items-center justify-center px-4 bg-gray-50">
+        <div className="bg-white rounded-2xl shadow-xl p-10 max-w-md w-full text-center">
+          <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <AlertCircle size={40} className="text-yellow-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-800 mb-3">Status Unknown</h1>
+          <p className="text-gray-600 mb-6">{message}</p>
+          <div className="space-y-3">
+            <Link
+              href="/orders"
+              className="block w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition"
+            >
+              Check My Orders
+            </Link>
+            <Link
+              href="/contact"
+              className="block w-full border-2 border-gray-200 text-gray-700 py-3 rounded-xl font-semibold hover:border-blue-400 transition"
+            >
+              Contact Support
+            </Link>
+          </div>
+        </div>
       </div>
     </>
   );
