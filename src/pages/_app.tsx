@@ -10,6 +10,7 @@ import { AuthProvider } from '@/lib/context/AuthContext';
 import { Toaster } from 'react-hot-toast';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import InactivityWarning from '@/components/InactivityWarning'; 
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useEffect } from 'react';
@@ -54,6 +55,9 @@ export default function App({ Component, pageProps }: AppProps) {
               <Component {...pageProps} />
             </main>
             <Footer />
+
+{/* ←  shows 1-min warning before auto-logout */}
+            <InactivityWarning />
             
             {/* Toast Notifications */}
             <Toaster
