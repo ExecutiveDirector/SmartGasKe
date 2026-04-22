@@ -46,7 +46,7 @@ export default function PaymentCallbackPage() {
       // No user auth needed for this call.
       setMessage('Checking payment with Pesapal…');
 
-      const verifyRes = await fetch('/api/payments/verify', {
+      const verifyRes = await fetch('/api/payments/callback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tracking_id: trackingId }),
