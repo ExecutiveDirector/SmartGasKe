@@ -1,7 +1,5 @@
 // ============================================================
-// FILE: src/pages/api/payments/verify.ts
-// Only job: ask Pesapal if a payment succeeded.
-// The frontend then calls the backend directly with the user's token.
+// FILE: src/pages/api/payments/callback.ts
 // ============================================================
 
 import type { NextApiRequest, NextApiResponse } from 'next';
@@ -31,18 +29,19 @@ export default async function handler(
       '0': 'failed',
     };
 
-    const payment_status = statusMap[transaction.payment_status_code] ?? 'pending';
+    const payment_status =
+      statusMap[transaction.payment_status_code] ?? 'pending';
 
     return res.status(200).json({
       success: true,
       payment_status,
-      confirmation_code: transaction.confirmation_code,
+      confirmation_code: transaction.confirmation_code ?? tracking_id,
     });
   } catch (err: any) {
-    console.error('Pesapal verify error:', err);
+    console.error('Pesapal verify error:', err?.message);
     return res.status(502).json({
       error: 'Pesapal verification failed',
-      details: err.message,
+      details: err?.message,
     });
   }
 }
