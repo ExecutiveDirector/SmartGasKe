@@ -1,8 +1,8 @@
 // ============================================================
 // FILE: src/pages/payment/callback.tsx
-// SIMPLER APPROACH: No internal secret needed.
-// The frontend page already has the user's auth token in
-// localStorage, so it calls the backend directly with it.
+// FIX: If /api/payments/callback fails (route missing, network error,
+//      Pesapal timeout) we fall back to checking the order status
+//      directly from the backend instead of showing "Status Unknown".
 // ============================================================
 
 import { useEffect, useState } from 'react';
@@ -21,7 +21,7 @@ export default function PaymentCallbackPage() {
   const router = useRouter();
   const { OrderTrackingId, OrderMerchantReference } = router.query;
 
-  const [status, setStatus] = useState<Status>('loading');
+  const [status, setStatus]   = useState<Status>('loading');
   const [message, setMessage] = useState('Verifying your payment…');
   const [orderId, setOrderId] = useState('');
 
@@ -34,18 +34,29 @@ export default function PaymentCallbackPage() {
     }
   }, [OrderTrackingId, OrderMerchantReference]);
 
+  // ── Get the user's auth token from localStorage ────────────
+  const getToken = (): string | null => {
+    try {
+      return localStorage.getItem('authToken');
+    } catch {
+      return null;
+    }
+  };
+
+  // ── Main verification flow ─────────────────────────────────
   const verifyAndUpdate = async (
     trackingId: string,
     merchantReference: string
   ) => {
     setOrderId(merchantReference);
+    const token = getToken();
+
+    // ── Step 1: Ask Pesapal for the payment status ─────────
+    setMessage('Checking payment with Pesapal…');
+
+    let pesapalStatus: string | null = null;
 
     try {
-      // ── Step 1: Verify with Pesapal via your Next.js proxy ───────────
-      // The Next.js API route handles the Pesapal credentials server-side.
-      // No user auth needed for this call.
-      setMessage('Checking payment with Pesapal…');
-
       const verifyRes = await fetch('/api/payments/callback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -54,22 +65,56 @@ export default function PaymentCallbackPage() {
 
       const verifyData = await verifyRes.json();
 
-      if (!verifyRes.ok) {
-        throw new Error(verifyData.error || 'Pesapal verification failed');
+      if (verifyRes.ok && verifyData.payment_status) {
+        pesapalStatus = verifyData.payment_status;
+      } else {
+        console.warn('Pesapal verify returned non-OK:', verifyData);
       }
+    } catch (err) {
+      // /api/payments/verify doesn't exist yet or network failed
+      console.warn('Pesapal verify call failed — will fall back to order check:', err);
+    }
 
-      const pesapalStatus: string = verifyData.payment_status;
+    // ── Step 2: If Pesapal verify failed, check the order ──
+    // directly on the backend. The order may already be marked
+    // paid by a Pesapal IPN webhook even before this page loaded.
+    if (!pesapalStatus) {
+      setMessage('Checking your order status…');
+      try {
+        const orderRes = await fetch(
+          `${API_URL}/orders/${merchantReference}`,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+          }
+        );
 
-      // ── Step 2: Update backend directly with the user's own token ────
-      // localStorage is available here because this runs in the browser.
-      // The user's token survived the Pesapal redirect — no secret needed.
+        if (orderRes.ok) {
+          const orderData = await orderRes.json();
+          const paymentStatus: string =
+            orderData?.order?.payment_status ??
+            orderData?.payment_status ??
+            '';
+
+          if (paymentStatus === 'paid') {
+            pesapalStatus = 'paid';
+          } else if (paymentStatus === 'failed') {
+            pesapalStatus = 'failed';
+          }
+          // If still pending/unknown we'll handle below
+        }
+      } catch (err) {
+        console.warn('Order status check also failed:', err);
+      }
+    }
+
+    // ── Step 3: Update backend with verified status ────────
+    if (pesapalStatus === 'paid' || pesapalStatus === 'failed' || pesapalStatus === 'refunded') {
       setMessage('Updating your order…');
-
-      const token = localStorage.getItem('authToken');
-
-      const updateRes = await fetch(
-        `${API_URL}/orders/${merchantReference}/payment-status`,
-        {
+      try {
+        await fetch(`${API_URL}/orders/${merchantReference}/payment-status`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -80,44 +125,50 @@ export default function PaymentCallbackPage() {
             transaction_id: trackingId,
             payment_reference: trackingId,
           }),
-        }
-      );
-
-      // ── Step 3: Show result based on Pesapal's answer ─────────────────
-      // We trust Pesapal's status even if the DB write fails.
-      if (pesapalStatus === 'paid') {
-        setStatus('success');
-        setMessage(
-          updateRes.ok
-            ? 'Payment successful! Your order has been confirmed.'
-            : 'Payment received. Your order will be confirmed shortly — check the orders page.'
-        );
-      } else if (pesapalStatus === 'failed' || pesapalStatus === 'refunded') {
-        setStatus('failed');
-        setMessage('Payment was not completed. Please try again.');
-      } else {
-        setStatus('error');
-        setMessage('Payment status is unclear. Please check your orders page.');
+        });
+      } catch (err) {
+        // Non-fatal — order is still being processed
+        console.warn('Payment status update failed (non-fatal):', err);
       }
-    } catch (err: any) {
-      console.error('Payment callback error:', err);
-      setStatus('error');
-      setMessage(err.message || 'Could not verify payment. Please contact support.');
     }
+
+    // ── Step 4: Show the correct screen ───────────────────
+    if (pesapalStatus === 'paid') {
+      setStatus('success');
+      setMessage('Payment successful! Your order has been confirmed.');
+      return;
+    }
+
+    if (pesapalStatus === 'failed' || pesapalStatus === 'refunded') {
+      setStatus('failed');
+      setMessage('Payment was not completed. Please try again.');
+      return;
+    }
+
+    // Could not determine status from either Pesapal or the backend.
+    // Show a soft "check your orders" message instead of a scary error.
+    setStatus('error');
+    setMessage(
+      'We could not confirm your payment status right now. ' +
+      'If money was deducted, your order will be confirmed automatically — ' +
+      'please check your orders page.'
+    );
   };
 
+  // ── Loading ────────────────────────────────────────────────
   if (status === 'loading') {
     return (
       <>
         <Head><title>Verifying Payment – AquaGas</title></Head>
-        <div className="min-h-screen flex flex-col items-center justify-center gap-4 text-gray-700">
+        <div className="min-h-screen flex flex-col items-center justify-center gap-4">
           <Loader className="animate-spin text-blue-600" size={48} />
-          <p className="text-lg font-medium">{message}</p>
+          <p className="text-lg font-medium text-gray-700">{message}</p>
         </div>
       </>
     );
   }
 
+  // ── Success ────────────────────────────────────────────────
   if (status === 'success') {
     return (
       <>
@@ -127,11 +178,12 @@ export default function PaymentCallbackPage() {
             <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
               <Check size={40} className="text-green-600" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-800 mb-3">Payment Successful</h1>
+            <h1 className="text-2xl font-bold text-gray-800 mb-3">Payment Successful!</h1>
             <p className="text-gray-600 mb-6">{message}</p>
             {orderId && (
               <p className="text-sm text-gray-500 mb-6">
-                Reference: <span className="font-mono font-semibold">{orderId}</span>
+                Reference:{' '}
+                <span className="font-mono font-semibold">{orderId}</span>
               </p>
             )}
             <div className="space-y-3">
@@ -150,6 +202,7 @@ export default function PaymentCallbackPage() {
     );
   }
 
+  // ── Failed ─────────────────────────────────────────────────
   if (status === 'failed') {
     return (
       <>
@@ -177,15 +230,18 @@ export default function PaymentCallbackPage() {
     );
   }
 
+  // ── Unknown / Error ────────────────────────────────────────
+  // Payment was likely successful — guide the user to their orders
+  // rather than showing a scary error screen.
   return (
     <>
-      <Head><title>Payment Status Unknown – AquaGas</title></Head>
+      <Head><title>Check Your Orders – AquaGas</title></Head>
       <div className="min-h-screen flex items-center justify-center px-4 bg-gray-50">
         <div className="bg-white rounded-2xl shadow-xl p-10 max-w-md w-full text-center">
           <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <AlertCircle size={40} className="text-yellow-600" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-800 mb-3">Status Unknown</h1>
+          <h1 className="text-2xl font-bold text-gray-800 mb-3">Almost There!</h1>
           <p className="text-gray-600 mb-6">{message}</p>
           <div className="space-y-3">
             <Link href="/orders"
