@@ -30,6 +30,11 @@ import { useAuth } from '@/lib/context/AuthContext';
 import toast from 'react-hot-toast';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://aquagas-backend.onrender.com/api/v1';
+declare global {
+  interface Window {
+    L: any;
+  }
+}
 
 const normalizeApiBase = (url: string) => url.replace(/\/$/, '');
 
