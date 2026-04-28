@@ -1,30 +1,33 @@
 // ============================================================
 // FILE: src/pages/shop/[vendorId].tsx
-// Vendor Specific Page - Display vendor info and their products
+// Vendor Specific Page — Enhanced Professional Design
 // ============================================================
 
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { 
-  MapPin, 
-  Star, 
-  Phone, 
-  Mail, 
-  Clock, 
-  ArrowLeft, 
+import {
+  MapPin,
+  Star,
+  Phone,
+  Mail,
+  Clock,
+  ArrowLeft,
   Loader,
-  ChevronDown,
-  ChevronUp,
-  MessageCircle
+  ChevronLeft,
+  ChevronRight,
+  MessageCircle,
+  Shield,
+  Zap,
+  Package,
+  TrendingUp,
 } from 'lucide-react';
 import ProductCard from '@/components/ProductCard';
 import { outletService } from '@/lib/api';
 import { Outlet, Product, ProductCategory } from '@/lib/types';
 import toast from 'react-hot-toast';
 
-// Extended Product type to handle backend response format
 interface ProductWithOutlet extends Omit<Product, 'category'> {
   outlet_id?: string;
   category?: ProductCategory | string | null;
@@ -40,75 +43,48 @@ export default function VendorPage() {
   const [categories, setCategories] = useState<string[]>(['All']);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [expandedDetails, setExpandedDetails] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    if (vendorId) {
-      fetchVendorData();
-    }
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (vendorId) fetchVendorData();
   }, [vendorId, categoryFilter, currentPage]);
 
-  const getCategoryName = (category: ProductCategory | string | null | undefined): string | null => {
+  const getCategoryName = (
+    category: ProductCategory | string | null | undefined
+  ): string | null => {
     if (!category) return null;
-
-    if (typeof category === 'string') {
-      return category;
-    }
-
-    // Handle ProductCategory object
-    if (typeof category === 'object') {
+    if (typeof category === 'string') return category;
+    if (typeof category === 'object')
       return (category as ProductCategory).category_name || null;
-    }
-
     return null;
   };
 
   const fetchVendorData = async () => {
     try {
       setLoading(true);
-
-      // Fetch outlet details
       const outletResponse = await outletService.getOutlet(vendorId as string);
       const outletData = outletResponse.data;
-
-      if (!outletData) {
-        setOutlet(null);
-        setLoading(false);
-        return;
-      }
-
+      if (!outletData) { setOutlet(null); setLoading(false); return; }
       setOutlet(outletData);
 
-      // Fetch outlet products
-      const params: any = {
-        page: currentPage,
-        limit: 20,
-      };
+      const params: any = { page: currentPage, limit: 20 };
+      if (categoryFilter !== 'All') params.category = categoryFilter;
 
-      if (categoryFilter !== 'All') {
-        params.category = categoryFilter;
-      }
-
-      const productsResponse = await outletService.getOutletProducts(
-        vendorId as string,
-        params
-      );
-
+      const productsResponse = await outletService.getOutletProducts(vendorId as string, params);
       const productsData = productsResponse.data ?? [];
       setProducts(productsData);
       setTotalPages(productsResponse.pagination?.pages ?? 1);
 
-      // Extract unique categories from products
       const uniqueCategories = new Set<string>();
-      productsData.forEach((product) => {
-        const categoryName = getCategoryName(product.category);
-        if (categoryName) {
-          uniqueCategories.add(categoryName);
-        }
+      productsData.forEach((p) => {
+        const name = getCategoryName(p.category);
+        if (name) uniqueCategories.add(name);
       });
-
       setCategories(['All', ...Array.from(uniqueCategories).sort()]);
-
     } catch (error: any) {
       console.error('Error fetching vendor data:', error);
       toast.error(error?.message || 'Failed to load vendor information');
@@ -118,46 +94,39 @@ export default function VendorPage() {
     }
   };
 
+  /* ─── Loading ─── */
   if (loading) {
     return (
       <>
-        <Head>
-          <title>Loading... - AquaGas</title>
-        </Head>
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
-          <div className="text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 mb-6">
-              <Loader className="animate-spin text-blue-600" size={32} />
+        <Head><title>Loading... — AquaGas</title></Head>
+        <div style={styles.loadingScreen}>
+          <div style={styles.loadingCard}>
+            <div style={styles.loadingSpinner}>
+              <Loader size={28} style={{ animation: 'spin 1s linear infinite', color: '#10b981' }} />
             </div>
-            <p className="text-slate-700 font-medium">Loading vendor information...</p>
+            <p style={styles.loadingText}>Fetching vendor details…</p>
+            <p style={styles.loadingSubtext}>Just a moment</p>
           </div>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
       </>
     );
   }
 
+  /* ─── Not Found ─── */
   if (!outlet) {
     return (
       <>
-        <Head>
-          <title>Outlet Not Found - AquaGas</title>
-        </Head>
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center px-4">
-          <div className="text-center max-w-md">
-            <div className="mb-6">
-              <div className="w-20 h-20 bg-slate-200 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                <MapPin size={40} className="text-slate-400" />
-              </div>
-              <h2 className="text-3xl font-semibold text-slate-900 mb-3">Outlet Not Found</h2>
-              <p className="text-slate-600 leading-relaxed">
-                The outlet you're looking for doesn't exist or is no longer available.
-              </p>
-            </div>
-            <Link
-              href="/shop"
-              className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-8 py-3 rounded-xl hover:bg-blue-700 transition-colors font-semibold shadow-lg hover:shadow-xl"
-            >
-              <ArrowLeft size={18} />
+        <Head><title>Outlet Not Found — AquaGas</title></Head>
+        <div style={styles.notFoundScreen}>
+          <div style={styles.notFoundCard}>
+            <div style={styles.notFoundIcon}><MapPin size={36} color="#10b981" /></div>
+            <h2 style={styles.notFoundTitle}>Outlet Not Found</h2>
+            <p style={styles.notFoundText}>
+              This outlet doesn't exist or is no longer available.
+            </p>
+            <Link href="/shop" style={styles.notFoundBtn}>
+              <ArrowLeft size={16} />
               Back to Shop
             </Link>
           </div>
@@ -165,265 +134,201 @@ export default function VendorPage() {
       </>
     );
   }
+
+  const ratingStars = Math.round(outlet.rating);
 
   return (
     <>
       <Head>
-        <title>{outlet.name} - AquaGas</title>
+        <title>{outlet.name} — AquaGas</title>
         <meta name="description" content={`Shop products from ${outlet.name}`} />
+        <link
+          href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap"
+          rel="stylesheet"
+        />
       </Head>
 
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
-        {/* Sticky Back Button */}
-        <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 py-3">
-          <div className="container mx-auto">
-            <Link
-              href="/shop"
-              className="inline-flex items-center gap-2 text-slate-600 hover:text-blue-600 font-medium transition-colors"
-            >
-              <ArrowLeft size={18} />
-              Back to Shop
+      <div style={styles.page}>
+        {/* ── Sticky Nav ── */}
+        <nav style={styles.stickyNav}>
+          <div style={styles.navInner}>
+            <Link href="/shop" style={styles.backLink}>
+              <ArrowLeft size={16} />
+              All Vendors
             </Link>
+            <span style={styles.navBrand}>AquaGas</span>
           </div>
-        </div>
+        </nav>
 
-        {/* Hero Header */}
-        <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-blue-700 to-slate-800 text-white">
-          {/* Decorative background elements */}
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-blue-400 rounded-full -mr-48 -mt-48"></div>
-            <div className="absolute bottom-0 left-0 w-72 h-72 bg-blue-400 rounded-full -ml-36 -mb-36"></div>
-          </div>
+        {/* ── Hero ── */}
+        <header style={styles.hero}>
+          {/* Mesh bg */}
+          <div style={styles.heroBg} />
+          <div style={styles.heroGrid} />
 
-          <div className="relative container mx-auto px-4 py-16 md:py-20">
-            {/* Vendor Header Info */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-              <div className="lg:col-span-2 space-y-6">
-                {/* Title with Badge */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight">
-                      {outlet.name}
-                    </h1>
-                    {outlet.featured && (
-                      <span className="inline-flex items-center gap-1 bg-amber-400 text-amber-900 px-4 py-2 rounded-full text-sm font-semibold">
-                        <Star size={16} fill="currentColor" />
-                        Featured
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xl text-blue-100 font-medium">{outlet.vendor}</p>
+          <div style={styles.heroContent}>
+            {/* Left column */}
+            <div style={styles.heroLeft}>
+              {outlet.featured && (
+                <div style={styles.featuredBadge}>
+                  <Star size={12} fill="#fbbf24" color="#fbbf24" />
+                  Featured Vendor
                 </div>
+              )}
 
-                {/* Rating Summary */}
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <div className="flex">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          size={20}
-                          className={i < Math.round(outlet.rating) ? 'fill-amber-400 text-amber-400' : 'text-blue-400'}
-                        />
-                      ))}
-                    </div>
-                    <span className="text-2xl font-bold ml-2">{outlet.rating.toFixed(1)}</span>
-                  </div>
-                  <div className="text-sm text-blue-100">
-                    <p className="font-semibold">{outlet.reviews} customer reviews</p>
-                  </div>
-                </div>
+              <h1 style={styles.heroTitle}>{outlet.name}</h1>
+              <p style={styles.heroVendor}>{outlet.vendor}</p>
 
-                {/* Quick Contact */}
-                <div className="flex flex-wrap gap-3 pt-2">
-                  <a
-                    href={`tel:${outlet.phone}`}
-                    className="inline-flex items-center gap-2 bg-white text-blue-600 px-6 py-3 rounded-lg hover:bg-blue-50 transition-colors font-semibold shadow-lg hover:shadow-xl"
-                  >
-                    <Phone size={18} />
-                    Call Now
-                  </a>
-                  {outlet.latitude && outlet.longitude && (
-                    <a
-                      href={`https://www.google.com/maps?q=${outlet.latitude},${outlet.longitude}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 bg-blue-700 hover:bg-blue-800 text-white px-6 py-3 rounded-lg transition-colors font-semibold shadow-lg hover:shadow-xl"
-                    >
-                      <MapPin size={18} />
-                      Get Directions
-                    </a>
-                  )}
-                </div>
-              </div>
-
-              {/* Rating Card */}
-              <div className="lg:col-span-1">
-                <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-8 border border-white/20 shadow-xl">
-                  <div className="text-center space-y-4">
-                    <div className="space-y-2">
-                      <p className="text-blue-100 text-sm font-medium uppercase tracking-wide">Overall Rating</p>
-                      <p className="text-5xl font-bold text-white">{outlet.rating.toFixed(1)}</p>
-                      <p className="text-blue-100 text-sm">{outlet.reviews} reviews</p>
-                    </div>
-                    
-                    <div className="pt-4 border-t border-white/20">
-                      <p className="text-blue-100 text-sm font-medium mb-3">Response Time</p>
-                      <div className="inline-block bg-blue-500/30 rounded-full px-4 py-2">
-                        <p className="text-white font-semibold">Usually within 30 mins</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Vendor Details Section */}
-        <div className="container mx-auto px-4 py-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
-              <div className="flex items-start gap-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <MapPin className="text-blue-600" size={20} />
-                </div>
-                <div>
-                  <p className="text-xs uppercase text-slate-500 font-semibold">Location</p>
-                  <p className="text-sm text-slate-900 font-medium mt-1">{outlet.address}</p>
-                  {outlet.distance && (
-                    <p className="text-xs text-slate-600 mt-1">{outlet.distance} km away</p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
-              <div className="flex items-start gap-3">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <Phone className="text-green-600" size={20} />
-                </div>
-                <div>
-                  <p className="text-xs uppercase text-slate-500 font-semibold">Phone</p>
-                  <a href={`tel:${outlet.phone}`} className="text-sm text-blue-600 font-medium mt-1 hover:underline">
-                    {outlet.phone}
-                  </a>
-                </div>
-              </div>
-            </div>
-
-            {outlet.email && (
-              <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
-                <div className="flex items-start gap-3">
-                  <div className="p-2 bg-purple-100 rounded-lg">
-                    <Mail className="text-purple-600" size={20} />
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase text-slate-500 font-semibold">Email</p>
-                    <a href={`mailto:${outlet.email}`} className="text-sm text-blue-600 font-medium mt-1 hover:underline">
-                      {outlet.email}
-                    </a>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {outlet.opening_hours && (
-              <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
-                <div className="flex items-start gap-3">
-                  <div className="p-2 bg-orange-100 rounded-lg">
-                    <Clock className="text-orange-600" size={20} />
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase text-slate-500 font-semibold">Hours</p>
-                    <p className="text-sm text-slate-900 font-medium mt-1">{outlet.opening_hours}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Products Section */}
-        <div className="container mx-auto px-4 py-8 pb-16">
-          {/* Section Header */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-3xl font-bold text-slate-900 mb-2">Products</h2>
-                <p className="text-slate-600">
-                  {products.length} product{products.length !== 1 ? 's' : ''} available
-                </p>
-              </div>
-            </div>
-
-            {/* Category Filter */}
-            {categories.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0">
-                {categories.map((category) => (
-                  <button
-                    key={category}
-                    onClick={() => {
-                      setCategoryFilter(category);
-                      setCurrentPage(1);
-                    }}
-                    className={`px-5 py-2.5 rounded-full whitespace-nowrap font-semibold transition-all ${
-                      categoryFilter === category
-                        ? 'bg-blue-600 text-white shadow-lg'
-                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                    }`}
-                  >
-                    {category}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Products Grid */}
-          {products.length === 0 ? (
-            <div className="text-center py-16 bg-white rounded-2xl shadow-sm border border-slate-100">
-              <div className="max-w-md mx-auto">
-                <div className="w-20 h-20 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                  <svg 
-                    className="w-10 h-10 text-slate-400" 
-                    fill="none" 
-                    viewBox="0 0 24 24" 
-                    stroke="currentColor"
-                  >
-                    <path 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round" 
-                      strokeWidth={2} 
-                      d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" 
+              {/* Rating Row */}
+              <div style={styles.ratingRow}>
+                <div style={styles.starsRow}>
+                  {[...Array(5)].map((_, i) => (
+                    <Star
+                      key={i}
+                      size={18}
+                      fill={i < ratingStars ? '#fbbf24' : 'transparent'}
+                      color={i < ratingStars ? '#fbbf24' : 'rgba(255,255,255,0.3)'}
                     />
-                  </svg>
+                  ))}
                 </div>
-                <p className="text-slate-700 text-lg font-medium mb-2">
-                  {categoryFilter === 'All' 
-                    ? 'No products available yet'
-                    : `No products in "${categoryFilter}"`
-                  }
-                </p>
-                <p className="text-slate-600 text-sm mb-6">
-                  Check back soon for new products
-                </p>
-                {categoryFilter !== 'All' && (
-                  <button
-                    onClick={() => {
-                      setCategoryFilter('All');
-                      setCurrentPage(1);
-                    }}
-                    className="inline-flex items-center justify-center bg-blue-600 text-white px-6 py-2.5 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+                <span style={styles.ratingNum}>{outlet.rating.toFixed(1)}</span>
+                <span style={styles.ratingCount}>({outlet.reviews} reviews)</span>
+              </div>
+
+              {/* CTA buttons */}
+              <div style={styles.heroCtas}>
+                <a href={`tel:${outlet.phone}`} style={styles.ctaPrimary}>
+                  <Phone size={16} />
+                  Call Now
+                </a>
+                {outlet.latitude && outlet.longitude && (
+                  <a
+                    href={`https://www.google.com/maps?q=${outlet.latitude},${outlet.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={styles.ctaSecondary}
                   >
-                    View All Products
-                  </button>
+                    <MapPin size={16} />
+                    Directions
+                  </a>
                 )}
               </div>
             </div>
+
+            {/* Right column — stat cards */}
+            <div style={styles.heroRight}>
+              <div style={styles.statGrid}>
+                <div style={styles.statCard}>
+                  <TrendingUp size={20} color="#10b981" />
+                  <span style={styles.statVal}>{outlet.rating.toFixed(1)}</span>
+                  <span style={styles.statLabel}>Rating</span>
+                </div>
+                <div style={styles.statCard}>
+                  <Package size={20} color="#3b82f6" />
+                  <span style={styles.statVal}>{products.length}</span>
+                  <span style={styles.statLabel}>Products</span>
+                </div>
+                <div style={styles.statCard}>
+                  <Zap size={20} color="#10b981" />
+                  <span style={styles.statVal}>~30m</span>
+                  <span style={styles.statLabel}>Response</span>
+                </div>
+                <div style={styles.statCard}>
+                  <Shield size={20} color="#3b82f6" />
+                  <span style={styles.statVal}>Verified</span>
+                  <span style={styles.statLabel}>Status</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* ── Info Cards Strip ── */}
+        <section style={styles.infoStrip}>
+          <div style={styles.infoGrid}>
+            <InfoCard
+              icon={<MapPin size={18} color="#10b981" />}
+              color="#10b981"
+              label="Location"
+              value={outlet.address}
+              sub={outlet.distance ? `${outlet.distance} km away` : undefined}
+            />
+            <InfoCard
+              icon={<Phone size={18} color="#3b82f6" />}
+              color="#3b82f6"
+              label="Phone"
+              value={outlet.phone}
+              href={`tel:${outlet.phone}`}
+            />
+            {outlet.email && (
+              <InfoCard
+                icon={<Mail size={18} color="#10b981" />}
+                color="#10b981"
+                label="Email"
+                value={outlet.email}
+                href={`mailto:${outlet.email}`}
+              />
+            )}
+            {outlet.opening_hours && (
+              <InfoCard
+                icon={<Clock size={18} color="#3b82f6" />}
+                color="#3b82f6"
+                label="Open Hours"
+                value={outlet.opening_hours}
+              />
+            )}
+          </div>
+        </section>
+
+        {/* ── Products Section ── */}
+        <section style={styles.productsSection}>
+          {/* Section header */}
+          <div style={styles.sectionHeader}>
+            <div>
+              <h2 style={styles.sectionTitle}>Products</h2>
+              <p style={styles.sectionSub}>
+                {products.length} item{products.length !== 1 ? 's' : ''} available
+              </p>
+            </div>
+          </div>
+
+          {/* Category pills */}
+          {categories.length > 1 && (
+            <div style={styles.pillScroll}>
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => { setCategoryFilter(cat); setCurrentPage(1); }}
+                  style={categoryFilter === cat ? styles.pillActive : styles.pill}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Grid or empty */}
+          {products.length === 0 ? (
+            <div style={styles.emptyState}>
+              <div style={styles.emptyIcon}>
+                <Package size={36} color="#10b981" />
+              </div>
+              <h3 style={styles.emptyTitle}>
+                {categoryFilter === 'All' ? 'No products yet' : `No products in "${categoryFilter}"`}
+              </h3>
+              <p style={styles.emptyText}>Check back soon for new arrivals</p>
+              {categoryFilter !== 'All' && (
+                <button
+                  onClick={() => { setCategoryFilter('All'); setCurrentPage(1); }}
+                  style={styles.emptyBtn}
+                >
+                  View All Products
+                </button>
+              )}
+            </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
+              <div style={styles.productGrid}>
                 {products.map((product) => (
                   <ProductCard key={product.id} product={product as Product} outlet={outlet} />
                 ))}
@@ -431,26 +336,22 @@ export default function VendorPage() {
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-3 mt-12">
+                <div style={styles.pagination}>
                   <button
                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
-                    className="inline-flex items-center gap-2 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition font-semibold text-slate-700"
+                    style={currentPage === 1 ? styles.pageNavDisabled : styles.pageNav}
                   >
-                    <ChevronUp size={18} />
-                    Previous
+                    <ChevronLeft size={16} />
+                    Prev
                   </button>
-                  
-                  <div className="flex items-center gap-2">
+
+                  <div style={styles.pageNumbers}>
                     {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                       <button
                         key={page}
                         onClick={() => setCurrentPage(page)}
-                        className={`w-10 h-10 rounded-lg font-semibold transition-all ${
-                          currentPage === page
-                            ? 'bg-blue-600 text-white'
-                            : 'border border-slate-300 text-slate-700 hover:bg-slate-50'
-                        }`}
+                        style={currentPage === page ? styles.pageNumActive : styles.pageNum}
                       >
                         {page}
                       </button>
@@ -460,28 +361,670 @@ export default function VendorPage() {
                   <button
                     onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                     disabled={currentPage === totalPages}
-                    className="inline-flex items-center gap-2 px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition font-semibold text-slate-700"
+                    style={currentPage === totalPages ? styles.pageNavDisabled : styles.pageNav}
                   >
                     Next
-                    <ChevronDown size={18} />
+                    <ChevronRight size={16} />
                   </button>
                 </div>
               )}
             </>
           )}
-        </div>
+        </section>
 
-        {/* Footer CTA */}
-        <div className="border-t border-slate-200 bg-slate-50 py-8">
-          <div className="container mx-auto px-4 text-center">
-            <p className="text-slate-700 mb-4">Have questions about this vendor?</p>
-            <button className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold">
+        {/* ── Footer CTA ── */}
+        <footer style={styles.footerCta}>
+          <div style={styles.footerInner}>
+            <div style={styles.footerLeft}>
+              <h3 style={styles.footerTitle}>Need help from this vendor?</h3>
+              <p style={styles.footerSub}>Our team is always ready to assist you</p>
+            </div>
+            <button style={styles.footerBtn}>
               <MessageCircle size={18} />
               Contact Vendor
             </button>
           </div>
-        </div>
+        </footer>
       </div>
     </>
   );
 }
+
+/* ─── InfoCard sub-component ─── */
+function InfoCard({
+  icon, label, value, sub, href, color,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  sub?: string;
+  href?: string;
+  color: string;
+}) {
+  return (
+    <div style={styles.infoCard}>
+      <div style={{ ...styles.infoIconWrap, background: `${color}18` }}>{icon}</div>
+      <div style={styles.infoText}>
+        <p style={styles.infoLabel}>{label}</p>
+        {href ? (
+          <a href={href} style={styles.infoValueLink}>{value}</a>
+        ) : (
+          <p style={styles.infoValue}>{value}</p>
+        )}
+        {sub && <p style={styles.infoSub}>{sub}</p>}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Styles ─── */
+const font = '"DM Sans", system-ui, sans-serif';
+const fontSerif = '"DM Serif Display", Georgia, serif';
+
+const styles: Record<string, React.CSSProperties> = {
+  /* Page shell */
+  page: {
+    minHeight: '100vh',
+    background: '#f0f4f8',
+    fontFamily: font,
+    color: '#0f172a',
+  },
+
+  /* Loading */
+  loadingScreen: {
+    minHeight: '100vh',
+    background: 'linear-gradient(135deg,#0a1628 0%,#0d2137 50%,#0a2e1a 100%)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingCard: {
+    background: 'rgba(255,255,255,0.06)',
+    backdropFilter: 'blur(20px)',
+    border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: 24,
+    padding: '48px 56px',
+    textAlign: 'center',
+  },
+  loadingSpinner: {
+    width: 64,
+    height: 64,
+    background: 'rgba(16,185,129,0.12)',
+    borderRadius: '50%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    margin: '0 auto 20px',
+  },
+  loadingText: {
+    color: '#e2e8f0',
+    fontWeight: 600,
+    fontSize: 18,
+    margin: 0,
+    fontFamily: font,
+  },
+  loadingSubtext: {
+    color: '#64748b',
+    fontSize: 14,
+    marginTop: 6,
+    fontFamily: font,
+  },
+
+  /* Not found */
+  notFoundScreen: {
+    minHeight: '100vh',
+    background: 'linear-gradient(135deg,#0a1628,#0a2e1a)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '0 16px',
+  },
+  notFoundCard: {
+    background: 'rgba(255,255,255,0.06)',
+    backdropFilter: 'blur(20px)',
+    border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: 24,
+    padding: '56px 48px',
+    textAlign: 'center',
+    maxWidth: 400,
+  },
+  notFoundIcon: {
+    width: 80,
+    height: 80,
+    background: 'rgba(16,185,129,0.12)',
+    borderRadius: 20,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    margin: '0 auto 24px',
+  },
+  notFoundTitle: {
+    color: '#f1f5f9',
+    fontSize: 28,
+    fontWeight: 700,
+    fontFamily: fontSerif,
+    margin: '0 0 12px',
+  },
+  notFoundText: {
+    color: '#94a3b8',
+    fontSize: 15,
+    lineHeight: 1.6,
+    margin: '0 0 32px',
+    fontFamily: font,
+  },
+  notFoundBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 8,
+    background: 'linear-gradient(135deg,#10b981,#059669)',
+    color: '#fff',
+    padding: '12px 28px',
+    borderRadius: 12,
+    fontWeight: 600,
+    fontSize: 15,
+    textDecoration: 'none',
+    fontFamily: font,
+  },
+
+  /* Sticky nav */
+  stickyNav: {
+    position: 'sticky',
+    top: 0,
+    zIndex: 50,
+    background: 'rgba(10,22,40,0.9)',
+    backdropFilter: 'blur(16px)',
+    borderBottom: '1px solid rgba(16,185,129,0.15)',
+  },
+  navInner: {
+    maxWidth: 1280,
+    margin: '0 auto',
+    padding: '14px 24px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  backLink: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 8,
+    color: '#94a3b8',
+    fontSize: 14,
+    fontWeight: 500,
+    textDecoration: 'none',
+    transition: 'color 0.2s',
+    fontFamily: font,
+  },
+  navBrand: {
+    color: '#10b981',
+    fontWeight: 700,
+    fontSize: 18,
+    letterSpacing: '-0.02em',
+    fontFamily: fontSerif,
+  },
+
+  /* Hero */
+  hero: {
+    position: 'relative',
+    overflow: 'hidden',
+    background: 'linear-gradient(135deg, #061020 0%, #0b1f36 40%, #042010 100%)',
+    color: '#fff',
+  },
+  heroBg: {
+    position: 'absolute',
+    inset: 0,
+    background:
+      'radial-gradient(ellipse 60% 80% at 80% 20%, rgba(16,185,129,0.18) 0%, transparent 60%),' +
+      'radial-gradient(ellipse 50% 60% at 15% 70%, rgba(59,130,246,0.15) 0%, transparent 55%)',
+    pointerEvents: 'none',
+  },
+  heroGrid: {
+    position: 'absolute',
+    inset: 0,
+    backgroundImage:
+      'linear-gradient(rgba(16,185,129,0.04) 1px, transparent 1px),' +
+      'linear-gradient(90deg, rgba(16,185,129,0.04) 1px, transparent 1px)',
+    backgroundSize: '48px 48px',
+    pointerEvents: 'none',
+  },
+  heroContent: {
+    position: 'relative',
+    maxWidth: 1280,
+    margin: '0 auto',
+    padding: '64px 24px 72px',
+    display: 'grid',
+    gridTemplateColumns: '1fr auto',
+    gap: 48,
+    alignItems: 'center',
+  },
+  heroLeft: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 20,
+  },
+  featuredBadge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 6,
+    background: 'rgba(251,191,36,0.12)',
+    border: '1px solid rgba(251,191,36,0.3)',
+    color: '#fbbf24',
+    padding: '5px 14px',
+    borderRadius: 100,
+    fontSize: 12,
+    fontWeight: 600,
+    width: 'fit-content',
+    letterSpacing: '0.04em',
+    textTransform: 'uppercase',
+    fontFamily: font,
+  },
+  heroTitle: {
+    fontSize: 'clamp(36px, 5vw, 64px)',
+    fontWeight: 400,
+    fontFamily: fontSerif,
+    lineHeight: 1.1,
+    margin: 0,
+    color: '#f1f5f9',
+    letterSpacing: '-0.02em',
+  },
+  heroVendor: {
+    fontSize: 18,
+    color: '#10b981',
+    fontWeight: 500,
+    margin: 0,
+    letterSpacing: '0.01em',
+    fontFamily: font,
+  },
+  ratingRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    flexWrap: 'wrap',
+  },
+  starsRow: {
+    display: 'flex',
+    gap: 3,
+  },
+  ratingNum: {
+    fontSize: 22,
+    fontWeight: 700,
+    color: '#fbbf24',
+    fontFamily: font,
+  },
+  ratingCount: {
+    fontSize: 14,
+    color: '#64748b',
+    fontFamily: font,
+  },
+  heroCtas: {
+    display: 'flex',
+    gap: 12,
+    flexWrap: 'wrap',
+  },
+  ctaPrimary: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 8,
+    background: 'linear-gradient(135deg, #10b981, #059669)',
+    color: '#fff',
+    padding: '13px 28px',
+    borderRadius: 12,
+    fontWeight: 600,
+    fontSize: 15,
+    textDecoration: 'none',
+    boxShadow: '0 4px 24px rgba(16,185,129,0.35)',
+    fontFamily: font,
+    letterSpacing: '-0.01em',
+  },
+  ctaSecondary: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 8,
+    background: 'rgba(59,130,246,0.15)',
+    border: '1px solid rgba(59,130,246,0.3)',
+    color: '#93c5fd',
+    padding: '13px 28px',
+    borderRadius: 12,
+    fontWeight: 600,
+    fontSize: 15,
+    textDecoration: 'none',
+    fontFamily: font,
+    letterSpacing: '-0.01em',
+  },
+  heroRight: {
+    flexShrink: 0,
+  },
+  statGrid: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: 12,
+    minWidth: 260,
+  },
+  statCard: {
+    background: 'rgba(255,255,255,0.05)',
+    backdropFilter: 'blur(12px)',
+    border: '1px solid rgba(255,255,255,0.08)',
+    borderRadius: 16,
+    padding: '20px 16px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 6,
+    textAlign: 'center',
+  },
+  statVal: {
+    fontSize: 22,
+    fontWeight: 700,
+    color: '#f1f5f9',
+    fontFamily: font,
+    lineHeight: 1,
+  },
+  statLabel: {
+    fontSize: 11,
+    color: '#64748b',
+    textTransform: 'uppercase',
+    letterSpacing: '0.06em',
+    fontFamily: font,
+  },
+
+  /* Info strip */
+  infoStrip: {
+    background: '#fff',
+    borderBottom: '1px solid #e2e8f0',
+  },
+  infoGrid: {
+    maxWidth: 1280,
+    margin: '0 auto',
+    padding: '0 24px',
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+    gap: 0,
+  },
+  infoCard: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: 14,
+    padding: '28px 24px',
+    borderRight: '1px solid #f1f5f9',
+  },
+  infoIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  infoText: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 3,
+  },
+  infoLabel: {
+    fontSize: 10,
+    fontWeight: 600,
+    color: '#94a3b8',
+    textTransform: 'uppercase',
+    letterSpacing: '0.08em',
+    margin: 0,
+    fontFamily: font,
+  },
+  infoValue: {
+    fontSize: 14,
+    color: '#1e293b',
+    fontWeight: 500,
+    margin: 0,
+    fontFamily: font,
+    lineHeight: 1.4,
+  },
+  infoValueLink: {
+    fontSize: 14,
+    color: '#3b82f6',
+    fontWeight: 500,
+    margin: 0,
+    fontFamily: font,
+    textDecoration: 'none',
+  },
+  infoSub: {
+    fontSize: 12,
+    color: '#10b981',
+    fontWeight: 500,
+    margin: 0,
+    fontFamily: font,
+  },
+
+  /* Products section */
+  productsSection: {
+    maxWidth: 1280,
+    margin: '0 auto',
+    padding: '48px 24px 80px',
+  },
+  sectionHeader: {
+    display: 'flex',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    marginBottom: 28,
+  },
+  sectionTitle: {
+    fontSize: 32,
+    fontWeight: 400,
+    fontFamily: fontSerif,
+    color: '#0f172a',
+    margin: '0 0 4px',
+    letterSpacing: '-0.02em',
+  },
+  sectionSub: {
+    fontSize: 14,
+    color: '#64748b',
+    margin: 0,
+    fontFamily: font,
+  },
+
+  /* Category pills */
+  pillScroll: {
+    display: 'flex',
+    gap: 8,
+    overflowX: 'auto',
+    paddingBottom: 4,
+    marginBottom: 32,
+  },
+  pill: {
+    padding: '8px 20px',
+    borderRadius: 100,
+    border: '1.5px solid #e2e8f0',
+    background: '#fff',
+    color: '#475569',
+    fontSize: 14,
+    fontWeight: 500,
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+    fontFamily: font,
+    transition: 'all 0.2s',
+  },
+  pillActive: {
+    padding: '8px 20px',
+    borderRadius: 100,
+    border: '1.5px solid #10b981',
+    background: 'linear-gradient(135deg, #10b981, #059669)',
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 600,
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+    fontFamily: font,
+    boxShadow: '0 2px 16px rgba(16,185,129,0.3)',
+  },
+
+  /* Product grid */
+  productGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+    gap: 24,
+    marginBottom: 48,
+  },
+
+  /* Empty state */
+  emptyState: {
+    background: '#fff',
+    border: '1px solid #e2e8f0',
+    borderRadius: 24,
+    padding: '80px 40px',
+    textAlign: 'center',
+  },
+  emptyIcon: {
+    width: 80,
+    height: 80,
+    background: 'rgba(16,185,129,0.08)',
+    borderRadius: 20,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    margin: '0 auto 24px',
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: 600,
+    color: '#1e293b',
+    margin: '0 0 8px',
+    fontFamily: fontSerif,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#64748b',
+    margin: '0 0 28px',
+    fontFamily: font,
+  },
+  emptyBtn: {
+    background: 'linear-gradient(135deg,#10b981,#059669)',
+    color: '#fff',
+    border: 'none',
+    borderRadius: 10,
+    padding: '12px 28px',
+    fontSize: 14,
+    fontWeight: 600,
+    cursor: 'pointer',
+    fontFamily: font,
+  },
+
+  /* Pagination */
+  pagination: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    marginTop: 48,
+  },
+  pageNav: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 6,
+    padding: '10px 20px',
+    border: '1.5px solid #e2e8f0',
+    borderRadius: 10,
+    background: '#fff',
+    color: '#475569',
+    fontSize: 14,
+    fontWeight: 500,
+    cursor: 'pointer',
+    fontFamily: font,
+  },
+  pageNavDisabled: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 6,
+    padding: '10px 20px',
+    border: '1.5px solid #f1f5f9',
+    borderRadius: 10,
+    background: '#f8fafc',
+    color: '#cbd5e1',
+    fontSize: 14,
+    fontWeight: 500,
+    cursor: 'not-allowed',
+    fontFamily: font,
+  },
+  pageNumbers: {
+    display: 'flex',
+    gap: 6,
+  },
+  pageNum: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    border: '1.5px solid #e2e8f0',
+    background: '#fff',
+    color: '#475569',
+    fontSize: 14,
+    fontWeight: 500,
+    cursor: 'pointer',
+    fontFamily: font,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pageNumActive: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    border: '1.5px solid #10b981',
+    background: 'linear-gradient(135deg,#10b981,#059669)',
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 600,
+    cursor: 'pointer',
+    fontFamily: font,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: '0 2px 12px rgba(16,185,129,0.3)',
+  },
+
+  /* Footer CTA */
+  footerCta: {
+    background: 'linear-gradient(135deg, #0a1628 0%, #042010 100%)',
+    borderTop: '1px solid rgba(16,185,129,0.15)',
+  },
+  footerInner: {
+    maxWidth: 1280,
+    margin: '0 auto',
+    padding: '40px 24px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 20,
+  },
+  footerLeft: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 4,
+  },
+  footerTitle: {
+    color: '#f1f5f9',
+    fontSize: 20,
+    fontWeight: 600,
+    margin: 0,
+    fontFamily: fontSerif,
+  },
+  footerSub: {
+    color: '#64748b',
+    fontSize: 14,
+    margin: 0,
+    fontFamily: font,
+  },
+  footerBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 10,
+    background: 'linear-gradient(135deg,#10b981,#059669)',
+    color: '#fff',
+    border: 'none',
+    borderRadius: 12,
+    padding: '14px 32px',
+    fontSize: 15,
+    fontWeight: 600,
+    cursor: 'pointer',
+    fontFamily: font,
+    boxShadow: '0 4px 24px rgba(16,185,129,0.35)',
+    letterSpacing: '-0.01em',
+  },
+};
