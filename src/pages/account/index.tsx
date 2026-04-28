@@ -1,6 +1,6 @@
 // ============================================================
 // FILE: src/pages/account/index.tsx
-// Account Dashboard - Main account page
+// Account Dashboard — Professional Green & Blue Theme
 // ============================================================
 
 import React, { useEffect, useState } from 'react';
@@ -22,6 +22,9 @@ import {
   Clock,
   CheckCircle,
   Loader,
+  ArrowUpRight,
+  ArrowDownLeft,
+  LayoutDashboard,
 } from 'lucide-react';
 import { useAuth } from '@/lib/context/AuthContext';
 import { useCart } from '@/lib/context/CartContext';
@@ -39,361 +42,323 @@ export default function AccountDashboard() {
   const [recentTransactions, setRecentTransactions] = useState<WalletTransaction[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Redirect to login if not authenticated
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push('/account/login');
-    }
+    if (!authLoading && !isAuthenticated) router.push('/account/login');
   }, [isAuthenticated, authLoading, router]);
 
-  // Fetch dashboard data
   useEffect(() => {
-    if (isAuthenticated && user) {
-      fetchDashboardData();
-    }
+    if (isAuthenticated && user) fetchDashboardData();
   }, [isAuthenticated, user]);
 
-const fetchDashboardData = async () => {
-  setLoading(true);
+  const fetchDashboardData = async () => {
+    setLoading(true);
+    try {
+      const ordersResponse = await orderService.getOrders({ limit: 5 });
+      setRecentOrders(ordersResponse?.data ?? []);
+    } catch { setRecentOrders([]); }
+    try {
+      const balanceResponse = await walletService.getBalance();
+      setWalletBalance(balanceResponse?.data?.balance ?? 0);
+    } catch { setWalletBalance(0); }
+    try {
+      const transactionsResponse = await walletService.getTransactions({ limit: 5 });
+      setRecentTransactions(transactionsResponse?.data ?? []);
+    } catch { setRecentTransactions([]); }
+    setLoading(false);
+  };
 
-  try {
-    const ordersResponse = await orderService.getOrders({ limit: 5 });
-    setRecentOrders(ordersResponse?.data ?? []);
-  } catch (error: any) {
-    console.error('Error fetching recent orders:', error);
-    setRecentOrders([]);
-  }
-
-  try {
-    const balanceResponse = await walletService.getBalance();
-    setWalletBalance(balanceResponse?.data?.balance ?? 0);
-  } catch (error: any) {
-    console.error('Error fetching wallet balance:', error);
-    setWalletBalance(0);
-  }
-
-  try {
-    const transactionsResponse = await walletService.getTransactions({ limit: 5 });
-    setRecentTransactions(transactionsResponse?.data ?? []);
-  } catch (error: any) {
-    console.error('Error fetching wallet transactions:', error);
-    setRecentTransactions([]);
-  }
-
-  setLoading(false);
-};
   const handleLogout = async () => {
     try {
       await logout();
       toast.success('Logged out successfully');
       router.push('/');
-    } catch (error) {
-      toast.error('Logout failed');
-    }
+    } catch { toast.error('Logout failed'); }
   };
 
-  const getOrderStatusColor = (status: string) => {
+  const getStatusConfig = (status: string) => {
     switch (status) {
-      case 'delivered':
-        return 'bg-green-100 text-green-800';
-      case 'in_transit':
-        return 'bg-blue-100 text-blue-800';
-      case 'processing':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getOrderStatusIcon = (status: string) => {
-    switch (status) {
-      case 'delivered':
-        return <CheckCircle size={16} />;
-      case 'in_transit':
-        return <TrendingUp size={16} />;
-      case 'processing':
-        return <Clock size={16} />;
-      default:
-        return <Package size={16} />;
+      case 'delivered':   return { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', icon: <CheckCircle size={13} />, label: 'Delivered' };
+      case 'in_transit':  return { bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-200', icon: <TrendingUp size={13} />, label: 'In Transit' };
+      case 'processing':  return { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', icon: <Clock size={13} />, label: 'Processing' };
+      case 'cancelled':   return { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', icon: <Package size={13} />, label: 'Cancelled' };
+      default:            return { bg: 'bg-slate-50', text: 'text-slate-600', border: 'border-slate-200', icon: <Package size={13} />, label: status };
     }
   };
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader className="animate-spin text-blue-600" size={48} />
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <Loader className="animate-spin text-teal-600" size={36} />
+          <p className="text-sm text-slate-500 font-medium">Loading your dashboard…</p>
+        </div>
       </div>
     );
   }
 
-  if (!user) {
-    return null;
-  }
+  if (!user) return null;
+
+  const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const initials = user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
 
   return (
     <>
-      <Head>
-        <title>My Account - AquaGas</title>
-      </Head>
+      <Head><title>My Account — AquaGas</title></Head>
 
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="container mx-auto px-4">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold text-gray-800 mb-2">My Account</h1>
-            <p className="text-gray-600">Welcome back, {user.name}!</p>
+      <div className="min-h-screen bg-slate-50">
+
+        {/* ── Page header ─────────────────────────────── */}
+        <div className="bg-white border-b border-slate-100">
+          <div className="container mx-auto px-4 sm:px-6 py-6 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="bg-teal-50 text-teal-600 p-2 rounded-xl">
+                <LayoutDashboard size={20} />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-slate-900">My Account</h1>
+                <p className="text-sm text-slate-400">Welcome back, {user.name.split(' ')[0]}</p>
+              </div>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 text-sm text-slate-500 hover:text-red-600 font-medium transition-colors px-3 py-2 rounded-lg hover:bg-red-50"
+            >
+              <LogOut size={16} />
+              <span className="hidden sm:inline">Logout</span>
+            </button>
           </div>
+        </div>
 
+        <div className="container mx-auto px-4 sm:px-6 py-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left Column - Profile & Quick Actions */}
-            <div className="lg:col-span-1 space-y-6">
-              {/* Profile Card */}
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex items-center mb-6">
-                  <div className="bg-gradient-to-br from-blue-400 to-blue-600 rounded-full w-20 h-20 flex items-center justify-center text-white text-3xl font-bold">
-                    {user.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="ml-4">
-                    <h2 className="text-xl font-bold text-gray-800">{user.name}</h2>
-                    <p className="text-gray-600 text-sm">{user.email}</p>
-                  </div>
-                </div>
 
-                <div className="space-y-3">
-                  <div className="flex items-center text-gray-600 text-sm">
-                    <Mail size={16} className="mr-2" />
-                    <span>{user.email}</span>
-                  </div>
-                  <div className="flex items-center text-gray-600 text-sm">
-                    <Phone size={16} className="mr-2" />
-                    <span>{user.phone}</span>
-                  </div>
-                  {user.address && (
-                    <div className="flex items-center text-gray-600 text-sm">
-                      <MapPin size={16} className="mr-2" />
-                      <span>{user.address}</span>
+            {/* ── Left sidebar ──────────────────────────── */}
+            <div className="lg:col-span-1 space-y-5">
+
+              {/* Profile card */}
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                {/* Banner */}
+                <div className="h-20 bg-gradient-to-r from-teal-500 via-teal-600 to-sky-600 relative">
+                  <div className="absolute inset-0 opacity-20"
+                    style={{ backgroundImage: 'radial-gradient(circle at 70% 50%, white 0%, transparent 60%)' }}
+                  />
+                </div>
+                {/* Avatar */}
+                <div className="px-5 pb-5">
+                  <div className="-mt-8 mb-3 flex items-end justify-between">
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-400 to-sky-600 flex items-center justify-center text-white text-xl font-bold shadow-lg border-2 border-white">
+                      {initials}
                     </div>
-                  )}
-                </div>
+                    <Link
+                      href="/account/profile"
+                      className="flex items-center gap-1.5 text-xs font-semibold text-teal-600 hover:text-teal-700 bg-teal-50 hover:bg-teal-100 px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                      <Settings size={13} />
+                      Edit
+                    </Link>
+                  </div>
+                  <h2 className="font-bold text-slate-900 text-lg leading-tight">{user.name}</h2>
 
-                <Link
-                  href="/account/profile"
-                  className="mt-4 w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2"
-                >
-                  <Settings size={18} />
-                  Edit Profile
-                </Link>
+                  <div className="mt-3 space-y-2">
+                    <div className="flex items-center gap-2.5 text-sm text-slate-500">
+                      <Mail size={13} className="text-slate-400 flex-shrink-0" />
+                      <span className="truncate">{user.email}</span>
+                    </div>
+                    <div className="flex items-center gap-2.5 text-sm text-slate-500">
+                      <Phone size={13} className="text-slate-400 flex-shrink-0" />
+                      <span>{user.phone}</span>
+                    </div>
+                    {user.address && (
+                      <div className="flex items-start gap-2.5 text-sm text-slate-500">
+                        <MapPin size={13} className="text-slate-400 flex-shrink-0 mt-0.5" />
+                        <span className="line-clamp-2">{user.address}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
 
-              {/* Wallet Card */}
-              <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg shadow-md p-6 text-white">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold">Wallet Balance</h3>
-                  <Wallet size={24} />
+              {/* Wallet card */}
+              <div className="bg-gradient-to-br from-teal-600 via-teal-700 to-sky-700 rounded-2xl p-5 text-white shadow-md relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-white/5 -translate-y-12 translate-x-12" />
+                <div className="absolute bottom-0 left-0 w-24 h-24 rounded-full bg-white/5 translate-y-10 -translate-x-8" />
+                <div className="relative">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-teal-100 text-xs font-semibold uppercase tracking-wider">Wallet Balance</p>
+                    <Wallet size={18} className="text-teal-200" />
+                  </div>
+                  <p className="text-3xl font-extrabold tracking-tight mt-1 mb-4">
+                    {formatPrice(walletBalance)}
+                  </p>
+                  <Link
+                    href="/account/wallet"
+                    className="inline-flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors backdrop-blur-sm"
+                  >
+                    Manage Wallet
+                    <ChevronRight size={15} />
+                  </Link>
                 </div>
-                <p className="text-4xl font-bold mb-4">{formatPrice(walletBalance)}</p>
-                <Link
-                  href="/account/wallet"
-                  className="bg-white text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-50 transition font-semibold inline-flex items-center gap-2"
-                >
-                  Manage Wallet
-                  <ChevronRight size={18} />
-                </Link>
               </div>
 
-              {/* Quick Actions */}
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <h3 className="text-lg font-bold text-gray-800 mb-4">Quick Actions</h3>
-                <div className="space-y-3">
-                  <Link
-                    href="/shop"
-                    className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition"
-                  >
-                    <div className="flex items-center gap-3">
-                      <ShoppingCart size={20} className="text-blue-600" />
-                      <span className="font-semibold text-gray-800">Continue Shopping</span>
-                    </div>
-                    <ChevronRight size={18} className="text-gray-400" />
-                  </Link>
-                  <Link
-                    href="/orders"
-                    className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Package size={20} className="text-blue-600" />
-                      <span className="font-semibold text-gray-800">My Orders</span>
-                    </div>
-                    <ChevronRight size={18} className="text-gray-400" />
-                  </Link>
+              {/* Quick actions */}
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider px-2 mb-2">Quick Actions</p>
+                <nav className="space-y-1">
+                  {[
+                    { href: '/shop', icon: <ShoppingCart size={17} />, label: 'Continue Shopping', color: 'text-teal-600 bg-teal-50' },
+                    { href: '/orders', icon: <Package size={17} />, label: 'My Orders', color: 'text-sky-600 bg-sky-50' },
+                    { href: '/account/wallet', icon: <CreditCard size={17} />, label: 'Wallet', color: 'text-emerald-600 bg-emerald-50' },
+                  ].map(({ href, icon, label, color }) => (
+                    <Link
+                      key={href}
+                      href={href}
+                      className="flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-slate-50 transition-colors group"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className={`p-1.5 rounded-lg ${color}`}>{icon}</span>
+                        <span className="text-sm font-medium text-slate-700">{label}</span>
+                      </div>
+                      <ChevronRight size={15} className="text-slate-300 group-hover:text-slate-400 transition-colors" />
+                    </Link>
+                  ))}
                   <button
                     onClick={handleLogout}
-                    className="w-full flex items-center justify-between p-3 hover:bg-red-50 rounded-lg transition"
+                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-red-50 transition-colors group"
                   >
                     <div className="flex items-center gap-3">
-                      <LogOut size={20} className="text-red-600" />
-                      <span className="font-semibold text-gray-800">Logout</span>
+                      <span className="p-1.5 rounded-lg text-red-500 bg-red-50 group-hover:bg-red-100 transition-colors">
+                        <LogOut size={17} />
+                      </span>
+                      <span className="text-sm font-medium text-slate-700 group-hover:text-red-600 transition-colors">Logout</span>
                     </div>
-                    <ChevronRight size={18} className="text-gray-400" />
+                    <ChevronRight size={15} className="text-slate-300" />
                   </button>
-                </div>
+                </nav>
               </div>
             </div>
 
-            {/* Right Column - Orders & Transactions */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Statistics Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white rounded-lg shadow-md p-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-gray-600 text-sm font-semibold">Total Orders</h4>
-                    <Package className="text-blue-600" size={24} />
+            {/* ── Right main ────────────────────────────── */}
+            <div className="lg:col-span-2 space-y-5">
+
+              {/* Stat cards */}
+              <div className="grid grid-cols-3 gap-4">
+                {[
+                  { label: 'Total Orders', value: recentOrders.length, icon: <Package size={18} />, accent: 'text-teal-600 bg-teal-50' },
+                  { label: 'Cart Items', value: cartCount, icon: <ShoppingCart size={18} />, accent: 'text-sky-600 bg-sky-50' },
+                  { label: 'Balance', value: formatPrice(walletBalance), icon: <CreditCard size={18} />, accent: 'text-emerald-600 bg-emerald-50', small: true },
+                ].map(({ label, value, icon, accent, small }) => (
+                  <div key={label} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">{label}</p>
+                      <span className={`p-1.5 rounded-lg ${accent}`}>{icon}</span>
+                    </div>
+                    <p className={`font-extrabold text-slate-900 ${small ? 'text-lg' : 'text-3xl'}`}>{value}</p>
                   </div>
-                  <p className="text-3xl font-bold text-gray-800">{recentOrders.length}</p>
-                </div>
-                <div className="bg-white rounded-lg shadow-md p-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-gray-600 text-sm font-semibold">Cart Items</h4>
-                    <ShoppingCart className="text-blue-600" size={24} />
-                  </div>
-                  <p className="text-3xl font-bold text-gray-800">
-                    {cart.reduce((sum, item) => sum + item.quantity, 0)}
-                  </p>
-                </div>
-                <div className="bg-white rounded-lg shadow-md p-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-gray-600 text-sm font-semibold">Wallet</h4>
-                    <CreditCard className="text-blue-600" size={24} />
-                  </div>
-                  <p className="text-3xl font-bold text-gray-800">{formatPrice(walletBalance)}</p>
-                </div>
+                ))}
               </div>
 
-              {/* Recent Orders */}
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-bold text-gray-800">Recent Orders</h3>
-                  <Link
-                    href="/orders"
-                    className="text-blue-600 hover:text-blue-700 font-semibold text-sm flex items-center gap-1"
-                  >
-                    View All
-                    <ChevronRight size={16} />
+              {/* Recent orders */}
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                  <h3 className="font-bold text-slate-900">Recent Orders</h3>
+                  <Link href="/orders" className="flex items-center gap-1 text-sm text-teal-600 hover:text-teal-700 font-semibold transition-colors">
+                    View All <ChevronRight size={15} />
                   </Link>
                 </div>
 
                 {recentOrders.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Package size={48} className="mx-auto text-gray-400 mb-3" />
-                    <p className="text-gray-600 mb-4">No orders yet</p>
+                  <div className="py-12 flex flex-col items-center gap-3 text-center px-6">
+                    <div className="bg-slate-100 text-slate-400 p-4 rounded-2xl">
+                      <Package size={32} />
+                    </div>
+                    <p className="text-slate-500 text-sm">No orders yet</p>
                     <Link
                       href="/shop"
-                      className="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition"
+                      className="mt-1 bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors"
                     >
                       Start Shopping
                     </Link>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    {recentOrders.map((order) => (
-                      <Link
-                        key={order.id}
-                        href={`/orders/${order.id}`}
-                        className="block border border-gray-200 rounded-lg p-4 hover:border-blue-500 hover:shadow-md transition"
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-3">
-                            <span className="text-lg font-bold text-gray-800">
-                              Order #{order.id.slice(0, 8)}
-                            </span>
-                            <span
-                              className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${getOrderStatusColor(
-                                order.status
-                              )}`}
-                            >
-                              {getOrderStatusIcon(order.status)}
-                              {order.status.replace('_', ' ').toUpperCase()}
-                            </span>
+                  <div className="divide-y divide-slate-50">
+                    {recentOrders.map((order) => {
+                      const sc = getStatusConfig(order.status);
+                      return (
+                        <Link
+                          key={order.id}
+                          href={`/orders/${order.id}`}
+                          className="flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50 transition-colors group"
+                        >
+                          <div className={`p-2 rounded-xl ${sc.bg} ${sc.text} flex-shrink-0`}>
+                            {sc.icon}
                           </div>
-                          <ChevronRight size={20} className="text-gray-400" />
-                        </div>
-                        <div className="flex items-center justify-between text-sm text-gray-600">
-                          <span>{formatDate(order.created_at)}</span>
-                          <span className="font-bold text-blue-600">
-                            {formatPrice(order.grand_total)}
-                          </span>
-                        </div>
-                        <div className="mt-2 text-sm text-gray-600">
-                          {order.items.length} item{order.items.length > 1 ? 's' : ''}
-                        </div>
-                      </Link>
-                    ))}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <span className="text-sm font-semibold text-slate-800">
+                                #{order.id.slice(0, 8).toUpperCase()}
+                              </span>
+                              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${sc.bg} ${sc.text} ${sc.border}`}>
+                                {sc.label}
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-400">
+                              {formatDate(order.created_at)} · {order.items.length} item{order.items.length !== 1 ? 's' : ''}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className="text-sm font-bold text-teal-700">{formatPrice(order.grand_total)}</span>
+                            <ChevronRight size={15} className="text-slate-300 group-hover:text-slate-400 transition-colors" />
+                          </div>
+                        </Link>
+                      );
+                    })}
                   </div>
                 )}
               </div>
 
-              {/* Recent Transactions */}
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-bold text-gray-800">Recent Transactions</h3>
-                  <Link
-                    href="/account/wallet"
-                    className="text-blue-600 hover:text-blue-700 font-semibold text-sm flex items-center gap-1"
-                  >
-                    View All
-                    <ChevronRight size={16} />
+              {/* Recent transactions */}
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                  <h3 className="font-bold text-slate-900">Recent Transactions</h3>
+                  <Link href="/account/wallet" className="flex items-center gap-1 text-sm text-teal-600 hover:text-teal-700 font-semibold transition-colors">
+                    View All <ChevronRight size={15} />
                   </Link>
                 </div>
 
                 {recentTransactions.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Wallet size={48} className="mx-auto text-gray-400 mb-3" />
-                    <p className="text-gray-600">No transactions yet</p>
+                  <div className="py-12 flex flex-col items-center gap-3">
+                    <div className="bg-slate-100 text-slate-400 p-4 rounded-2xl">
+                      <Wallet size={32} />
+                    </div>
+                    <p className="text-slate-500 text-sm">No transactions yet</p>
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    {recentTransactions.map((transaction) => (
-                      <div
-                        key={transaction.id}
-                        className="flex items-center justify-between p-3 border border-gray-200 rounded-lg"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                              transaction.type === 'credit'
-                                ? 'bg-green-100 text-green-600'
-                                : 'bg-red-100 text-red-600'
-                            }`}
-                          >
-                            {transaction.type === 'credit' ? '+' : '-'}
+                  <div className="divide-y divide-slate-50">
+                    {recentTransactions.map((tx) => {
+                      const isCredit = tx.type === 'credit';
+                      return (
+                        <div key={tx.id} className="flex items-center gap-4 px-5 py-3.5">
+                          <div className={`p-2 rounded-xl flex-shrink-0 ${isCredit ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'}`}>
+                            {isCredit ? <ArrowDownLeft size={16} /> : <ArrowUpRight size={16} />}
                           </div>
-                          <div>
-                            <p className="font-semibold text-gray-800">
-                              {transaction.description}
-                            </p>
-                            <p className="text-xs text-gray-600">
-                              {formatDate(transaction.created_at)}
-                            </p>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-slate-800 truncate">{tx.description}</p>
+                            <p className="text-xs text-slate-400 mt-0.5">{formatDate(tx.created_at)}</p>
                           </div>
+                          <span className={`text-sm font-bold flex-shrink-0 ${isCredit ? 'text-emerald-600' : 'text-red-500'}`}>
+                            {isCredit ? '+' : '-'}{formatPrice(tx.amount)}
+                          </span>
                         </div>
-                        <span
-                          className={`font-bold ${
-                            transaction.type === 'credit' ? 'text-green-600' : 'text-red-600'
-                          }`}
-                        >
-                          {transaction.type === 'credit' ? '+' : '-'}
-                          {formatPrice(transaction.amount)}
-                        </span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
+
             </div>
           </div>
         </div>
       </div>
     </>
   );
-    }
+}
