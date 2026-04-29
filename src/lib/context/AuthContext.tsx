@@ -32,11 +32,11 @@ export interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (userData: {
-    name: string;
-    email: string;
-    password: string;
-    phone: string;
-  }) => Promise<void>;
+  fullName: string;   // ← was name
+  email: string;
+  password: string;
+  phone: string;
+}) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (userData: Partial<User>) => void;
   refreshUser: () => Promise<void>;
@@ -245,21 +245,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
   // ── Register ──────────────────────────────────────────────
   const register = async (userData: {
-    name: string;
-    email: string;
-    password: string;
-    phone: string;
-  }) => {
-    const response = await authService.register(userData);
-    if (!response?.data) throw new Error('Registration failed');
+  fullName: string;   
+  email: string;
+  password: string;
+  phone: string;
+}) => {
+  const response = await authService.register(userData);
+  if (!response?.data) throw new Error('Registration failed');
 
-    localStorage.setItem(TOKEN_KEY, response.data.token);
-    const newUser = response.data.user ?? null;
-    setUser(newUser);
-    writeCachedUser(newUser);
-    resetInactivityTimer();
-  };
+  localStorage.setItem(TOKEN_KEY, response.data.token);
 
+  // Backend returns user with first_name/last_name, so normalize here
+  const raw = response.data.user;
+  const newUser: User | null = raw
+    ? {
+        ...raw,
+        name: `${raw.first_name ?? ''} ${raw.last_name ?? ''}`.trim(),
+      }
+    : null;
+
+  setUser(newUser);
+  writeCachedUser(newUser);
+  resetInactivityTimer();
+};
   // ── Update user locally ───────────────────────────────────
   const updateUser = (userData: Partial<User>) => {
     setUser(prev => {
