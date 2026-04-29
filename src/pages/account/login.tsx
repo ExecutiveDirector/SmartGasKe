@@ -181,11 +181,11 @@ export default function LoginPage() {
       const formattedPhone = formatPhoneNumber(registerForm.phone.trim());
 
       await register({
-        name: registerForm.name.trim(),
-        email: registerForm.email.trim().toLowerCase(),
-        phone: formattedPhone,
-        password: registerForm.password,
-      });
+  fullName: registerForm.name.trim(),   
+  email: registerForm.email.trim().toLowerCase(),
+  phone: formattedPhone,
+  password: registerForm.password,
+});
 
       toast.success('Account created successfully!');
       router.push('/account');
