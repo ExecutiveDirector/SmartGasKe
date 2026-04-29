@@ -244,8 +244,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   };
 
   // ── Register ──────────────────────────────────────────────
-  const register = async (userData: {
-  fullName: string;   
+const register = async (userData: {
+  fullName: string;
   email: string;
   password: string;
   phone: string;
@@ -255,14 +255,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
   localStorage.setItem(TOKEN_KEY, response.data.token);
 
-  // Backend returns user with first_name/last_name, so normalize here
-  const raw = response.data.user;
-  const newUser: User | null = raw
-    ? {
-        ...raw,
-        name: `${raw.first_name ?? ''} ${raw.last_name ?? ''}`.trim(),
-      }
-    : null;
+  const newUser: User | null = response.data.user ?? null;
 
   setUser(newUser);
   writeCachedUser(newUser);
