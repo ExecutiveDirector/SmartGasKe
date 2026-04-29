@@ -109,7 +109,7 @@ export const authService = {
    */
   register: async (userData: RegisterData): Promise<ApiResponse<AuthResponse>> => {
     const response = await api.post('/auth/register/user', {
-      fullName: userData.name,
+      fullName: userData.fullName,
       email: userData.email,
       phone: userData.phone,
       password: userData.password,
