@@ -1,6 +1,6 @@
 // ============================================================
 // FILE: src/pages/account/index.tsx
-// Account Dashboard — Enhanced (Production Safe)
+// Account Dashboard — Professional Enhanced (SAFE)
 // ============================================================
 
 import React, { useEffect, useState } from 'react';
@@ -26,6 +26,7 @@ import {
   ArrowDownLeft,
   LayoutDashboard,
 } from 'lucide-react';
+
 import { useAuth } from '@/lib/context/AuthContext';
 import { useCart } from '@/lib/context/CartContext';
 import { orderService, walletService } from '@/lib/api';
@@ -53,7 +54,6 @@ export default function AccountDashboard() {
 
   const fetchDashboardData = async () => {
     setLoading(true);
-
     try {
       const ordersResponse = await orderService.getOrders({ limit: 5 });
       setRecentOrders(ordersResponse?.data ?? []);
@@ -106,10 +106,7 @@ export default function AccountDashboard() {
   if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <Loader className="animate-spin text-teal-600" size={36} />
-          <p className="text-sm text-slate-500 font-medium">Loading your dashboard…</p>
-        </div>
+        <Loader className="animate-spin text-teal-600" size={36} />
       </div>
     );
   }
@@ -119,7 +116,7 @@ export default function AccountDashboard() {
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const initials = user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
 
-  // ✅ SAFE DERIVED DATA
+  // SAFE DERIVED DATA
   const activeOrders = recentOrders.filter(
     (o) => o.status !== 'delivered' && o.status !== 'cancelled'
   ).length;
@@ -139,15 +136,15 @@ export default function AccountDashboard() {
 
       <div className="min-h-screen bg-slate-50">
 
-        {/* Header */}
+        {/* HEADER */}
         <div className="bg-white border-b border-slate-100">
-          <div className="container mx-auto px-4 sm:px-6 py-6 flex items-center justify-between">
+          <div className="container mx-auto px-4 sm:px-6 py-6 flex justify-between items-center">
             <div className="flex items-center gap-3">
-              <div className="bg-teal-50 text-teal-600 p-2 rounded-xl">
+              <div className="bg-teal-50 p-2 rounded-xl text-teal-600">
                 <LayoutDashboard size={20} />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-slate-900">Dashboard</h1>
+                <h1 className="text-xl font-bold">Dashboard</h1>
                 <p className="text-sm text-slate-400">
                   Welcome back, {user.name.split(' ')[0]}
                 </p>
@@ -156,14 +153,10 @@ export default function AccountDashboard() {
 
             <div className="flex items-center gap-2">
               <Link href="/shop" className="bg-teal-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-teal-700">
-                Shop
+                Shop Now
               </Link>
-
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 text-sm text-slate-500 hover:text-red-600 font-medium px-3 py-2 rounded-lg hover:bg-red-50"
-              >
-                <LogOut size={16} />
+              <button onClick={handleLogout} className="p-2 hover:bg-red-50 rounded-lg">
+                <LogOut size={18} />
               </button>
             </div>
           </div>
@@ -171,47 +164,56 @@ export default function AccountDashboard() {
 
         <div className="container mx-auto px-4 sm:px-6 py-8 space-y-6">
 
-          {/* ACTIVE ORDERS ALERT */}
+          {/* ACTIVE ORDERS */}
           {activeOrders > 0 && (
-            <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex items-center justify-between">
+            <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl flex justify-between">
               <div>
-                <p className="text-sm font-semibold text-blue-800">
-                  You have {activeOrders} active order{activeOrders > 1 ? 's' : ''}
+                <p className="font-semibold text-blue-800">
+                  {activeOrders} active order{activeOrders > 1 ? 's' : ''}
                 </p>
-                <p className="text-xs text-blue-600">
-                  Track your deliveries in real-time
-                </p>
+                <p className="text-xs text-blue-600">Track your deliveries</p>
               </div>
-              <Link href="/orders" className="text-sm font-semibold text-blue-700">
-                Track →
-              </Link>
+              <Link href="/orders" className="text-blue-700 font-semibold">Track →</Link>
             </div>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid lg:grid-cols-3 gap-6">
 
             {/* LEFT */}
             <div className="space-y-5">
 
-              {/* Profile */}
-              <div className="bg-white rounded-2xl border p-5">
-                <h2 className="font-bold">{user.name}</h2>
+              {/* PROFILE */}
+              <div className="bg-white rounded-2xl p-5 border">
+                <div className="flex justify-between items-center">
+                  <h2 className="font-bold">{user.name}</h2>
+                  <Link href="/account/profile">
+                    <Settings size={16} />
+                  </Link>
+                </div>
                 <p className="text-sm text-slate-500">{user.email}</p>
                 <p className="text-xs text-emerald-600 font-semibold mt-1">
                   Verified Account
                 </p>
               </div>
 
-              {/* Wallet */}
-              <div className="bg-teal-600 text-white p-5 rounded-2xl">
-                <p className="text-sm">Wallet Balance</p>
+              {/* WALLET */}
+              <div className="bg-gradient-to-br from-teal-600 to-sky-700 text-white p-5 rounded-2xl">
+                <p className="text-xs">Wallet Balance</p>
                 <p className="text-2xl font-bold">{formatPrice(walletBalance)}</p>
                 <p className="text-xs mt-1">
                   Last activity: {lastTransactionDate ? formatDate(lastTransactionDate) : '—'}
                 </p>
-                <Link href="/account/wallet" className="text-sm underline mt-2 inline-block">
+                <Link href="/account/wallet" className="underline text-sm mt-2 inline-block">
                   Manage Wallet
                 </Link>
+              </div>
+
+              {/* QUICK ACTIONS */}
+              <div className="bg-white p-4 rounded-2xl border">
+                <p className="text-xs uppercase text-slate-400 mb-2">Quick Actions</p>
+                <Link href="/shop" className="block py-2">Shop</Link>
+                <Link href="/orders" className="block py-2">Orders</Link>
+                <Link href="/account/wallet" className="block py-2">Wallet</Link>
               </div>
 
             </div>
@@ -222,23 +224,21 @@ export default function AccountDashboard() {
               {/* STATS */}
               <div className="grid grid-cols-3 gap-4">
                 <div className="bg-white p-4 rounded-xl">
-                  <p className="text-xs text-slate-400">Orders</p>
-                  <p className="text-xl font-bold">{recentOrders.length}</p>
+                  <p className="text-xs">Orders</p>
+                  <p className="font-bold">{recentOrders.length}</p>
                 </div>
-
                 <div className="bg-white p-4 rounded-xl">
-                  <p className="text-xs text-slate-400">Spent</p>
-                  <p className="text-xl font-bold">{formatPrice(totalSpent)}</p>
+                  <p className="text-xs">Spent</p>
+                  <p className="font-bold">{formatPrice(totalSpent)}</p>
                 </div>
-
                 <div className="bg-white p-4 rounded-xl">
-                  <p className="text-xs text-slate-400">Active</p>
-                  <p className="text-xl font-bold">{activeOrders}</p>
+                  <p className="text-xs">Active</p>
+                  <p className="font-bold">{activeOrders}</p>
                 </div>
               </div>
 
               {/* ORDERS */}
-              <div className="bg-white rounded-2xl border">
+              <div className="bg-white border rounded-2xl">
                 <div className="p-4 border-b flex justify-between">
                   <h3 className="font-bold">Recent Orders</h3>
                   <Link href="/orders">View All</Link>
@@ -254,7 +254,6 @@ export default function AccountDashboard() {
                           {formatDate(order.created_at)} • {order.payment_method || 'Payment'}
                         </p>
                       </div>
-
                       <div className="text-right">
                         <p className="font-bold">{formatPrice(order.grand_total)}</p>
                         <span className={`text-xs ${sc.text}`}>{sc.label}</span>
@@ -265,7 +264,7 @@ export default function AccountDashboard() {
               </div>
 
               {/* TRANSACTIONS */}
-              <div className="bg-white rounded-2xl border">
+              <div className="bg-white border rounded-2xl">
                 <div className="p-4 border-b flex justify-between">
                   <h3 className="font-bold">Transactions</h3>
                   <Link href="/account/wallet">View All</Link>
@@ -273,10 +272,16 @@ export default function AccountDashboard() {
 
                 {recentTransactions.map((tx) => (
                   <div key={tx.id} className="flex justify-between p-4 border-b">
-                    <p>{tx.description}</p>
+                    <div>
+                      <p>{tx.description}</p>
+                      <p className="text-xs text-slate-400">
+                        {formatDate(tx.created_at)} • Ref: {tx.id.slice(0, 6)}
+                      </p>
+                    </div>
                     <p>{formatPrice(tx.amount)}</p>
                   </div>
                 ))}
+
               </div>
 
             </div>
