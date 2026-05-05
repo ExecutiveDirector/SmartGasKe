@@ -469,7 +469,7 @@ export default function CheckoutPage() {
 
   // Pricing
   const subtotal    = cartTotal;
-  const tax         = subtotal * 0.16;
+  const tax         = subtotal * 0.6;
   const deliveryFee = subtotal > 5000 ? 0 : 100;
   const total       = subtotal + tax + deliveryFee;
 
