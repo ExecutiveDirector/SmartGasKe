@@ -77,10 +77,11 @@ export default function ProductCard({
       >
         {/* Image */}
         <div className="relative h-32 overflow-hidden bg-slate-50">
+          {/* FIX: absolute inset-0 ensures the image fills the container fully */}
           <img
             src={getProductImage()}
             alt={productDisplayName}
-            className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+            className="absolute inset-0 w-full h-full object-cover object-center hover:scale-105 transition-transform duration-500"
           />
           {product.featured && (
             <span className="absolute top-2 right-2 flex items-center gap-1 bg-emerald-500 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full shadow">
@@ -149,10 +150,11 @@ export default function ProductCard({
     >
       {/* Image */}
       <div className="relative h-52 overflow-hidden bg-slate-50">
+        {/* FIX: absolute inset-0 ensures the image fills the container fully */}
         <img
           src={getProductImage()}
           alt={productDisplayName}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          className="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
         />
 
         {/* Top-left badges */}
