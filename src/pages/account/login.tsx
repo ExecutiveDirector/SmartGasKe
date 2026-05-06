@@ -1,216 +1,76 @@
+// ============================================================
+// FILE: src/pages/account/login.tsx
+// Login only — registration is at /account/register
+// ============================================================
+
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { Mail, Lock, User, Phone, Eye, EyeOff, Loader, CheckCircle, XCircle } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Loader, XCircle, Flame } from 'lucide-react';
 import { useAuth } from '@/lib/context/AuthContext';
 import toast from 'react-hot-toast';
 
-// Enhanced validation functions
-const isValidEmail = (email: string): boolean => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-};
-
-const isValidPhone = (phone: string): boolean => {
-  // Accepts: +254712345678 or 0712345678
-  const phoneRegex = /^(\+254|0)[17]\d{8}$/;
-  return phoneRegex.test(phone);
-};
-
-const formatPhoneNumber = (phone: string): string => {
-  // Convert 0712345678 to +254712345678
-  if (phone.startsWith('0')) {
-    return '+254' + phone.substring(1);
-  }
-  return phone;
-};
-
-const getPasswordStrength = (password: string): { strength: number; label: string; color: string } => {
-  let strength = 0;
-  if (password.length >= 8) strength++;
-  if (/[A-Z]/.test(password)) strength++;
-  if (/[a-z]/.test(password)) strength++;
-  if (/\d/.test(password)) strength++;
-  if (/[^A-Za-z0-9]/.test(password)) strength++;
-
-  const labels = ['Weak', 'Fair', 'Good', 'Strong', 'Very Strong'];
-  const colors = ['bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-green-500', 'bg-green-600'];
-
-  return {
-    strength,
-    label: labels[strength - 1] || 'Weak',
-    color: colors[strength - 1] || 'bg-red-500'
-  };
-};
+const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, register, isAuthenticated, loading } = useAuth();
-  const [isLogin, setIsLogin] = useState(true);
-  const [showPassword, setShowPassword] = useState(false);
+  const { login, isAuthenticated, loading } = useAuth();
+
+  const [form, setForm]             = useState({ email: '', password: '' });
+  const [errors, setErrors]         = useState<Record<string, string>>({});
+  const [showPw, setShowPw]         = useState(false);
   const [submitting, setSubmitting] = useState(false);
-
-  // Login form state
-  const [loginForm, setLoginForm] = useState({
-    email: '',
-    password: '',
-  });
-
-  // Register form state
-  const [registerForm, setRegisterForm] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    password: '',
-    confirmPassword: '',
-  });
-
-  // Form validation errors
-  const [errors, setErrors] = useState<Record<string, string>>({});
-
-  // Password strength
-  const [passwordStrength, setPasswordStrength] = useState({ strength: 0, label: '', color: '' });
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated && !loading) {
-      router.push('/account');
-    }
+    if (!loading && isAuthenticated) router.replace('/account');
   }, [isAuthenticated, loading, router]);
 
-  // Update password strength when typing
-  useEffect(() => {
-    if (!isLogin && registerForm.password) {
-      setPasswordStrength(getPasswordStrength(registerForm.password));
-    }
-  }, [registerForm.password, isLogin]);
-
-  // Validate login form
-  const validateLoginForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
-
-    if (!loginForm.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!isValidEmail(loginForm.email.trim())) {
-      newErrors.email = 'Invalid email format';
-    }
-
-    if (!loginForm.password) {
-      newErrors.password = 'Password is required';
-    } else if (loginForm.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const set = (field: 'email' | 'password') => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm(prev => ({ ...prev, [field]: e.target.value }));
+    if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
   };
 
-  // Validate register form
-  const validateRegisterForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
-
-    if (!registerForm.name.trim()) {
-      newErrors.name = 'Full name is required';
-    } else if (registerForm.name.trim().length < 2) {
-      newErrors.name = 'Name must be at least 2 characters';
-    }
-
-    if (!registerForm.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!isValidEmail(registerForm.email.trim())) {
-      newErrors.email = 'Invalid email format';
-    }
-
-    if (!registerForm.phone.trim()) {
-      newErrors.phone = 'Phone number is required';
-    } else if (!isValidPhone(registerForm.phone.trim())) {
-      newErrors.phone = 'Invalid phone number. Use format: +254712345678 or 0712345678';
-    }
-
-    if (!registerForm.password) {
-      newErrors.password = 'Password is required';
-    } else if (registerForm.password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters';
-    } else if (!/[A-Z]/.test(registerForm.password) || !/[a-z]/.test(registerForm.password) || !/\d/.test(registerForm.password)) {
-      newErrors.password = 'Password must contain uppercase, lowercase, and number';
-    }
-
-    if (!registerForm.confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your password';
-    } else if (registerForm.password !== registerForm.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const validate = (): boolean => {
+    const e: Record<string, string> = {};
+    if (!form.email.trim())
+      e.email = 'Email is required';
+    else if (!isValidEmail(form.email.trim()))
+      e.email = 'Invalid email address';
+    if (!form.password)
+      e.password = 'Password is required';
+    setErrors(e);
+    return Object.keys(e).length === 0;
   };
 
-  // Handle login submit
-  const handleLoginSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!validateLoginForm()) {
-      return;
-    }
+    if (!validate()) return;
 
     setSubmitting(true);
     try {
-      await login(loginForm.email.trim().toLowerCase(), loginForm.password);
+      await login(form.email.trim().toLowerCase(), form.password);
       toast.success('Welcome back!');
-      router.push('/account');
-    } catch (error: any) {
-      console.error('Login error:', error);
-      const errorMessage = error?.response?.data?.error || error?.message || 'Login failed. Please check your credentials.';
-      toast.error(errorMessage);
+
+      // Honour ?redirect= query param (e.g. from protected pages)
+      const redirect = router.query.redirect as string | undefined;
+      router.push(redirect && redirect.startsWith('/') ? redirect : '/account');
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.error ||
+        err?.message ||
+        'Login failed. Please check your credentials.';
+      toast.error(msg);
     } finally {
       setSubmitting(false);
     }
-  };
-
-  // Handle register submit
-  const handleRegisterSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!validateRegisterForm()) {
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      // Format phone number
-      const formattedPhone = formatPhoneNumber(registerForm.phone.trim());
-
-      await register({
-  fullName: registerForm.name.trim(),   
-  email: registerForm.email.trim().toLowerCase(),
-  phone: formattedPhone,
-  password: registerForm.password,
-});
-
-      toast.success('Account created successfully!');
-      router.push('/account');
-    } catch (error: any) {
-      console.error('Registration error:', error);
-      const errorMessage = error?.response?.data?.error || error?.message || 'Registration failed. Please try again.';
-      toast.error(errorMessage);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  // Toggle between login and register
-  const toggleForm = () => {
-    setIsLogin(!isLogin);
-    setErrors({});
-    setLoginForm({ email: '', password: '' });
-    setRegisterForm({ name: '', email: '', phone: '', password: '', confirmPassword: '' });
-    setPasswordStrength({ strength: 0, label: '', color: '' });
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader className="animate-spin text-blue-600" size={48} />
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <Loader className="animate-spin text-teal-600" size={36} />
       </div>
     );
   }
@@ -218,339 +78,124 @@ export default function LoginPage() {
   return (
     <>
       <Head>
-        <title>{isLogin ? 'Login' : 'Register'} - AquaGas</title>
-        <meta name="description" content={isLogin ? 'Login to your AquaGas account' : 'Create your AquaGas account'} />
+        <title>Login — AquaGas</title>
+        <meta name="description" content="Login to your AquaGas account" />
       </Head>
 
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 flex items-center justify-center py-12 px-4">
-        <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
-              {isLogin ? <Lock className="text-blue-600" size={32} /> : <User className="text-blue-600" size={32} />}
-            </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              {isLogin ? 'Welcome Back' : 'Create Account'}
-            </h1>
-            <p className="text-gray-600">
-              {isLogin ? 'Login to your AquaGas account' : 'Join AquaGas today'}
-            </p>
-          </div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-teal-50/40 to-sky-50 flex flex-col">
 
-          {/* Login Form */}
-          {isLogin ? (
-            <form onSubmit={handleLoginSubmit} className="space-y-5">
-              {/* Email Field */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Email Address
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 text-gray-400" size={20} />
-                  <input
-                    type="email"
-                    value={loginForm.email}
-                    onChange={(e) => {
-                      setLoginForm({ ...loginForm, email: e.target.value });
-                      if (errors.email) setErrors({ ...errors, email: '' });
-                    }}
-                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
-                      errors.email ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                    placeholder="you@example.com"
-                  />
-                </div>
-                {errors.email && (
-                  <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
-                    <XCircle size={14} />
-                    {errors.email}
-                  </p>
-                )}
+        {/* Top bar */}
+        <div className="flex items-center px-6 py-4">
+          <Link href="/" className="flex items-center gap-2 text-teal-700 font-bold text-lg">
+            <Flame size={20} className="text-teal-600" />
+            AquaGas
+          </Link>
+        </div>
+
+        {/* Card */}
+        <div className="flex-1 flex items-center justify-center px-4 py-8">
+          <div className="w-full max-w-sm">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8">
+
+              {/* Header */}
+              <div className="mb-7">
+                <h1 className="text-2xl font-bold text-slate-900">Welcome back</h1>
+                <p className="text-sm text-slate-500 mt-1">
+                  Log in to manage your orders and wallet.
+                </p>
               </div>
 
-              {/* Password Field */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Password
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 text-gray-400" size={20} />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={loginForm.password}
-                    onChange={(e) => {
-                      setLoginForm({ ...loginForm, password: e.target.value });
-                      if (errors.password) setErrors({ ...errors, password: '' });
-                    }}
-                    className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
-                      errors.password ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                    placeholder="••••••••"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
-                  >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                  </button>
-                </div>
-                {errors.password && (
-                  <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
-                    <XCircle size={14} />
-                    {errors.password}
-                  </p>
-                )}
-              </div>
+              <form onSubmit={handleSubmit} className="space-y-4" noValidate>
 
-              {/* Remember Me & Forgot Password */}
-              <div className="flex items-center justify-between">
-                <label className="flex items-center cursor-pointer">
-                  <input type="checkbox" className="mr-2 w-4 h-4 text-blue-600 rounded" />
-                  <span className="text-sm text-gray-600">Remember me</span>
-                </label>
-                <button
-                  type="button"
-                  className="text-sm text-blue-600 hover:text-blue-700 font-semibold"
-                >
-                  Forgot Password?
-                </button>
-              </div>
-
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full bg-gradient-to-r from-blue-600 to-green-600 text-white py-3 rounded-lg hover:from-blue-700 hover:to-green-700 font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md"
-              >
-                {submitting ? (
-                  <>
-                    <Loader className="animate-spin" size={20} />
-                    Logging in...
-                  </>
-                ) : (
-                  'Login'
-                )}
-              </button>
-            </form>
-          ) : (
-            /* Register Form */
-            <form onSubmit={handleRegisterSubmit} className="space-y-4">
-              {/* Name Field */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Full Name
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-3 text-gray-400" size={20} />
-                  <input
-                    type="text"
-                    value={registerForm.name}
-                    onChange={(e) => {
-                      setRegisterForm({ ...registerForm, name: e.target.value });
-                      if (errors.name) setErrors({ ...errors, name: '' });
-                    }}
-                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
-                      errors.name ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                    placeholder="John Doe"
-                  />
-                </div>
-                {errors.name && (
-                  <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
-                    <XCircle size={14} />
-                    {errors.name}
-                  </p>
-                )}
-              </div>
-
-              {/* Email Field */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Email Address
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 text-gray-400" size={20} />
-                  <input
-                    type="email"
-                    value={registerForm.email}
-                    onChange={(e) => {
-                      setRegisterForm({ ...registerForm, email: e.target.value });
-                      if (errors.email) setErrors({ ...errors, email: '' });
-                    }}
-                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
-                      errors.email ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                    placeholder="you@example.com"
-                  />
-                </div>
-                {errors.email && (
-                  <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
-                    <XCircle size={14} />
-                    {errors.email}
-                  </p>
-                )}
-              </div>
-
-              {/* Phone Field */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Phone Number
-                </label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-3 text-gray-400" size={20} />
-                  <input
-                    type="tel"
-                    value={registerForm.phone}
-                    onChange={(e) => {
-                      setRegisterForm({ ...registerForm, phone: e.target.value });
-                      if (errors.phone) setErrors({ ...errors, phone: '' });
-                    }}
-                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
-                      errors.phone ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                    placeholder="+254712345678 or 0712345678"
-                  />
-                </div>
-                {errors.phone && (
-                  <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
-                    <XCircle size={14} />
-                    {errors.phone}
-                  </p>
-                )}
-              </div>
-
-              {/* Password Field */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Password
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 text-gray-400" size={20} />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={registerForm.password}
-                    onChange={(e) => {
-                      setRegisterForm({ ...registerForm, password: e.target.value });
-                      if (errors.password) setErrors({ ...errors, password: '' });
-                    }}
-                    className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
-                      errors.password ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                    placeholder="••••••••"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
-                  >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                  </button>
-                </div>
-                {/* Password Strength Indicator */}
-                {registerForm.password && (
-                  <div className="mt-2">
-                    <div className="flex gap-1 mb-1">
-                      {[1, 2, 3, 4, 5].map((level) => (
-                        <div
-                          key={level}
-                          className={`h-1 flex-1 rounded ${
-                            level <= passwordStrength.strength ? passwordStrength.color : 'bg-gray-200'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    <p className="text-xs text-gray-600">
-                      Password strength: <span className="font-semibold">{passwordStrength.label}</span>
-                    </p>
+                {/* Email */}
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                    Email Address
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-3 text-slate-400" size={18} />
+                    <input
+                      type="email"
+                      value={form.email}
+                      onChange={set('email')}
+                      autoComplete="email"
+                      placeholder="you@example.com"
+                      className={`w-full pl-10 pr-4 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition ${
+                        errors.email ? 'border-red-400 bg-red-50' : 'border-slate-200'
+                      }`}
+                    />
                   </div>
-                )}
-                {errors.password && (
-                  <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
-                    <XCircle size={14} />
-                    {errors.password}
-                  </p>
-                )}
-              </div>
-
-              {/* Confirm Password Field */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Confirm Password
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 text-gray-400" size={20} />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={registerForm.confirmPassword}
-                    onChange={(e) => {
-                      setRegisterForm({ ...registerForm, confirmPassword: e.target.value });
-                      if (errors.confirmPassword) setErrors({ ...errors, confirmPassword: '' });
-                    }}
-                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
-                      errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                    placeholder="••••••••"
-                  />
-                  {registerForm.confirmPassword && registerForm.password === registerForm.confirmPassword && (
-                    <CheckCircle className="absolute right-3 top-3 text-green-600" size={20} />
+                  {errors.email && (
+                    <p className="text-red-500 text-xs mt-1.5 flex items-center gap-1">
+                      <XCircle size={12} /> {errors.email}
+                    </p>
                   )}
                 </div>
-                {errors.confirmPassword && (
-                  <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
-                    <XCircle size={14} />
-                    {errors.confirmPassword}
-                  </p>
-                )}
-              </div>
 
-              {/* Terms and Conditions */}
-              <div className="flex items-start">
-                <input type="checkbox" className="mt-1 mr-2 w-4 h-4 text-blue-600 rounded" required />
-                <span className="text-sm text-gray-600">
-                  I agree to the{' '}
-                  <button type="button" className="text-blue-600 hover:text-blue-700 font-semibold">
-                    Terms
-                  </button>
-                  {' '}and{' '}
-                  <button type="button" className="text-blue-600 hover:text-blue-700 font-semibold">
-                    Privacy Policy
-                  </button>
-                </span>
-              </div>
+                {/* Password */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-sm font-semibold text-slate-700">Password</label>
+                    <Link
+                      href="/account/forgot-password"
+                      className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                    >
+                      Forgot password?
+                    </Link>
+                  </div>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-3 text-slate-400" size={18} />
+                    <input
+                      type={showPw ? 'text' : 'password'}
+                      value={form.password}
+                      onChange={set('password')}
+                      autoComplete="current-password"
+                      placeholder="••••••••"
+                      className={`w-full pl-10 pr-10 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition ${
+                        errors.password ? 'border-red-400 bg-red-50' : 'border-slate-200'
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPw(!showPw)}
+                      className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
+                      tabIndex={-1}
+                    >
+                      {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                  {errors.password && (
+                    <p className="text-red-500 text-xs mt-1.5 flex items-center gap-1">
+                      <XCircle size={12} /> {errors.password}
+                    </p>
+                  )}
+                </div>
 
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full bg-gradient-to-r from-blue-600 to-green-600 text-white py-3 rounded-lg hover:from-blue-700 hover:to-green-700 font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md"
-              >
-                {submitting ? (
-                  <>
-                    <Loader className="animate-spin" size={20} />
-                    Creating account...
-                  </>
-                ) : (
-                  'Create Account'
-                )}
-              </button>
-            </form>
-          )}
+                {/* Submit */}
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full bg-teal-600 hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-2.5 rounded-lg transition flex items-center justify-center gap-2 shadow-sm mt-2"
+                >
+                  {submitting ? (
+                    <><Loader className="animate-spin" size={18} /> Logging in...</>
+                  ) : (
+                    'Log In'
+                  )}
+                </button>
+              </form>
 
-          {/* Toggle Form */}
-          <div className="mt-6 text-center">
-            <p className="text-gray-600">
-              {isLogin ? "Don't have an account?" : 'Already have an account?'}{' '}
-              <button
-                onClick={toggleForm}
-                className="text-blue-600 hover:text-blue-700 font-semibold"
-              >
-                {isLogin ? 'Register' : 'Login'}
-              </button>
-            </p>
+              {/* Footer link */}
+              <p className="text-center text-sm text-slate-500 mt-6">
+                Don&apos;t have an account?{' '}
+                <Link href="/account/register" className="text-teal-600 hover:text-teal-700 font-semibold">
+                  Create one
+                </Link>
+              </p>
+            </div>
           </div>
         </div>
       </div>
     </>
   );
-    } 
+}
