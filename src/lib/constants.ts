@@ -4,8 +4,8 @@
 
 export const APP_NAME = 'AquaGas';
 export const APP_DESCRIPTION = 'Smart LPG Distribution Platform';
-export const SUPPORT_EMAIL = 'support@aquagas.com';
-export const SUPPORT_PHONE = '+254 700 000 000';
+export const SUPPORT_EMAIL = 'support@aquagas.co.ke';
+export const SUPPORT_PHONE = '+254 710 820 666';
 
 export const ORDER_STATUSES = {
   PENDING: 'pending',
@@ -32,7 +32,7 @@ export const PRODUCT_CATEGORIES = [
   'Safety Equipment',
 ] as const;
 
-export const DELIVERY_FEE = 200; // KES
+export const DELIVERY_FEE = 100; // KES
 
 export const PAGINATION_LIMITS = {
   DEFAULT: 10,
