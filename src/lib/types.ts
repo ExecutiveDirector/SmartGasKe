@@ -28,9 +28,37 @@ export interface RegisterData {
   address?: string;
 }
 
+// src/lib/types.ts
+
 export interface AuthResponse {
   token: string;
-  user: User;
+  role?: string;
+  admin_role?: string | null;
+  redirect?: string;
+  message?: string;
+  
+  // Login response shape: { account, roleData }
+  account?: {
+    account_id: string | number;
+    email: string;
+    role: string;
+    user_id?: string | number;
+    vendor_id?: string | number;
+    rider_id?: string | number;
+    admin_id?: string | number;
+    admin_role?: string;
+  };
+  roleData?: Record<string, any> | null;
+  
+  // Register response shape: { user }
+  user?: User & {
+    user_id?: string | number;
+    first_name?: string;
+    last_name?: string;
+    full_name?: string;
+    phone_number?: string;
+    referral_code?: string;
+  };
 }
 
 // Product Category Types
