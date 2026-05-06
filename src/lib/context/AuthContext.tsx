@@ -4,6 +4,7 @@
 //  - Survives page refreshes and payment redirects
 //  - Auto-logout after 10 minutes of inactivity
 //  - Does NOT log out just because getProfile() fails temporarily
+//  - Normalizes backend user shape (first_name/last_name → name)
 // ============================================================
 'use client';
 
@@ -22,8 +23,8 @@ import { authService } from '../api';
 // ── Constants ────────────────────────────────────────────────
 const INACTIVITY_LIMIT_MS = 10 * 60 * 1000; // 10 minutes
 const TOKEN_KEY            = 'authToken';
-const USER_KEY             = 'authUser';       // cache user data locally
-const LAST_ACTIVE_KEY      = 'lastActiveAt';   // track last activity time
+const USER_KEY             = 'authUser';
+const LAST_ACTIVE_KEY      = 'lastActiveAt';
 
 // ── Types ────────────────────────────────────────────────────
 export interface AuthContextType {
@@ -32,11 +33,11 @@ export interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (userData: {
-  fullName: string;   // ← was name
-  email: string;
-  password: string;
-  phone: string;
-}) => Promise<void>;
+    fullName: string;
+    email: string;
+    password: string;
+    phone: string;
+  }) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (userData: Partial<User>) => void;
   refreshUser: () => Promise<void>;
@@ -47,55 +48,86 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // ── Helpers ──────────────────────────────────────────────────
 
-/** Read token from localStorage (client only) */
-function readToken(): string | null {
-  try {
-    return localStorage.getItem(TOKEN_KEY);
-  } catch {
-    return null;
+/**
+ * The backend returns different shapes depending on the endpoint:
+ *
+ * register → { user_id, first_name, last_name, full_name, email, phone_number }
+ * login    → { account: { account_id, email, role }, roleData: { first_name, ... } }
+ * profile  → { account: {...}, profile: { first_name, last_name, ... } }
+ *
+ * We normalise all of these into the flat User shape the frontend expects,
+ * which includes a `name` string field.
+ */
+function normalizeUser(raw: any): User | null {
+  if (!raw) return null;
+
+  // Already normalised (has a `name` string at the top level)
+  if (typeof raw.name === 'string' && raw.name) return raw as User;
+
+  // Shape coming from register / verifyOTP endpoints
+  if (raw.first_name || raw.last_name) {
+    const name = raw.full_name || `${raw.first_name ?? ''} ${raw.last_name ?? ''}`.trim();
+    return {
+      ...raw,
+      name,
+      // Surface account-level fields when they live one level up
+      id:    raw.user_id   ?? raw.account_id ?? raw.id,
+      email: raw.email,
+      phone: raw.phone_number ?? raw.phone,
+    } as User;
   }
+
+  // Shape coming from getProfile: { account, profile }
+  if (raw.account && raw.profile) {
+    const profile = raw.profile;
+    const account = raw.account;
+    const name =
+      profile.full_name ||
+      `${profile.first_name ?? ''} ${profile.last_name ?? ''}`.trim() ||
+      account.email;
+    return {
+      ...profile,
+      ...account,
+      name,
+      id:    profile.user_id ?? account.account_id,
+      email: account.email ?? profile.email,
+      phone: account.phone_number ?? profile.phone_number,
+    } as User;
+  }
+
+  // Fallback: just pass through and let the consumer handle it
+  return raw as User;
 }
 
-/** Read cached user from localStorage */
+function readToken(): string | null {
+  try { return localStorage.getItem(TOKEN_KEY); } catch { return null; }
+}
+
 function readCachedUser(): User | null {
   try {
     const raw = localStorage.getItem(USER_KEY);
     return raw ? (JSON.parse(raw) as User) : null;
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 }
 
-/** Persist user to localStorage so a refresh doesn't clear state */
 function writeCachedUser(user: User | null) {
   try {
-    if (user) {
-      localStorage.setItem(USER_KEY, JSON.stringify(user));
-    } else {
-      localStorage.removeItem(USER_KEY);
-    }
+    if (user) localStorage.setItem(USER_KEY, JSON.stringify(user));
+    else       localStorage.removeItem(USER_KEY);
   } catch { /* ignore */ }
 }
 
-/** Record the current time as the last activity timestamp */
 function touchLastActive() {
-  try {
-    localStorage.setItem(LAST_ACTIVE_KEY, Date.now().toString());
-  } catch { /* ignore */ }
+  try { localStorage.setItem(LAST_ACTIVE_KEY, Date.now().toString()); } catch { /* ignore */ }
 }
 
-/** How many ms have passed since the user last did something */
 function msSinceLastActive(): number {
   try {
     const raw = localStorage.getItem(LAST_ACTIVE_KEY);
-    if (!raw) return 0;
-    return Date.now() - parseInt(raw, 10);
-  } catch {
-    return 0;
-  }
+    return raw ? Date.now() - parseInt(raw, 10) : 0;
+  } catch { return 0; }
 }
 
-/** Clear all auth data from localStorage */
 function clearAuthStorage() {
   try {
     localStorage.removeItem(TOKEN_KEY);
@@ -105,27 +137,18 @@ function clearAuthStorage() {
 }
 
 // ── Provider ─────────────────────────────────────────────────
-export const AuthProvider: React.FC<{ children: ReactNode }> = ({
-  children,
-}) => {
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser]       = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const inactivityTimer       = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Logout ────────────────────────────────────────────────
   const logout = useCallback(async () => {
-    // Cancel any running timer
     if (inactivityTimer.current) {
       clearTimeout(inactivityTimer.current);
       inactivityTimer.current = null;
     }
-
-    try {
-      await authService.logout();
-    } catch {
-      // Ignore API errors — clear locally regardless
-    }
-
+    try { await authService.logout(); } catch { /* ignore */ }
     clearAuthStorage();
     setUser(null);
   }, []);
@@ -133,58 +156,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   // ── Inactivity timer ──────────────────────────────────────
   const resetInactivityTimer = useCallback(() => {
     touchLastActive();
-
-    if (inactivityTimer.current) {
-      clearTimeout(inactivityTimer.current);
-    }
-
+    if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
     inactivityTimer.current = setTimeout(() => {
       console.info('⏱ Auto-logout: 10 minutes of inactivity');
       logout();
     }, INACTIVITY_LIMIT_MS);
   }, [logout]);
 
-  // ── Attach activity listeners ─────────────────────────────
+  // ── Activity listeners ────────────────────────────────────
   useEffect(() => {
-    const events = [
-      'mousemove',
-      'mousedown',
-      'keydown',
-      'touchstart',
-      'scroll',
-      'click',
-    ] as const;
-
-    const handleActivity = () => {
-      // Only reset the timer if the user is actually logged in
-      if (readToken()) {
-        resetInactivityTimer();
-      }
-    };
-
+    const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click'] as const;
+    const handleActivity = () => { if (readToken()) resetInactivityTimer(); };
     events.forEach(e => window.addEventListener(e, handleActivity, { passive: true }));
-
     return () => {
       events.forEach(e => window.removeEventListener(e, handleActivity));
-      if (inactivityTimer.current) {
-        clearTimeout(inactivityTimer.current);
-      }
+      if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
     };
   }, [resetInactivityTimer]);
 
-  // ── Boot: restore session on page load / refresh ──────────
+  // ── Boot ──────────────────────────────────────────────────
   useEffect(() => {
     const init = async () => {
       const token = readToken();
+      if (!token) { setLoading(false); return; }
 
-      if (!token) {
-        // No token — definitely logged out
-        setLoading(false);
-        return;
-      }
-
-      // Check if the user was already inactive for too long BEFORE the refresh
-      // (e.g. they left the tab open for 30 mins, then came back)
       const idle = msSinceLastActive();
       if (idle > INACTIVITY_LIMIT_MS && idle > 0) {
         console.info('⏱ Session expired due to inactivity before refresh');
@@ -193,37 +188,28 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         return;
       }
 
-      // ── Restore from cache immediately so UI doesn't flicker ──
+      // Show cached user immediately to prevent flicker
       const cached = readCachedUser();
-      if (cached) {
-        setUser(cached);
-      }
+      if (cached) setUser(cached);
 
-      // ── Try to refresh from server in background ───────────
-      // If it fails (e.g. payment redirect, brief network hiccup)
-      // we keep the cached user — we do NOT log them out.
+      // Try to refresh from server
       try {
         const response = await authService.getProfile();
-        const freshUser = response?.data ?? null;
-        if (freshUser) {
-          setUser(freshUser);
-          writeCachedUser(freshUser);
+        const fresh = normalizeUser(response?.data ?? null);
+        if (fresh) {
+          setUser(fresh);
+          writeCachedUser(fresh);
         }
       } catch (err) {
-        // Network error or 401 — only log out on explicit 401
         const status = (err as any)?.response?.status ?? (err as any)?.status;
         if (status === 401) {
-          // Token is genuinely invalid/expired — clear everything
           clearAuthStorage();
           setUser(null);
         } else {
-          // Temporary failure (network, 5xx, Pesapal redirect, etc.)
-          // Keep the cached user logged in
           console.warn('⚠️ Could not refresh profile — keeping cached session:', err);
         }
       }
 
-      // Start inactivity timer now that we have a session
       resetInactivityTimer();
       setLoading(false);
     };
@@ -237,30 +223,38 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     if (!response?.data) throw new Error('Login failed');
 
     localStorage.setItem(TOKEN_KEY, response.data.token);
-    const loggedInUser = response.data.user ?? null;
+
+    // Login response: { token, account, roleData }
+    // Merge account + roleData for the full user object
+    const rawUser = response.data.roleData
+      ? { ...response.data.account, ...response.data.roleData }
+      : response.data.user ?? response.data.account ?? null;
+
+    const loggedInUser = normalizeUser(rawUser);
     setUser(loggedInUser);
     writeCachedUser(loggedInUser);
     resetInactivityTimer();
   };
 
   // ── Register ──────────────────────────────────────────────
-const register = async (userData: {
-  fullName: string;
-  email: string;
-  password: string;
-  phone: string;
-}) => {
-  const response = await authService.register(userData);
-  if (!response?.data) throw new Error('Registration failed');
+  const register = async (userData: {
+    fullName: string;
+    email: string;
+    password: string;
+    phone: string;
+  }) => {
+    const response = await authService.register(userData);
+    if (!response?.data) throw new Error('Registration failed');
 
-  localStorage.setItem(TOKEN_KEY, response.data.token);
+    localStorage.setItem(TOKEN_KEY, response.data.token);
 
-  const newUser: User | null = response.data.user ?? null;
+    // Register response: { token, user: { user_id, first_name, last_name, ... } }
+    const newUser = normalizeUser(response.data.user ?? null);
+    setUser(newUser);
+    writeCachedUser(newUser);
+    resetInactivityTimer();
+  };
 
-  setUser(newUser);
-  writeCachedUser(newUser);
-  resetInactivityTimer();
-};
   // ── Update user locally ───────────────────────────────────
   const updateUser = (userData: Partial<User>) => {
     setUser(prev => {
@@ -274,7 +268,7 @@ const register = async (userData: {
   // ── Refresh from server ───────────────────────────────────
   const refreshUser = async () => {
     const response = await authService.getProfile();
-    const fresh = response?.data ?? null;
+    const fresh = normalizeUser(response?.data ?? null);
     if (fresh) {
       setUser(fresh);
       writeCachedUser(fresh);
