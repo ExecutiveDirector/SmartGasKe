@@ -73,7 +73,7 @@ export default function CartPage() {
   const { cart, updateQuantity, removeFromCart, clearCart, total } = useCart();
 
   const subtotal = total;
-  const tax = subtotal * 0.16;
+  const tax = subtotal * 0.06;
   const deliveryFee = subtotal > 5000 ? 0 : DELIVERY_FEE;
   const grandTotal = subtotal + tax + deliveryFee;
 
