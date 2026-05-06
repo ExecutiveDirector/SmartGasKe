@@ -43,8 +43,8 @@ export default function CartPage() {
   
   // Calculate pricing
   const subtotal = cartTotal;
-  const tax = subtotal * 0.16; // 16% VAT
-  const deliveryFee = subtotal > 5000 ? 0 : 200; // Free delivery over KES 5,000
+  const tax = subtotal * 0.06; // 16% VAT
+  const deliveryFee = subtotal > 5000 ? 0 : 100; // Free delivery over KES 5,000
   const total = subtotal + tax + deliveryFee;
 
   const handleClearCart = async () => {
