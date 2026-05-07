@@ -107,14 +107,14 @@ export default function OutletProductsSection({
         </div>
       )}
 
-      {/* Products Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      {/* Products Horizontal Scroll */}
+      <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide snap-x snap-mandatory">
         {products.map((product) => (
           <ProductCard
             key={product.id || product.product_id}
             product={product}
             outlet={outlet}
-            compact={true}
+            compact
           />
         ))}
       </div>
