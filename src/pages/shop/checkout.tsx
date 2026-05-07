@@ -766,7 +766,7 @@ export default function CheckoutPage() {
           {/* Page header */}
           <div className="mb-12">
             <Link
-              href="/cart"
+              href="/shop/cart"
               className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-6 font-semibold transition hover:gap-3"
             >
               <ArrowLeft size={20} />
