@@ -285,6 +285,7 @@ export interface Outlet {
   county?: string;
   created_at?: string;
   updated_at?: string;
+isOpen?: boolean
 }
 
 export interface OutletQueryParams {
