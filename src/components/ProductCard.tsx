@@ -1,6 +1,6 @@
 // ============================================================
 // FILE: src/components/ProductCard.tsx
-// Fully Featured — compact & full cards have ALL features
+// Fully Featured — No Image Cropping Version
 // ============================================================
 
 import { Product, Outlet } from '@/lib/types';
@@ -25,7 +25,15 @@ interface ProductCardProps {
 }
 
 // ── Image with loading + error state ─────────────────────
-function ProductImage({ src, alt }: { src: string; alt: string }) {
+function ProductImage({
+  src,
+  alt,
+  className = '',
+}: {
+  src: string;
+  alt: string;
+  className?: string;
+}) {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
 
@@ -44,14 +52,15 @@ function ProductImage({ src, alt }: { src: string; alt: string }) {
           <div className="w-6 h-6 border-2 border-teal-400 border-t-transparent rounded-full animate-spin" />
         </div>
       )}
+
       <img
         src={src}
         alt={alt}
         onLoad={() => setLoaded(true)}
         onError={() => setError(true)}
-        className={`absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-500 ${
+        className={`absolute inset-0 w-full h-full object-contain object-center p-2 transition-opacity duration-500 ${
           loaded ? 'opacity-100' : 'opacity-0'
-        }`}
+        } ${className}`}
       />
     </>
   );
@@ -69,12 +78,14 @@ export default function ProductCard({
 
   const getProductImage = (): string => {
     if (product.image) return product.image;
+
     if (product.product_images) {
       try {
         const images =
           typeof product.product_images === 'string'
             ? JSON.parse(product.product_images)
             : product.product_images;
+
         return Array.isArray(images) && images.length > 0
           ? images[0]
           : '/images/placeholder-product.jpg';
@@ -84,6 +95,7 @@ export default function ProductCard({
           : '/images/placeholder-product.jpg';
       }
     }
+
     return '/images/placeholder-product.jpg';
   };
 
@@ -92,12 +104,15 @@ export default function ProductCard({
       toast.error('Product ID is missing');
       return;
     }
+
     if (!outlet.id && !outlet.outlet_id) {
       toast.error('Outlet information is missing for this product');
       return;
     }
+
     try {
       addToCart(product, outlet);
+
       toast.success(`${productDisplayName} added to cart!`, {
         icon: '🛒',
         duration: 2000,
@@ -110,12 +125,15 @@ export default function ProductCard({
 
   // Shared derived values
   const productId = product.id || product.product_id;
+
   const sizeLabel =
     product.size || product.size_specification || product.sizeSpecification;
+
   const isOutOfStock = product.stock === 0;
+
   const isLowStock = product.stock > 0 && product.stock <= 10;
 
-  // ── COMPACT CARD — all features, smaller footprint ───────
+  // ── COMPACT CARD ───────────────────────────────────────
   if (compact) {
     return (
       <div
@@ -126,17 +144,12 @@ export default function ProductCard({
           transition-all duration-300 group flex flex-col
         "
       >
-        
-{/* Image */}
-<div className="relative w-full h-40 bg-slate-50 flex-shrink-0 flex items-center justify-center overflow-visible">
-  <div className="absolute inset-0 group-hover:scale-105 transition-transform duration-500 flex items-center justify-center">
-    <ProductImage
-      src={getProductImage()}
-      alt={productDisplayName}
-      className="w-full h-full object-contain"
-    />
-  </div>
-</div>
+        {/* Image */}
+        <div className="relative w-full h-40 overflow-hidden bg-slate-50 flex-shrink-0">
+          <ProductImage
+            src={getProductImage()}
+            alt={productDisplayName}
+          />
 
           {/* Top-left badges */}
           <div className="absolute top-2 left-2 flex flex-col gap-1">
@@ -146,6 +159,7 @@ export default function ProductCard({
                 Featured
               </span>
             )}
+
             {isLowStock && (
               <span className="flex items-center gap-1 bg-amber-500 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full shadow">
                 <TrendingUp size={9} />
@@ -186,6 +200,7 @@ export default function ProductCard({
                 {product.brand}
               </span>
             )}
+
             {sizeLabel && (
               <span className="flex items-center gap-0.5 bg-sky-50 text-sky-600 text-[10px] font-medium px-2 py-0.5 rounded-md">
                 <Package size={9} />
@@ -201,27 +216,31 @@ export default function ProductCard({
             </p>
           )}
 
-{/* Outlet */}
-{outlet && outlet.distance !== undefined && outlet.distance > 0 && (
-  <div className="flex items-center gap-1.5 mb-2 pb-2 border-b border-slate-100">
-    <MapPin size={11} className="text-sky-500 flex-shrink-0" />
-    <p className="text-[10px] text-sky-500 font-medium">
-      {outlet.distance.toFixed(1)} km away
-    </p>
-  </div>
-)}
+          {/* Outlet */}
+          {outlet && outlet.distance !== undefined && outlet.distance > 0 && (
+            <div className="flex items-center gap-1.5 mb-2 pb-2 border-b border-slate-100">
+              <MapPin size={11} className="text-sky-500 flex-shrink-0" />
+
+              <p className="text-[10px] text-sky-500 font-medium">
+                {outlet.distance.toFixed(1)} km away
+              </p>
+            </div>
+          )}
+
           {/* Price + Add to cart */}
           <div className="mt-auto flex items-center justify-between gap-2">
             <div>
               <p className="text-teal-700 font-extrabold text-base leading-none">
                 KES {product.price.toLocaleString()}
               </p>
+
               {product.stock > 0 && (
                 <p className="text-[10px] text-emerald-500 font-medium mt-0.5">
                   {product.stock} in stock
                 </p>
               )}
             </div>
+
             <button
               onClick={handleAddToCart}
               disabled={isOutOfStock}
@@ -254,7 +273,7 @@ export default function ProductCard({
     );
   }
 
-  // ── FULL CARD ─────────────────────────────────────────────
+  // ── FULL CARD ─────────────────────────────────────────
   return (
     <div
       className="
@@ -266,9 +285,10 @@ export default function ProductCard({
     >
       {/* Image */}
       <div className="relative w-full h-56 overflow-hidden bg-slate-50 flex-shrink-0">
-        <div className="absolute inset-0 group-hover:scale-105 transition-transform duration-500">
-          <ProductImage src={getProductImage()} alt={productDisplayName} />
-        </div>
+        <ProductImage
+          src={getProductImage()}
+          alt={productDisplayName}
+        />
 
         {/* Top-left badges */}
         <div className="absolute top-3 left-3 flex flex-col gap-1.5">
@@ -278,6 +298,7 @@ export default function ProductCard({
               Featured
             </span>
           )}
+
           {isLowStock && (
             <span className="flex items-center gap-1 bg-amber-500 text-white text-[11px] font-semibold px-2.5 py-1 rounded-full shadow-md">
               <TrendingUp size={11} />
@@ -318,6 +339,7 @@ export default function ProductCard({
               {product.brand}
             </span>
           )}
+
           {sizeLabel && (
             <span className="flex items-center gap-1 bg-sky-50 text-sky-700 text-[11px] font-medium px-2.5 py-1 rounded-lg">
               <Package size={11} />
@@ -339,15 +361,18 @@ export default function ProductCard({
             <div className="bg-sky-50 p-1.5 rounded-lg mt-0.5 flex-shrink-0">
               <MapPin size={14} className="text-sky-600" />
             </div>
+
             <div className="min-w-0">
               <p className="text-sm font-semibold text-slate-700 truncate">
                 {outlet.name || outlet.outlet_name}
               </p>
+
               {(outlet.vendor || outlet.vendor_name) && (
                 <p className="text-xs text-slate-400 truncate">
                   {outlet.vendor || outlet.vendor_name}
                 </p>
               )}
+
               {outlet.distance !== undefined && outlet.distance > 0 && (
                 <p className="text-xs text-sky-600 font-medium mt-0.5">
                   {outlet.distance.toFixed(1)} km away
@@ -363,6 +388,7 @@ export default function ProductCard({
             <p className="text-teal-700 font-extrabold text-2xl leading-none">
               KES {product.price.toLocaleString()}
             </p>
+
             {product.stock > 0 && (
               <p className="text-xs text-emerald-600 font-medium mt-1 flex items-center gap-1">
                 <Package size={11} />
@@ -404,6 +430,3 @@ export default function ProductCard({
     </div>
   );
 }
-
-
-// ============================================================
