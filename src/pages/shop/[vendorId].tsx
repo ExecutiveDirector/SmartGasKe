@@ -1,6 +1,6 @@
 // ============================================================
 // FILE: src/pages/shop/[vendorId].tsx
-// Vendor Specific Page — Enhanced Professional Design
+// Vendor Specific Page — No footer, shared BottomNav
 // ============================================================
 
 import React, { useState, useEffect } from 'react';
@@ -17,13 +17,13 @@ import {
   Loader,
   ChevronLeft,
   ChevronRight,
-  MessageCircle,
   Shield,
   Zap,
   Package,
   TrendingUp,
 } from 'lucide-react';
 import ProductCard from '@/components/ProductCard';
+import BottomNav from '@/components/BottomNav';
 import { outletService } from '@/lib/api';
 import { Outlet, Product, ProductCategory } from '@/lib/types';
 import toast from 'react-hot-toast';
@@ -45,9 +45,7 @@ export default function VendorPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     if (vendorId) fetchVendorData();
@@ -162,7 +160,6 @@ export default function VendorPage() {
 
         {/* ── Hero ── */}
         <header style={styles.hero}>
-          {/* Mesh bg */}
           <div style={styles.heroBg} />
           <div style={styles.heroGrid} />
 
@@ -281,8 +278,8 @@ export default function VendorPage() {
         </section>
 
         {/* ── Products Section ── */}
-        <section style={styles.productsSection}>
-          {/* Section header */}
+        {/* Extra bottom padding to clear the BottomNav */}
+        <section style={{ ...styles.productsSection, paddingBottom: 120 }}>
           <div style={styles.sectionHeader}>
             <div>
               <h2 style={styles.sectionTitle}>Products</h2>
@@ -372,19 +369,8 @@ export default function VendorPage() {
           )}
         </section>
 
-        {/* ── Footer CTA ── */}
-        <footer style={styles.footerCta}>
-          <div style={styles.footerInner}>
-            <div style={styles.footerLeft}>
-              <h3 style={styles.footerTitle}>Need help from this vendor?</h3>
-              <p style={styles.footerSub}>Our team is always ready to assist you</p>
-            </div>
-            <button style={styles.footerBtn}>
-              <MessageCircle size={18} />
-              Contact Vendor
-            </button>
-          </div>
-        </footer>
+        {/* ── Shared Bottom Navigation (no footer) ── */}
+        <BottomNav />
       </div>
     </>
   );
@@ -418,11 +404,10 @@ function InfoCard({
 }
 
 /* ─── Styles ─── */
-const font = '"DM Sans", system-ui, sans-serif';
-const fontSerif = '"DM Serif Display", Georgia, serif';
+const font       = '"DM Sans", system-ui, sans-serif';
+const fontSerif  = '"DM Serif Display", Georgia, serif';
 
 const styles: Record<string, React.CSSProperties> = {
-  /* Page shell */
   page: {
     minHeight: '100vh',
     background: '#f0f4f8',
@@ -430,7 +415,6 @@ const styles: Record<string, React.CSSProperties> = {
     color: '#0f172a',
   },
 
-  /* Loading */
   loadingScreen: {
     minHeight: '100vh',
     background: 'linear-gradient(135deg,#0a1628 0%,#0d2137 50%,#0a2e1a 100%)',
@@ -470,7 +454,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: font,
   },
 
-  /* Not found */
   notFoundScreen: {
     minHeight: '100vh',
     background: 'linear-gradient(135deg,#0a1628,#0a2e1a)',
@@ -526,7 +509,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: font,
   },
 
-  /* Sticky nav */
   stickyNav: {
     position: 'sticky',
     top: 0,
@@ -551,7 +533,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 14,
     fontWeight: 500,
     textDecoration: 'none',
-    transition: 'color 0.2s',
     fontFamily: font,
   },
   navBrand: {
@@ -562,7 +543,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: fontSerif,
   },
 
-  /* Hero */
   hero: {
     position: 'relative',
     overflow: 'hidden',
@@ -640,10 +620,7 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 10,
     flexWrap: 'wrap',
   },
-  starsRow: {
-    display: 'flex',
-    gap: 3,
-  },
+  starsRow: { display: 'flex', gap: 3 },
   ratingNum: {
     fontSize: 22,
     fontWeight: 700,
@@ -690,9 +667,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: font,
     letterSpacing: '-0.01em',
   },
-  heroRight: {
-    flexShrink: 0,
-  },
+  heroRight: { flexShrink: 0 },
   statGrid: {
     display: 'grid',
     gridTemplateColumns: '1fr 1fr',
@@ -726,7 +701,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: font,
   },
 
-  /* Info strip */
   infoStrip: {
     background: '#fff',
     borderBottom: '1px solid #e2e8f0',
@@ -793,7 +767,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: font,
   },
 
-  /* Products section */
   productsSection: {
     maxWidth: 1280,
     margin: '0 auto',
@@ -820,7 +793,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: font,
   },
 
-  /* Category pills */
   pillScroll: {
     display: 'flex',
     gap: 8,
@@ -839,7 +811,6 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
     whiteSpace: 'nowrap',
     fontFamily: font,
-    transition: 'all 0.2s',
   },
   pillActive: {
     padding: '8px 20px',
@@ -855,7 +826,6 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: '0 2px 16px rgba(16,185,129,0.3)',
   },
 
-  /* Product grid */
   productGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
@@ -863,7 +833,6 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: 48,
   },
 
-  /* Empty state */
   emptyState: {
     background: '#fff',
     border: '1px solid #e2e8f0',
@@ -906,7 +875,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: font,
   },
 
-  /* Pagination */
   pagination: {
     display: 'flex',
     alignItems: 'center',
@@ -942,10 +910,7 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'not-allowed',
     fontFamily: font,
   },
-  pageNumbers: {
-    display: 'flex',
-    gap: 6,
-  },
+  pageNumbers: { display: 'flex', gap: 6 },
   pageNum: {
     width: 40,
     height: 40,
@@ -976,55 +941,5 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     justifyContent: 'center',
     boxShadow: '0 2px 12px rgba(16,185,129,0.3)',
-  },
-
-  /* Footer CTA */
-  footerCta: {
-    background: 'linear-gradient(135deg, #0a1628 0%, #042010 100%)',
-    borderTop: '1px solid rgba(16,185,129,0.15)',
-  },
-  footerInner: {
-    maxWidth: 1280,
-    margin: '0 auto',
-    padding: '40px 24px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap',
-    gap: 20,
-  },
-  footerLeft: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 4,
-  },
-  footerTitle: {
-    color: '#f1f5f9',
-    fontSize: 20,
-    fontWeight: 600,
-    margin: 0,
-    fontFamily: fontSerif,
-  },
-  footerSub: {
-    color: '#64748b',
-    fontSize: 14,
-    margin: 0,
-    fontFamily: font,
-  },
-  footerBtn: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 10,
-    background: 'linear-gradient(135deg,#10b981,#059669)',
-    color: '#fff',
-    border: 'none',
-    borderRadius: 12,
-    padding: '14px 32px',
-    fontSize: 15,
-    fontWeight: 600,
-    cursor: 'pointer',
-    fontFamily: font,
-    boxShadow: '0 4px 24px rgba(16,185,129,0.35)',
-    letterSpacing: '-0.01em',
   },
 };
