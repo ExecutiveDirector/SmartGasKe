@@ -568,7 +568,8 @@
 .toast {
   @apply fixed top-4 right-4 z-50 max-w-sm;
 }
-
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 /* ============================================================
    END OF STYLES
    ============================================================ */
