@@ -4,7 +4,6 @@
 // ============================================================
 
 import { Product, Outlet } from '@/lib/types';
-import '@/styles/globals.css';
 import { useCart } from '@/lib/hooks/useCart';
 import {
   ShoppingCart,
