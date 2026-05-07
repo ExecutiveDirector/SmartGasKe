@@ -200,13 +200,7 @@ export default function ProductCard({
             <div className="flex items-start gap-1.5 mb-2 pb-2 border-b border-slate-100">
               <MapPin size={11} className="text-sky-500 mt-0.5 flex-shrink-0" />
               <div className="min-w-0">
-                <p className="text-[11px] font-semibold text-slate-600 truncate">
-                  {outlet.name || outlet.outlet_name}
-                </p>
-                {(outlet.vendor || outlet.vendor_name) && (
-                  <p className="text-[10px] text-slate-400 truncate">
-                    {outlet.vendor || outlet.vendor_name}
-                  </p>
+          
                 )}
                 {outlet.distance !== undefined && outlet.distance > 0 && (
                   <p className="text-[10px] text-sky-500 font-medium">
