@@ -126,11 +126,17 @@ export default function ProductCard({
           transition-all duration-300 group flex flex-col
         "
       >
-        {/* Image */}
-        <div className="relative w-full h-40 overflow-hidden bg-slate-50 flex-shrink-0">
-          <div className="absolute inset-0 group-hover:scale-105 transition-transform duration-500">
-            <ProductImage src={getProductImage()} alt={productDisplayName} />
-          </div>
+        
+{/* Image */}
+<div className="relative w-full h-40 bg-slate-50 flex-shrink-0 flex items-center justify-center overflow-visible">
+  <div className="absolute inset-0 group-hover:scale-105 transition-transform duration-500 flex items-center justify-center">
+    <ProductImage
+      src={getProductImage()}
+      alt={productDisplayName}
+      className="w-full h-full object-contain"
+    />
+  </div>
+</div>
 
           {/* Top-left badges */}
           <div className="absolute top-2 left-2 flex flex-col gap-1">
