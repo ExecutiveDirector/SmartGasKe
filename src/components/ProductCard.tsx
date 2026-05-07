@@ -4,6 +4,7 @@
 // ============================================================
 
 import { Product, Outlet } from '@/lib/types';
+import '@/styles/globals.css';
 import { useCart } from '@/lib/hooks/useCart';
 import {
   ShoppingCart,
@@ -403,30 +404,23 @@ export default function ProductCard({
 // ============================================================
 // HORIZONTAL SCROLL USAGE
 // ============================================================
-//
-// Compact (slim row, e.g. "Featured Products"):
-//
-//   <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide snap-x snap-mandatory">
-//     {products.map((product) => (
-//       <ProductCard
-//         key={product.id || product.product_id}
-//         product={product}
-//         outlet={outlet}
-//         compact
-//       />
-//     ))}
-//   </div>
-//
-// Full cards in a scroll row:
-//
-//   <div className="flex gap-5 overflow-x-auto pb-3 scrollbar-hide snap-x snap-mandatory">
-//     {products.map((product) => (
-//       <div key={product.id} className="w-[300px] flex-shrink-0 snap-start">
-//         <ProductCard product={product} outlet={outlet} />
-//       </div>
-//     ))}
-//   </div>
-//
-// globals.css — hide scrollbar:
-//   .scrollbar-hide::-webkit-scrollbar { display: none; }
-//   .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+// Compact row
+<div className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide snap-x snap-mandatory">
+  {products.map((product) => (
+    <ProductCard
+      key={product.id || product.product_id}
+      product={product}
+      outlet={outlet}
+      compact
+    />
+  ))}
+</div>
+
+// Full cards row
+<div className="flex gap-5 overflow-x-auto pb-3 scrollbar-hide snap-x snap-mandatory">
+  {products.map((product) => (
+    <div key={product.id} className="w-[300px] flex-shrink-0 snap-start">
+      <ProductCard product={product} outlet={outlet} />
+    </div>
+  ))}
+</div>
