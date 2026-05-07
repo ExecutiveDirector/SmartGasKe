@@ -33,12 +33,12 @@ const NAV_ITEMS = [
   },
   {
     label: 'Cart',
-    href: '/cart',
+    href: '/shop/cart',
     icon: ShoppingCart,
   },
   {
     label: 'Account',
-    href: '/profile',
+    href: '/account/login',
     icon: User,
   },
 ];
