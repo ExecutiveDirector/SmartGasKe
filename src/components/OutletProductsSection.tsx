@@ -5,118 +5,238 @@
 
 import { Product, Outlet } from '@/lib/types';
 import ProductCard from './ProductCard';
-import { MapPin, Star, Phone, ChevronRight, Store } from 'lucide-react';
+import { MapPin, Star, Phone, ChevronRight, Store, Package, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
+import { useState } from 'react';
 
 interface OutletProductsSectionProps {
   outlet: Outlet;
   products: Product[];
   showOutletHeader?: boolean;
+  isLoading?: boolean;
+}
+
+// ── Skeleton loader for the outlet header card ──────────────
+function OutletHeaderSkeleton() {
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-5 animate-pulse">
+      <div className="flex items-start gap-4">
+        <div className="w-12 h-12 rounded-xl bg-slate-100 flex-shrink-0" />
+        <div className="flex-1 space-y-2 min-w-0">
+          <div className="h-5 w-2/5 bg-slate-100 rounded-lg" />
+          <div className="h-3.5 w-1/4 bg-slate-100 rounded-lg" />
+          <div className="flex gap-2 mt-3">
+            {[60, 72, 56].map((w) => (
+              <div key={w} className="h-6 rounded-lg bg-slate-100" style={{ width: w }} />
+            ))}
+          </div>
+        </div>
+        <div className="hidden sm:block h-9 w-28 rounded-xl bg-slate-100 flex-shrink-0" />
+      </div>
+    </div>
+  );
+}
+
+// ── Skeleton loader for a product card ──────────────────────
+function ProductCardSkeleton() {
+  return (
+    <div className="w-44 flex-shrink-0 rounded-2xl bg-white border border-slate-100 overflow-hidden animate-pulse">
+      <div className="h-36 bg-slate-100" />
+      <div className="p-3 space-y-2">
+        <div className="h-3.5 w-3/4 bg-slate-100 rounded" />
+        <div className="h-3 w-1/2 bg-slate-100 rounded" />
+        <div className="h-5 w-1/3 bg-slate-100 rounded-lg mt-3" />
+      </div>
+    </div>
+  );
+}
+
+// ── Open/Closed status badge ─────────────────────────────────
+function StatusBadge({ isOpen }: { isOpen?: boolean }) {
+  if (isOpen === undefined) return null;
+  return (
+    <span
+      className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-lg ${
+        isOpen
+          ? 'text-emerald-700 bg-emerald-50'
+          : 'text-rose-600 bg-rose-50'
+      }`}
+    >
+      <span
+        className={`w-1.5 h-1.5 rounded-full ${
+          isOpen ? 'bg-emerald-500 animate-pulse' : 'bg-rose-400'
+        }`}
+      />
+      {isOpen ? 'Open now' : 'Closed'}
+    </span>
+  );
 }
 
 export default function OutletProductsSection({
   outlet,
   products,
   showOutletHeader = true,
+  isLoading = false,
 }: OutletProductsSectionProps) {
-  if (products.length === 0) return null;
+  const [scrolled, setScrolled] = useState(false);
+
+  if (!isLoading && products.length === 0) return null;
+
+  const outletHref = `/shop/${outlet.id || outlet.outlet_id}`;
+  const displayName = outlet.name || outlet.outlet_name;
+  const vendorName = outlet.vendor || outlet.vendor_name;
 
   return (
-    <section className="mb-8">
-      {/* Outlet Header */}
+    <section className="mb-10">
+      {/* ── Outlet Header ─────────────────────────────────── */}
       {showOutletHeader && (
-        <div className="bg-white rounded-xl shadow-md p-5 mb-4 border border-gray-100 hover:shadow-lg transition-shadow">
-          <div className="flex items-start justify-between gap-4">
-            {/* Outlet Info */}
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="bg-blue-100 p-2.5 rounded-lg">
-                  <Store size={24} className="text-blue-600" />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-800">
-                    {outlet.name || outlet.outlet_name}
-                  </h2>
-                  <p className="text-sm text-gray-600">
-                    {outlet.vendor || outlet.vendor_name}
-                  </p>
-                </div>
-              </div>
+        <>
+          {isLoading ? (
+            <OutletHeaderSkeleton />
+          ) : (
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow duration-300 p-5 mb-4 group">
+              <div className="flex items-start justify-between gap-4">
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {/* Location */}
-                <div className="flex items-start gap-2 text-sm">
-                  <MapPin size={16} className="text-blue-600 mt-0.5" />
-                  <div>
-                    <p className="text-gray-700">{outlet.address}</p>
-                    {outlet.distance !== undefined && outlet.distance > 0 && (
-                      <p className="text-blue-600 font-semibold mt-0.5">
-                        {outlet.distance.toFixed(1)} km away
+                {/* Left: Icon + Info */}
+                <div className="flex items-start gap-4 flex-1 min-w-0">
+                  {/* Avatar / Icon */}
+                  <Link
+                    href={outletHref}
+                    className="bg-teal-50 hover:bg-teal-100 transition-colors p-3 rounded-xl flex-shrink-0 focus-visible:ring-2 focus-visible:ring-teal-400 outline-none"
+                    aria-label={`View ${displayName}`}
+                  >
+                    <Store size={22} className="text-teal-600" />
+                  </Link>
+
+                  {/* Text */}
+                  <div className="min-w-0 flex-1">
+                    {/* Name */}
+                    <Link
+                      href={outletHref}
+                      className="group/link inline-flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-teal-400 rounded outline-none"
+                    >
+                      <h2 className="text-base font-bold text-slate-800 leading-snug truncate group-hover/link:text-teal-700 transition-colors">
+                        {displayName}
+                      </h2>
+                    </Link>
+
+                    {/* Vendor sub-label */}
+                    {vendorName && (
+                      <p className="text-xs text-slate-400 truncate mt-0.5">{vendorName}</p>
+                    )}
+
+                    {/* Meta chips */}
+                    <div className="flex flex-wrap items-center gap-2 mt-3">
+                      {/* Open/Closed */}
+                      <StatusBadge isOpen={outlet.isOpen} />
+
+                      {/* Distance */}
+                      {outlet.distance !== undefined && outlet.distance > 0 && (
+                        <span className="flex items-center gap-1.5 text-xs font-medium text-sky-600 bg-sky-50 px-2.5 py-1 rounded-lg">
+                          <MapPin size={11} />
+                          {outlet.distance.toFixed(1)} km
+                        </span>
+                      )}
+
+                      {/* Rating */}
+                      {outlet.rating > 0 && (
+                        <span className="flex items-center gap-1.5 text-xs font-medium text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg">
+                          <Star size={11} fill="currentColor" className="text-amber-500" />
+                          {outlet.rating.toFixed(1)}
+                          {outlet.reviews > 0 && (
+                            <span className="text-amber-500 font-normal">
+                              ({outlet.reviews >= 1000
+                                ? `${(outlet.reviews / 1000).toFixed(1)}k`
+                                : outlet.reviews})
+                            </span>
+                          )}
+                        </span>
+                      )}
+
+                      {/* Phone */}
+                      {outlet.phone && (
+                        <a
+                          href={`tel:${outlet.phone}`}
+                          className="flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg hover:bg-emerald-100 transition-colors"
+                        >
+                          <Phone size={11} />
+                          {outlet.phone}
+                        </a>
+                      )}
+
+                      {/* Product count */}
+                      <span className="flex items-center gap-1.5 text-xs font-medium text-slate-500 bg-slate-50 px-2.5 py-1 rounded-lg">
+                        <Package size={11} />
+                        {products.length} {products.length === 1 ? 'item' : 'items'}
+                      </span>
+                    </div>
+
+                    {/* Address */}
+                    {outlet.address && (
+                      <p className="flex items-start gap-1.5 text-xs text-slate-400 mt-2 leading-relaxed">
+                        <MapPin size={11} className="mt-0.5 flex-shrink-0 text-slate-300" />
+                        <span className="truncate">{outlet.address}</span>
                       </p>
                     )}
                   </div>
                 </div>
 
-                {/* Contact */}
-                {outlet.phone && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <Phone size={16} className="text-green-600" />
-                    <a
-                      href={`tel:${outlet.phone}`}
-                      className="text-gray-700 hover:text-blue-600 font-medium"
-                    >
-                      {outlet.phone}
-                    </a>
-                  </div>
-                )}
+                {/* View Shop CTA — desktop */}
+                <Link
+                  href={outletHref}
+                  className="hidden sm:flex items-center gap-1.5 text-sm font-semibold text-teal-600 hover:text-teal-700 border border-teal-200 hover:border-teal-300 bg-teal-50 hover:bg-teal-100 px-4 py-2 rounded-xl transition-all duration-200 flex-shrink-0 focus-visible:ring-2 focus-visible:ring-teal-400 outline-none"
+                >
+                  View Shop
+                  <ChevronRight size={15} />
+                </Link>
               </div>
 
-              {/* Rating */}
-              {outlet.rating > 0 && (
-                <div className="flex items-center gap-2 mt-3">
-                  <div className="flex items-center gap-1 bg-yellow-50 px-2.5 py-1.5 rounded-lg">
-                    <Star size={16} fill="currentColor" className="text-yellow-500" />
-                    <span className="font-bold text-gray-900">{outlet.rating.toFixed(1)}</span>
-                  </div>
-                  {outlet.reviews > 0 && (
-                    <span className="text-sm text-gray-500">
-                      ({outlet.reviews} {outlet.reviews === 1 ? 'review' : 'reviews'})
-                    </span>
-                  )}
-                </div>
-              )}
+              {/* View Shop CTA — mobile (full-width, below content) */}
+              <Link
+                href={outletHref}
+                className="sm:hidden mt-4 flex items-center justify-center gap-1.5 w-full text-sm font-semibold text-teal-600 border border-teal-200 bg-teal-50 hover:bg-teal-100 py-2.5 rounded-xl transition-all duration-200"
+              >
+                <ExternalLink size={14} />
+                View Shop
+              </Link>
             </div>
-
-            {/* View Outlet Button */}
-            <Link
-              href={`/shop/${outlet.id || outlet.outlet_id}`}
-              className="hidden sm:flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
-            >
-              <span>View Outlet</span>
-              <ChevronRight size={18} />
-            </Link>
-          </div>
-
-          {/* Product Count */}
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <p className="text-sm text-gray-600">
-              <span className="font-semibold text-gray-800">{products.length}</span>{' '}
-              {products.length === 1 ? 'product' : 'products'} available
-            </p>
-          </div>
-        </div>
+          )}
+        </>
       )}
 
-      {/* Products Horizontal Scroll */}
-      <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide snap-x snap-mandatory">
-        {products.map((product) => (
-          <ProductCard
-            key={product.id || product.product_id}
-            product={product}
-            outlet={outlet}
-            compact
-          />
-        ))}
+      {/* ── Products Horizontal Scroll ─────────────────────── */}
+      <div className="relative">
+        {/* Left fade — visible after user scrolls */}
+        <div
+          className={`pointer-events-none absolute left-0 top-0 bottom-3 w-8 z-10 bg-gradient-to-r from-slate-50 to-transparent transition-opacity duration-300 ${
+            scrolled ? 'opacity-100' : 'opacity-0'
+          }`}
+        />
+        {/* Right fade — always visible as scroll affordance */}
+        <div className="pointer-events-none absolute right-0 top-0 bottom-3 w-12 z-10 bg-gradient-to-l from-slate-50 to-transparent" />
+
+        <div
+          role="list"
+          aria-label={`Products from ${displayName}`}
+          onScroll={(e) => setScrolled(e.currentTarget.scrollLeft > 16)}
+          className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide snap-x snap-mandatory pr-10"
+        >
+          {isLoading
+            ? Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} role="listitem">
+                  <ProductCardSkeleton />
+                </div>
+              ))
+            : products.map((product) => (
+                <div key={product.id || product.product_id} role="listitem" className="snap-start">
+                  <ProductCard
+                    product={product}
+                    outlet={outlet}
+                    compact
+                  />
+                </div>
+              ))}
+        </div>
       </div>
     </section>
   );
