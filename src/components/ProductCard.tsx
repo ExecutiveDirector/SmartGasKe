@@ -44,7 +44,6 @@ function ProductImage({ src, alt }: { src: string; alt: string }) {
           <div className="w-6 h-6 border-2 border-teal-400 border-t-transparent rounded-full animate-spin" />
         </div>
       )}
-      {/* FIX: absolute inset-0 ensures the image fills the container fully */}
       <img
         src={src}
         alt={alt}
@@ -111,8 +110,6 @@ export default function ProductCard({
 
   // Shared derived values
   const productId = product.id || product.product_id;
-  const outletName = outlet.name || outlet.outlet_name;
-  const vendorName = outlet.vendor || outlet.vendor_name;
   const sizeLabel =
     product.size || product.size_specification || product.sizeSpecification;
   const isOutOfStock = product.stock === 0;
@@ -130,7 +127,7 @@ export default function ProductCard({
         "
       >
         {/* Image */}
-        <div className="relative w-full h-36 overflow-hidden bg-slate-50 flex-shrink-0">
+        <div className="relative w-full h-40 overflow-hidden bg-slate-50 flex-shrink-0">
           <div className="absolute inset-0 group-hover:scale-105 transition-transform duration-500">
             <ProductImage src={getProductImage()} alt={productDisplayName} />
           </div>
@@ -204,10 +201,12 @@ export default function ProductCard({
               <MapPin size={11} className="text-sky-500 mt-0.5 flex-shrink-0" />
               <div className="min-w-0">
                 <p className="text-[11px] font-semibold text-slate-600 truncate">
-                  {outletName}
+                  {outlet.name || outlet.outlet_name}
                 </p>
-                {vendorName && (
-                  <p className="text-[10px] text-slate-400 truncate">{vendorName}</p>
+                {(outlet.vendor || outlet.vendor_name) && (
+                  <p className="text-[10px] text-slate-400 truncate">
+                    {outlet.vendor || outlet.vendor_name}
+                  </p>
                 )}
                 {outlet.distance !== undefined && outlet.distance > 0 && (
                   <p className="text-[10px] text-sky-500 font-medium">
@@ -273,7 +272,7 @@ export default function ProductCard({
       "
     >
       {/* Image */}
-      <div className="relative w-full h-52 overflow-hidden bg-slate-50 flex-shrink-0">
+      <div className="relative w-full h-56 overflow-hidden bg-slate-50 flex-shrink-0">
         <div className="absolute inset-0 group-hover:scale-105 transition-transform duration-500">
           <ProductImage src={getProductImage()} alt={productDisplayName} />
         </div>
@@ -348,9 +347,13 @@ export default function ProductCard({
               <MapPin size={14} className="text-sky-600" />
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-slate-700 truncate">{outletName}</p>
-              {vendorName && (
-                <p className="text-xs text-slate-400 truncate">{vendorName}</p>
+              <p className="text-sm font-semibold text-slate-700 truncate">
+                {outlet.name || outlet.outlet_name}
+              </p>
+              {(outlet.vendor || outlet.vendor_name) && (
+                <p className="text-xs text-slate-400 truncate">
+                  {outlet.vendor || outlet.vendor_name}
+                </p>
               )}
               {outlet.distance !== undefined && outlet.distance > 0 && (
                 <p className="text-xs text-sky-600 font-medium mt-0.5">
