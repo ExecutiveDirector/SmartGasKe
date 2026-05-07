@@ -23,6 +23,9 @@ import NProgress from 'nprogress';
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
 
+  // Detect shop pages
+  const isShopPage = router.pathname.startsWith('/shop');
+
   // Show loading bar on route changes
   useEffect(() => {
     const handleStart = () => NProgress.start();
@@ -51,12 +54,15 @@ export default function App({ Component, pageProps }: AppProps) {
         <CartProvider>
           <div className="min-h-screen bg-gray-50 flex flex-col">
             <Navbar />
+
             <main className="flex-grow">
               <Component {...pageProps} />
             </main>
-            <Footer />
 
-{/* ←  shows 1-min warning before auto-logout */}
+            {/* Hide footer on shop pages */}
+            {!isShopPage && <Footer />}
+
+            {/* ← shows 1-min warning before auto-logout */}
             <InactivityWarning />
             
             {/* Toast Notifications */}
@@ -73,6 +79,7 @@ export default function App({ Component, pageProps }: AppProps) {
                   borderRadius: '8px',
                   padding: '16px',
                 },
+
                 // Success toast
                 success: {
                   duration: 3000,
@@ -85,6 +92,7 @@ export default function App({ Component, pageProps }: AppProps) {
                     color: '#fff',
                   },
                 },
+
                 // Error toast
                 error: {
                   duration: 4000,
@@ -97,6 +105,7 @@ export default function App({ Component, pageProps }: AppProps) {
                     color: '#fff',
                   },
                 },
+
                 // Loading toast
                 loading: {
                   duration: Infinity,
