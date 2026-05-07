@@ -195,22 +195,15 @@ export default function ProductCard({
             </p>
           )}
 
-          {/* Outlet */}
-          {outlet && (
-            <div className="flex items-start gap-1.5 mb-2 pb-2 border-b border-slate-100">
-              <MapPin size={11} className="text-sky-500 mt-0.5 flex-shrink-0" />
-              <div className="min-w-0">
-          
-                )}
-                {outlet.distance !== undefined && outlet.distance > 0 && (
-                  <p className="text-[10px] text-sky-500 font-medium">
-                    {outlet.distance.toFixed(1)} km away
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
-
+{/* Outlet */}
+{outlet && outlet.distance !== undefined && outlet.distance > 0 && (
+  <div className="flex items-center gap-1.5 mb-2 pb-2 border-b border-slate-100">
+    <MapPin size={11} className="text-sky-500 flex-shrink-0" />
+    <p className="text-[10px] text-sky-500 font-medium">
+      {outlet.distance.toFixed(1)} km away
+    </p>
+  </div>
+)}
           {/* Price + Add to cart */}
           <div className="mt-auto flex items-center justify-between gap-2">
             <div>
