@@ -16,6 +16,30 @@ import {
 import { useAuth } from '@/lib/context/AuthContext';
 import toast from 'react-hot-toast';
 
+// ── API base ───────────────────────────────────────────────────────
+// Reads from env first (set NEXT_PUBLIC_API_URL in .env.local), falls
+// back to the deployed backend so the page works even without config.
+const API_BASE =
+  (process.env.NEXT_PUBLIC_API_URL ?? 'https://aquagas-backend.onrender.com') +
+  '/api/v1/auth';
+
+/** POST helper — always sends to the real backend, parses JSON, throws on error */
+async function apiPost<T = any>(path: string, body: object): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body:    JSON.stringify(body),
+  });
+  // If the response is not JSON (e.g. HTML 404 page), give a clear error
+  const contentType = res.headers.get('content-type') ?? '';
+  if (!contentType.includes('application/json')) {
+    throw new Error(`Server error (${res.status}) — check NEXT_PUBLIC_API_URL`);
+  }
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error ?? `Request failed (${res.status})`);
+  return data as T;
+}
+
 // ── Helpers ────────────────────────────────────────────────────────
 const isValidEmail   = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 const isValidPhone   = (v: string) => /^(\+254|0)[17]\d{8}$/.test(v);
@@ -175,11 +199,7 @@ export default function RegisterPage() {
     if (!isValidPhone(phone.trim())) { toast.error('Enter a valid Kenyan number'); return; }
     setSubmitting(true);
     try {
-      const res = await fetch('/api/v1/auth/send-otp', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: formatted }),
-      });
-      if (!res.ok) throw new Error((await res.json()).error || 'Failed to send OTP');
+      await apiPost('/send-otp', { phone: formatted });
       startResend();
       setStep('phone-otp');
       toast.success('OTP sent!');
@@ -192,11 +212,7 @@ export default function RegisterPage() {
     setOtpError(false);
     setSubmitting(true);
     try {
-      const res = await fetch('/api/v1/auth/verify-otp', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: formatPhone(phone.trim()), otp }),
-      });
-      if (!res.ok) throw new Error((await res.json()).error || 'Invalid OTP');
+      await apiPost('/verify-otp', { phone: formatPhone(phone.trim()), otp });
       setStep('phone-profile');
     } catch (e: any) { setOtpError(true); toast.error(e.message); }
     finally { setSubmitting(false); }
@@ -217,18 +233,13 @@ export default function RegisterPage() {
 
     setSubmitting(true);
     try {
-      const res = await fetch('/api/v1/auth/register/phone', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phone: formatPhone(phone.trim()),
-          firstName: profile.firstName.trim(),
-          lastName:  profile.lastName.trim(),
-          email:     profile.email ? normalizeEmail(profile.email) : undefined,
-          password:  profile.setPassword ? profile.password : undefined,
-        }),
+      const data = await apiPost<{ token?: string }>('/register/phone', {
+        phone:     formatPhone(phone.trim()),
+        firstName: profile.firstName.trim(),
+        lastName:  profile.lastName.trim(),
+        email:     profile.email ? normalizeEmail(profile.email) : undefined,
+        password:  profile.setPassword ? profile.password : undefined,
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Registration failed');
       if (data.token) localStorage.setItem('authToken', data.token);
       toast.success('Welcome to AquaGas! 🔥');
       router.push('/account');
