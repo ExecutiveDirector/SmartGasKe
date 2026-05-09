@@ -1,217 +1,274 @@
 import Head from 'next/head';
 import Link from 'next/link';
-import { 
-  Smartphone, ShoppingCart, MapPin, CreditCard, 
-  UserCheck, Package, Truck, CheckCircle, 
-  ArrowRight, ChevronRight 
-} from 'lucide-react';
+import { Smartphone, ShoppingCart, MapPin, CreditCard, UserCheck, Package, Truck, CheckCircle, ArrowRight } from 'lucide-react';
+
+const ag = {
+  forest: '#0A3D2B', forestDk: '#072A1E',
+  flame: '#E8621A', gold: '#C9A44A',
+  cream: '#FAFAF7', text: '#0F1A14',
+  mid: '#3D5246', border: '#D9E8DF',
+};
+
+const styles = `
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Outfit:wght@300;400;500;600;700&display=swap');
+  .ag-display { font-family: 'Cormorant Garamond', serif; }
+  .ag-body   { font-family: 'Outfit', sans-serif; }
+  .step-card:hover .step-icon { transform: scale(1.08); }
+  .step-icon { transition: transform 0.25s ease; }
+  .ag-card:hover { transform: translateY(-4px); box-shadow: 0 20px 48px rgba(10,61,43,0.12); }
+  .ag-card { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+  .connector { position:absolute; top:32px; left:calc(50% + 40px); width:calc(100% - 80px); height:1px; }
+`;
+
+function StepRow({ steps, accent, num }: { steps: any[], accent: string, num?: boolean }) {
+  return (
+    <div style={{ display:'grid', gridTemplateColumns:`repeat(${steps.length}, 1fr)`, gap:'1.5rem', position:'relative' }}>
+      {steps.map((step, i) => (
+        <div key={i} className="step-card" style={{ textAlign:'center', position:'relative' }}>
+          {/* connector line */}
+          {i < steps.length - 1 && (
+            <div className="connector" style={{ background:`${accent}30` }} />
+          )}
+          {/* number badge */}
+          <div style={{
+            width:'60px', height:'60px', borderRadius:'50%',
+            background: accent, color:'#fff',
+            display:'flex', alignItems:'center', justifyContent:'center',
+            fontSize:'1.35rem', fontWeight:700,
+            margin:'0 auto 1.25rem', position:'relative', zIndex:2,
+            boxShadow:`0 4px 20px ${accent}40`
+          }}>{i + 1}</div>
+          {/* icon */}
+          <div className="step-icon" style={{
+            width:'52px', height:'52px', borderRadius:'12px',
+            background:`${accent}10`,
+            display:'flex', alignItems:'center', justifyContent:'center',
+            margin:'0 auto 1rem'
+          }}>
+            <step.icon size={24} color={accent} />
+          </div>
+          <h3 style={{ fontSize:'1rem', fontWeight:600, color: ag.text, marginBottom:'0.5rem' }}>{step.title}</h3>
+          <p style={{ fontSize:'0.88rem', color: ag.mid, lineHeight:1.6 }}>{step.desc}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function HowItWorks() {
   return (
     <>
       <Head>
-        <title>How It Works - AquaGas Delivery</title>
-        <meta name="description" content="Learn how AquaGas works - simple steps for customers, vendors, and riders to use our gas delivery platform." />
+        <title>How It Works — AquaGas Delivery</title>
+        <meta name="description" content="Learn how AquaGas works — simple steps for customers, vendors, and riders to use our gas delivery platform." />
       </Head>
+      <style>{styles}</style>
 
-      <div className="min-h-screen bg-white">
-        {/* Hero Section */}
-        <section className="relative bg-gradient-to-br from-blue-600 via-blue-700 to-green-600 text-white py-20">
-          <div className="container mx-auto px-4 text-center">
-            <div className="inline-flex items-center gap-2 mb-6 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full text-sm font-medium">
-              Simple • Safe • Seamless
-            </div>
+      <div className="ag-body" style={{ background: ag.cream, color: ag.text }}>
 
-            <h1 className="text-4xl md:text-5xl font-bold leading-tight mb-6 max-w-4xl mx-auto">
-              Gas Delivery Made Simple
-              <span className="block text-green-300 mt-2">Track Every Step</span>
+        {/* ── HERO ─────────────────────────────────────────────────── */}
+        <section style={{
+          background: ag.forestDk, position:'relative',
+          overflow:'hidden', padding:'5rem 0 8rem'
+        }}>
+          <div style={{
+            position:'absolute', top:'-120px', right:'-120px',
+            width:'600px', height:'600px', borderRadius:'50%',
+            border:`1px solid rgba(201,164,74,0.1)`, pointerEvents:'none'
+          }}/>
+          <div style={{
+            position:'absolute', bottom:0, left:0, right:0, height:'1px',
+            background:`linear-gradient(90deg, transparent, ${ag.gold}40, transparent)`
+          }}/>
+
+          <div className="container mx-auto px-6" style={{ textAlign:'center', position:'relative' }}>
+            <span style={{
+              display:'inline-block', padding:'6px 18px', borderRadius:'100px',
+              border:`1px solid rgba(255,255,255,0.15)`,
+              color:'rgba(255,255,255,0.7)', fontSize:'0.78rem',
+              letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:'1.75rem'
+            }}>Simple · Safe · Seamless</span>
+
+            <h1 className="ag-display" style={{
+              fontSize:'clamp(2.8rem, 7vw, 5rem)', fontWeight:600,
+              color:'#fff', lineHeight:1.08, marginBottom:'1.5rem'
+            }}>
+              Gas Delivery,<br />
+              <em style={{ color: ag.gold }}>Simplified</em>
             </h1>
 
-            <p className="text-xl text-blue-100 max-w-3xl mx-auto mb-10 leading-relaxed">
+            <p style={{
+              color:'rgba(255,255,255,0.6)', fontSize:'1.1rem',
+              maxWidth:'480px', margin:'0 auto 2.5rem', lineHeight:1.75
+            }}>
               From order to doorstep in hours. Real-time tracking, verified vendors, and secure payments.
             </p>
 
-            <a href="#customers" 
-               className="inline-flex items-center gap-2 bg-white text-blue-600 px-8 py-4 rounded-lg font-bold shadow-lg hover:bg-blue-50 transition group">
-              See How It Works <ArrowRight className="group-hover:translate-x-1 transition-transform" size={20} />
-            </a>
+            <a href="#customers" style={{
+              display:'inline-flex', alignItems:'center', gap:'8px',
+              background: ag.flame, color:'#fff',
+              padding:'14px 28px', borderRadius:'8px',
+              fontWeight:600, fontSize:'0.95rem', textDecoration:'none'
+            }}>See How It Works <ArrowRight size={18} /></a>
           </div>
         </section>
 
-        {/* Quick Overview Cards */}
-        <section className="py-16 -mt-16">
-          <div className="container mx-auto px-4">
-            <div className="max-w-5xl mx-auto grid md:grid-cols-3 gap-6">
+        {/* ── QUICK CARDS ──────────────────────────────────────────── */}
+        <section style={{ padding:'0 0 4rem' }}>
+          <div className="container mx-auto px-6">
+            <div style={{
+              display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(220px, 1fr))',
+              gap:'1.5rem', marginTop:'-3.5rem'
+            }}>
               {[
-                { icon: Smartphone, title: "Order", desc: "Place your order via app or web in seconds", color: "blue" },
-                { icon: Truck, title: "Track", desc: "Watch your delivery in real-time on the map", color: "green" },
-                { icon: CheckCircle, title: "Receive", desc: "Verified riders deliver safely to your door", color: "purple" }
-              ].map((step, i) => (
-                <div key={i} 
-                     className="bg-white rounded-xl p-8 shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all text-center">
-                  <div className={`w-16 h-16 mb-4 rounded-xl bg-${step.color}-100 flex items-center justify-center mx-auto`}>
-                    <step.icon size={32} className={`text-${step.color}-600`} />
+                { icon: Smartphone, title:'Order', desc:'Place your order via app or web in seconds', accent: ag.flame },
+                { icon: Truck, title:'Track', desc:'Watch your delivery in real-time on the map', accent: ag.forest },
+                { icon: CheckCircle, title:'Receive', desc:'Verified riders deliver safely to your door', accent: ag.gold },
+              ].map((card, i) => (
+                <div key={i} className="ag-card" style={{
+                  background:'#fff', borderRadius:'14px', padding:'2rem',
+                  textAlign:'center', border:`1px solid ${ag.border}`,
+                  boxShadow:'0 4px 24px rgba(10,61,43,0.08)'
+                }}>
+                  <div style={{
+                    width:'56px', height:'56px', borderRadius:'14px',
+                    background:`${card.accent}12`,
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                    margin:'0 auto 1rem'
+                  }}>
+                    <card.icon size={28} color={card.accent} />
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">{step.title}</h3>
-                  <p className="text-gray-600">{step.desc}</p>
+                  <h3 style={{ fontWeight:600, color: ag.text, fontSize:'1.05rem', marginBottom:'0.5rem' }}>{card.title}</h3>
+                  <p style={{ color: ag.mid, fontSize:'0.88rem', lineHeight:1.6 }}>{card.desc}</p>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* Customers Section */}
-        <section id="customers" className="py-20 bg-gradient-to-br from-gray-50 to-white">
-          <div className="container mx-auto px-4">
-            <div className="max-w-6xl mx-auto">
-              <div className="text-center mb-12">
-                <div className="inline-block mb-4 px-4 py-2 bg-blue-100 text-blue-700 rounded-full font-medium text-sm">
-                  For Customers
-                </div>
-                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-                  Get Gas in 4 Simple Steps
-                </h2>
-                <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-                  No more waiting days for delivery. Order gas and track it in real-time.
-                </p>
-              </div>
+        {/* ── CUSTOMERS ────────────────────────────────────────────── */}
+        <section id="customers" style={{ padding:'5rem 0', background:'#fff' }}>
+          <div className="container mx-auto px-6">
+            <div style={{ textAlign:'center', marginBottom:'3.5rem' }}>
+              <span style={{
+                display:'inline-block', padding:'5px 16px',
+                background:`${ag.flame}12`, borderRadius:'100px',
+                color: ag.flame, fontSize:'0.78rem', fontWeight:700,
+                letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:'1rem'
+              }}>For Customers</span>
+              <h2 className="ag-display" style={{
+                fontSize:'clamp(2rem, 4vw, 2.8rem)', fontWeight:600, color: ag.text, marginBottom:'0.75rem'
+              }}>Get Gas in <em style={{ color: ag.flame }}>4 Simple Steps</em></h2>
+              <p style={{ color: ag.mid, fontSize:'1rem', maxWidth:'440px', margin:'0 auto' }}>
+                No more waiting days for delivery. Order gas and track it live.
+              </p>
+            </div>
 
-              <div className="grid md:grid-cols-4 gap-8">
-                {[
-                  { num: 1, icon: Smartphone, title: "Download App", desc: "Get AquaGas and create your account" },
-                  { num: 2, icon: ShoppingCart, title: "Place Order", desc: "Select gas type, size, and delivery address" },
-                  { num: 3, icon: MapPin, title: "Track Live", desc: "Monitor your delivery in real-time" },
-                  { num: 4, icon: CreditCard, title: "Pay & Receive", desc: "Pay securely and receive your gas" }
-                ].map((step, i) => (
-                  <div key={i} className="relative text-center">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-blue-600 flex items-center justify-center text-2xl font-bold text-white">
-                      {step.num}
-                    </div>
-                    <div className="mb-4 flex justify-center">
-                      <div className="bg-blue-50 p-3 rounded-lg">
-                        <step.icon size={32} className="text-blue-600" />
-                      </div>
-                    </div>
-                    <h3 className="text-lg font-bold mb-2 text-gray-900">{step.title}</h3>
-                    <p className="text-gray-600 text-sm">{step.desc}</p>
-                    {i < 3 && (
-                      <div className="hidden md:block absolute top-8 left-full w-full h-0.5 bg-blue-200" />
-                    )}
-                  </div>
-                ))}
-              </div>
+            <div style={{ maxWidth:'900px', margin:'0 auto' }}>
+              <StepRow accent={ag.flame} steps={[
+                { icon: Smartphone, title:'Download App', desc:'Get AquaGas and create your account' },
+                { icon: ShoppingCart, title:'Place Order', desc:'Select gas type, size, and delivery address' },
+                { icon: MapPin, title:'Track Live', desc:'Monitor your delivery in real-time' },
+                { icon: CreditCard, title:'Pay & Receive', desc:'Pay securely and receive your gas' },
+              ]} />
             </div>
           </div>
         </section>
 
-        {/* Vendors Section */}
-        <section id="vendors" className="py-20">
-          <div className="container mx-auto px-4">
-            <div className="max-w-6xl mx-auto">
-              <div className="text-center mb-12">
-                <div className="inline-block mb-4 px-4 py-2 bg-green-100 text-green-700 rounded-full font-medium text-sm">
-                  For Vendors
-                </div>
-                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-                  Grow Your Business
-                </h2>
-                <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-                  Reach more customers and streamline your operations with our platform.
-                </p>
-              </div>
+        {/* ── VENDORS ──────────────────────────────────────────────── */}
+        <section id="vendors" style={{ padding:'5rem 0', background: ag.cream }}>
+          <div className="container mx-auto px-6">
+            <div style={{ textAlign:'center', marginBottom:'3.5rem' }}>
+              <span style={{
+                display:'inline-block', padding:'5px 16px',
+                background:`${ag.forest}12`, borderRadius:'100px',
+                color: ag.forest, fontSize:'0.78rem', fontWeight:700,
+                letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:'1rem'
+              }}>For Vendors</span>
+              <h2 className="ag-display" style={{
+                fontSize:'clamp(2rem, 4vw, 2.8rem)', fontWeight:600, color: ag.text, marginBottom:'0.75rem'
+              }}>Grow Your <em style={{ color: ag.forest }}>Business</em></h2>
+              <p style={{ color: ag.mid, fontSize:'1rem', maxWidth:'440px', margin:'0 auto' }}>
+                Reach more customers and streamline operations with our platform.
+              </p>
+            </div>
 
-              <div className="grid md:grid-cols-4 gap-8">
-                {[
-                  { num: 1, icon: UserCheck, title: "Register", desc: "Sign up and complete vendor verification" },
-                  { num: 2, icon: Package, title: "List Products", desc: "Add your gas cylinders, prices, and stock" },
-                  { num: 3, icon: ShoppingCart, title: "Receive Orders", desc: "Get instant order notifications" },
-                  { num: 4, icon: Truck, title: "Coordinate", desc: "Manage deliveries with riders" }
-                ].map((step, i) => (
-                  <div key={i} className="relative text-center">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-green-600 flex items-center justify-center text-2xl font-bold text-white">
-                      {step.num}
-                    </div>
-                    <div className="mb-4 flex justify-center">
-                      <div className="bg-green-50 p-3 rounded-lg">
-                        <step.icon size={32} className="text-green-600" />
-                      </div>
-                    </div>
-                    <h3 className="text-lg font-bold mb-2 text-gray-900">{step.title}</h3>
-                    <p className="text-gray-600 text-sm">{step.desc}</p>
-                    {i < 3 && (
-                      <div className="hidden md:block absolute top-8 left-full w-full h-0.5 bg-green-200" />
-                    )}
-                  </div>
-                ))}
-              </div>
+            <div style={{ maxWidth:'900px', margin:'0 auto' }}>
+              <StepRow accent={ag.forest} steps={[
+                { icon: UserCheck, title:'Register', desc:'Sign up and complete vendor verification' },
+                { icon: Package, title:'List Products', desc:'Add your gas cylinders, prices, and stock' },
+                { icon: ShoppingCart, title:'Receive Orders', desc:'Get instant order notifications' },
+                { icon: Truck, title:'Coordinate', desc:'Manage deliveries with riders' },
+              ]} />
             </div>
           </div>
         </section>
 
-        {/* Riders Section */}
-        <section id="riders" className="py-20 bg-gradient-to-br from-gray-50 to-white">
-          <div className="container mx-auto px-4">
-            <div className="max-w-6xl mx-auto">
-              <div className="text-center mb-12">
-                <div className="inline-block mb-4 px-4 py-2 bg-purple-100 text-purple-700 rounded-full font-medium text-sm">
-                  For Riders
-                </div>
-                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-                  Deliver & Earn
-                </h2>
-                <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-                  Join our network and earn flexibly delivering gas across Nairobi.
-                </p>
-              </div>
+        {/* ── RIDERS ───────────────────────────────────────────────── */}
+        <section id="riders" style={{ padding:'5rem 0', background:'#fff' }}>
+          <div className="container mx-auto px-6">
+            <div style={{ textAlign:'center', marginBottom:'3.5rem' }}>
+              <span style={{
+                display:'inline-block', padding:'5px 16px',
+                background:`${ag.gold}18`, borderRadius:'100px',
+                color:'#7a5c10', fontSize:'0.78rem', fontWeight:700,
+                letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:'1rem'
+              }}>For Riders</span>
+              <h2 className="ag-display" style={{
+                fontSize:'clamp(2rem, 4vw, 2.8rem)', fontWeight:600, color: ag.text, marginBottom:'0.75rem'
+              }}>Deliver & <em style={{ color:'#9a6e15' }}>Earn</em></h2>
+              <p style={{ color: ag.mid, fontSize:'1rem', maxWidth:'440px', margin:'0 auto' }}>
+                Join our network and earn flexibly delivering gas across Nairobi.
+              </p>
+            </div>
 
-              <div className="grid md:grid-cols-4 gap-8">
-                {[
-                  { num: 1, icon: UserCheck, title: "Join", desc: "Register and complete rider verification" },
-                  { num: 2, icon: CheckCircle, title: "Accept Jobs", desc: "Choose deliveries that suit your schedule" },
-                  { num: 3, icon: MapPin, title: "Navigate", desc: "Use GPS navigation to deliver" },
-                  { num: 4, icon: CreditCard, title: "Get Paid", desc: "Confirm delivery and receive payment" }
-                ].map((step, i) => (
-                  <div key={i} className="relative text-center">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-purple-600 flex items-center justify-center text-2xl font-bold text-white">
-                      {step.num}
-                    </div>
-                    <div className="mb-4 flex justify-center">
-                      <div className="bg-purple-50 p-3 rounded-lg">
-                        <step.icon size={32} className="text-purple-600" />
-                      </div>
-                    </div>
-                    <h3 className="text-lg font-bold mb-2 text-gray-900">{step.title}</h3>
-                    <p className="text-gray-600 text-sm">{step.desc}</p>
-                    {i < 3 && (
-                      <div className="hidden md:block absolute top-8 left-full w-full h-0.5 bg-purple-200" />
-                    )}
-                  </div>
-                ))}
-              </div>
+            <div style={{ maxWidth:'900px', margin:'0 auto' }}>
+              <StepRow accent={ag.gold} steps={[
+                { icon: UserCheck, title:'Join', desc:'Register and complete rider verification' },
+                { icon: CheckCircle, title:'Accept Jobs', desc:'Choose deliveries that suit your schedule' },
+                { icon: MapPin, title:'Navigate', desc:'Use GPS navigation to deliver efficiently' },
+                { icon: CreditCard, title:'Get Paid', desc:'Confirm delivery and receive payment' },
+              ]} />
             </div>
           </div>
         </section>
 
-        {/* CTA Section */}
-        <section className="py-20 bg-gradient-to-br from-blue-600 to-green-600 text-white">
-          <div className="container mx-auto px-4 text-center">
-            <h2 className="text-3xl md:text-4xl font-bold mb-6">
-              Ready to Get Started?
+        {/* ── CTA ──────────────────────────────────────────────────── */}
+        <section style={{
+          padding:'5rem 0',
+          background:`linear-gradient(135deg, ${ag.forestDk} 0%, ${ag.forest} 100%)`,
+          position:'relative', overflow:'hidden'
+        }}>
+          <div style={{
+            position:'absolute', top:'50%', right:'-80px', transform:'translateY(-50%)',
+            width:'360px', height:'360px', borderRadius:'50%',
+            border:`1px solid rgba(201,164,74,0.12)`, pointerEvents:'none'
+          }}/>
+          <div className="container mx-auto px-6" style={{ textAlign:'center', position:'relative' }}>
+            <h2 className="ag-display" style={{
+              fontSize:'clamp(2rem, 4vw, 3rem)', fontWeight:600, color:'#fff', marginBottom:'1rem'
+            }}>
+              Ready to Get<br /><em style={{ color: ag.gold }}>Started?</em>
             </h2>
-            <p className="text-xl mb-10 text-blue-100 max-w-2xl mx-auto">
+            <p style={{ color:'rgba(255,255,255,0.6)', marginBottom:'2.5rem', fontSize:'1.05rem' }}>
               Join thousands using AquaGas for fast, reliable gas delivery.
             </p>
-            <div className="flex flex-wrap justify-center gap-4">
-              <Link href="/shop" className="bg-white text-blue-600 px-8 py-4 rounded-lg font-bold shadow-lg hover:bg-blue-50 transition">
-                Order Gas Now
-              </Link>
-              <Link href="/partners" className="border-2 border-white px-8 py-4 rounded-lg font-bold hover:bg-white/10 transition flex items-center gap-2">
-                Become a Partner <ChevronRight size={20} />
-              </Link>
+            <div style={{ display:'flex', justifyContent:'center', gap:'1rem', flexWrap:'wrap' }}>
+              <Link href="/shop" style={{
+                background: ag.flame, color:'#fff',
+                padding:'14px 32px', borderRadius:'8px',
+                fontWeight:600, textDecoration:'none', fontSize:'0.95rem'
+              }}>Order Gas Now</Link>
+              <Link href="/partners" style={{
+                padding:'14px 32px', borderRadius:'8px',
+                border:'1px solid rgba(255,255,255,0.25)',
+                color:'#fff', fontWeight:500, textDecoration:'none', fontSize:'0.95rem'
+              }}>Become a Partner</Link>
             </div>
           </div>
         </section>
+
       </div>
     </>
   );
-              }
+}
