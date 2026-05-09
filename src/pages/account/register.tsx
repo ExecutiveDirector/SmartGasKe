@@ -19,8 +19,8 @@ import toast from 'react-hot-toast';
 
 // ── API ─────────────────────────────────────────────────────────────
 const API_BASE =
-  (process.env.NEXT_PUBLIC_API_URL ?? 'https://aquagas-backend.onrender.com') +
-  '/api/v1/auth';
+  (process.env.NEXT_PUBLIC_API_URL || 'https://aquagas-backend.onrender.com/api/v1')
+    .replace(/\/$/, '') + '/auth';
 
 async function apiPost<T = any>(path: string, body: object): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
