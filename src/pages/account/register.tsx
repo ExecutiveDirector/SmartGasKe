@@ -1,5 +1,8 @@
 // ============================================================
 // FILE: src/pages/account/register.tsx
+// FIX: phone OTP flows now call refreshUser() after writing
+//      the token so AuthContext.user is populated before
+//      router.push('/account') is called.
 // ============================================================
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -155,7 +158,6 @@ const LeftPanel = () => (
     <div style={{ position: 'absolute', bottom: '12%', right: '5%', width: 200, height: 200, borderRadius: '50%', opacity: 0.18, filter: 'blur(70px)', pointerEvents: 'none', background: 'radial-gradient(circle, #fbbf24 0%, #f97316 60%, transparent 100%)' }} />
 
     <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', height: '100%', padding: '48px 40px' }}>
-      {/* Logo */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 'auto' }}>
         <div style={{ width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)' }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -166,7 +168,6 @@ const LeftPanel = () => (
         <span style={{ color: '#fff', fontWeight: 700, fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '1.3rem' }}>AquaGas</span>
       </div>
 
-      {/* Headline */}
       <div style={{ marginTop: 56, marginBottom: 36 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
           <div style={{ height: 1, width: 28, background: 'rgba(251,146,60,0.7)' }} />
@@ -180,7 +181,6 @@ const LeftPanel = () => (
         </p>
       </div>
 
-      {/* Features */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 36 }}>
         {[
           { icon: <Zap size={13} />, text: '45-minute delivery guarantee' },
@@ -196,7 +196,6 @@ const LeftPanel = () => (
         ))}
       </div>
 
-      {/* Testimonial */}
       <div style={{ borderRadius: 18, padding: '20px 22px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
         <div style={{ display: 'flex', gap: 2, marginBottom: 10 }}>
           {[...Array(5)].map((_, i) => (
@@ -305,7 +304,9 @@ const SectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 // ── Page ──────────────────────────────────────────────────────────────
 export default function RegisterPage() {
   const router = useRouter();
-  const { register, isAuthenticated, loading } = useAuth();
+
+  // ── FIX: also pull refreshUser so phone flows can hydrate context ──
+  const { register, refreshUser, isAuthenticated, loading } = useAuth();
 
   const [step, setStep]           = useState<Step>('method');
   const [busy, setBusy]           = useState(false);
@@ -336,7 +337,6 @@ export default function RegisterPage() {
   useEffect(() => () => clearInterval(timerRef.current), []);
 
   // ── SEND OTP ────────────────────────────────────────────────────────
-  // POST /api/v1/auth/send-otp  { phone: "+254..." }
   const sendOTP = async () => {
     if (!isValidPhone(phone.trim())) {
       toast.error('Enter a valid Kenyan number (07xx or +254 7xx)');
@@ -356,8 +356,10 @@ export default function RegisterPage() {
   };
 
   // ── VERIFY OTP ──────────────────────────────────────────────────────
-  // POST /api/v1/auth/verify-otp  { phone, otp }
-  // Returns { verified, token? } — if token returned, user already existed → log in
+  // FIX: when the user already exists, the backend returns a token but
+  // the old code only wrote it to localStorage — AuthContext.user was
+  // never updated, so isAuthenticated stayed false on /account.
+  // Now we call refreshUser() so the context is fully hydrated first.
   const verifyOTP = async () => {
     if (otp.replace(/\s/g, '').length !== 6) { setOtpErr(true); return; }
     setBusy(true); setOtpErr(false);
@@ -370,12 +372,16 @@ export default function RegisterPage() {
       }>('/verify-otp', { phone: formatPhone(phone.trim()), otp: otp.replace(/\s/g, '') });
 
       if (data.token && !data.needsRegistration) {
-        // Existing user — log them in
+        // ── FIX: existing user login via OTP ──────────────────────────
+        // 1. Store token so getProfile() can read it
         localStorage.setItem('authToken', data.token);
+        // 2. Hydrate AuthContext (calls getProfile internally)
+        await refreshUser();
         toast.success('Welcome back!');
         router.push('/account');
         return;
       }
+
       // New user — complete profile
       setStep('phone-profile');
     } catch (e: any) {
@@ -387,8 +393,10 @@ export default function RegisterPage() {
   };
 
   // ── PHONE REGISTER ──────────────────────────────────────────────────
-  // POST /api/v1/auth/register/phone
-  // Body: { phone, firstName, lastName, email?, password? }
+  // FIX: after a successful phone registration the old code wrote the
+  // token to localStorage but never updated AuthContext.user, so the
+  // /account page saw isAuthenticated === false and redirected to login.
+  // Now we call refreshUser() to populate the context before navigating.
   const phoneRegister = async () => {
     const e: Record<string, string> = {};
     if (prof.fn.trim().length < 2) e.fn = 'Required (min 2 chars)';
@@ -411,11 +419,17 @@ export default function RegisterPage() {
         firstName: prof.fn.trim(),
         lastName:  prof.ln.trim(),
       };
-      if (prof.email)          body.email    = normalizeEmail(prof.email);
+      if (prof.email)            body.email    = normalizeEmail(prof.email);
       if (prof.setPw && prof.pw) body.password = prof.pw;
 
       const data = await apiPost<{ token?: string }>('/register/phone', body);
-      if (data.token) localStorage.setItem('authToken', data.token);
+
+      // ── FIX: store token then hydrate context ─────────────────────
+      if (data.token) {
+        localStorage.setItem('authToken', data.token);
+        await refreshUser();
+      }
+
       toast.success('Welcome to AquaGas! 🎉');
       router.push('/account');
     } catch (e: any) {
@@ -426,8 +440,7 @@ export default function RegisterPage() {
   };
 
   // ── EMAIL REGISTER ──────────────────────────────────────────────────
-  // Uses AuthContext.register() → POST /api/v1/auth/register
-  // Body expected by backend registerUser: { fullName, email, phone, password }
+  // Uses AuthContext.register() which already calls setUser() — no change needed.
   const emailRegister = async (ev: React.FormEvent) => {
     ev.preventDefault();
     const e: Record<string, string> = {};
@@ -496,11 +509,6 @@ export default function RegisterPage() {
         .aq-spin    { animation: aq-spin 0.7s linear infinite; }
         .aq-verified{ animation: aq-pulse-ring 0.9s ease-out; }
 
-        /*
-          TWO-COLUMN LAYOUT
-          Desktop (≥1024px): left brand panel + right form, 50/50
-          Mobile (<1024px):  only form panel, full width, centered
-        */
         .aq-layout {
           display: grid;
           min-height: 100vh;
@@ -579,7 +587,6 @@ export default function RegisterPage() {
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 28 }}>
-                    {/* Phone OTP card */}
                     <button className="aq-method-card" onClick={() => setStep('phone-entry')}>
                       <div style={{ width: 48, height: 48, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: 'linear-gradient(145deg, #fff7ed, #fed7aa)' }}>
                         <Smartphone size={22} style={{ color: '#ea580c' }} />
@@ -594,7 +601,6 @@ export default function RegisterPage() {
                       <ChevronRight size={14} style={{ color: '#d6d3d1', flexShrink: 0 }} />
                     </button>
 
-                    {/* Email card */}
                     <button className="aq-method-card" onClick={() => setStep('email-form')}>
                       <div style={{ width: 48, height: 48, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: 'linear-gradient(145deg, #f0fdf4, #bbf7d0)' }}>
                         <Mail size={22} style={{ color: '#16a34a' }} />
@@ -607,7 +613,6 @@ export default function RegisterPage() {
                     </button>
                   </div>
 
-                  {/* Trust badges */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 20, marginBottom: 24, flexWrap: 'wrap' }}>
                     {[
                       { icon: <ShieldCheck size={12} />, label: 'SSL secured' },
@@ -726,7 +731,6 @@ export default function RegisterPage() {
                     <p style={{ color: '#78716c', fontSize: 14, margin: 0 }}>Almost there — just a few details.</p>
                   </div>
 
-                  {/* Verified badge */}
                   <div className="aq-verified" style={{ display: 'flex', alignItems: 'center', gap: 12, borderRadius: 12, padding: '12px 16px', marginBottom: 20, background: '#f0fdf4', border: '1.5px solid #bbf7d0' }}>
                     <div style={{ width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: '#dcfce7' }}>
                       <CheckCircle size={16} style={{ color: '#16a34a' }} />
@@ -752,7 +756,6 @@ export default function RegisterPage() {
                       value={prof.email} placeholder="you@example.com"
                       onChange={e => { setProf(p => ({ ...p, email: e.target.value })); setErrs(r => ({ ...r, email: '' })); }} />
 
-                    {/* Password toggle row */}
                     <div>
                       <div
                         onClick={() => setProf(p => ({ ...p, setPw: !p.setPw }))}
@@ -874,7 +877,6 @@ export default function RegisterPage() {
                       {busy ? 'Creating account…' : <>Create account <ChevronRight size={14} /></>}
                     </PrimaryBtn>
 
-                    {/* Divider */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       <div style={{ flex: 1, height: 1, background: '#e8e5e1' }} />
                       <span style={{ fontSize: 11, color: '#a8a29e', fontWeight: 500 }}>or</span>
