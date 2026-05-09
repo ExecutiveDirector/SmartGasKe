@@ -1,172 +1,310 @@
-// Investors.jsx
 import React, { useRef } from 'react';
-import {
-  TrendingUp, BarChart2, Users, Globe,
-  DollarSign, PieChart, ArrowRight,
-  ChevronRight, Zap, Shield, LayoutDashboard
-} from 'lucide-react';
+import { TrendingUp, BarChart2, Users, Globe, DollarSign, PieChart, ArrowRight, Zap, Shield, LayoutDashboard } from 'lucide-react';
+
+const ag = {
+  forest: '#0A3D2B', forestDk: '#072A1E',
+  flame: '#E8621A', gold: '#C9A44A',
+  cream: '#FAFAF7', text: '#0F1A14',
+  mid: '#3D5246', border: '#D9E8DF',
+};
+
+const styles = `
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Outfit:wght@300;400;500;600;700&display=swap');
+  .ag-display { font-family: 'Cormorant Garamond', serif; }
+  .ag-body   { font-family: 'Outfit', sans-serif; }
+  .no-scroll::-webkit-scrollbar { display:none; }
+  .no-scroll { -ms-overflow-style:none; scrollbar-width:none; }
+  .metric-card:hover { transform: translateY(-4px) scale(1.01); }
+  .metric-card { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+  .scroll-btn:hover { background: #E8621A; }
+  .scroll-btn { transition: background 0.2s; }
+  .revenue-card:hover { border-color: #0A3D2B; }
+  .revenue-card { transition: border-color 0.25s, box-shadow 0.25s; }
+`;
 
 export default function Investors() {
-  const metricsRef = useRef(null);
-  const revenueRef = useRef(null);
-const scroll = (ref: React.RefObject<HTMLDivElement>, direction: 'left' | 'right' = 'left') => {
-  if (!ref.current) return;
-  ref.current.scrollBy({
-    left: direction === 'left' ? -300 : 300,
-    behavior: 'smooth',
-  });
-};
+  const metricsRef = useRef<HTMLDivElement>(null);
+  const revenueRef = useRef<HTMLDivElement>(null);
+
+  const scroll = (ref: React.RefObject<HTMLDivElement>, dir: 'left' | 'right') => {
+    if (!ref.current) return;
+    ref.current.scrollBy({ left: dir === 'left' ? -280 : 280, behavior:'smooth' });
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-green-50 to-white font-sans">
+    <>
+      <style>{styles}</style>
+      <div className="ag-body" style={{ background: ag.cream, color: ag.text }}>
 
-      {/* HERO */}
-      <section className="relative bg-gradient-to-br from-green-900 via-emerald-900 to-green-950 text-white pt-28 pb-36 overflow-hidden">
-        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_70%_40%,rgba(34,197,94,0.3),transparent_60%)]" />
+        {/* ── HERO ─────────────────────────────────────────────────── */}
+        <section style={{
+          background: ag.forestDk, position:'relative',
+          overflow:'hidden', padding:'5rem 0 8rem'
+        }}>
+          {/* decorative rings */}
+          {[700, 540, 380].map((size, i) => (
+            <div key={i} style={{
+              position:'absolute', top:'50%', right:'-160px',
+              transform:'translateY(-50%)',
+              width:`${size}px`, height:`${size}px`, borderRadius:'50%',
+              border:`1px solid rgba(201,164,74,${0.05 + i * 0.03})`,
+              pointerEvents:'none'
+            }}/>
+          ))}
+          <div style={{
+            position:'absolute', bottom:0, left:0, right:0, height:'1px',
+            background:`linear-gradient(90deg, transparent, ${ag.gold}40, transparent)`
+          }}/>
 
-        <div className="relative max-w-6xl mx-auto px-6 text-center">
-          <span className="inline-block mb-6 px-5 py-2 bg-emerald-500/20 rounded-full text-emerald-300 text-sm font-medium">
-            Regulated • EPRA-Aligned • Investor Ready
-          </span>
+          <div className="container mx-auto px-6" style={{ textAlign:'center', position:'relative' }}>
+            <span style={{
+              display:'inline-block', padding:'6px 18px', borderRadius:'100px',
+              border:`1px solid rgba(201,164,74,0.35)`,
+              color: ag.gold, fontSize:'0.78rem',
+              letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:'1.75rem'
+            }}>Regulated · EPRA-Aligned · Investor Ready</span>
 
-          <h1 className="text-4xl md:text-6xl font-extrabold leading-tight mb-6">
-            Scaling <span className="text-emerald-400">Clean LPG Energy</span><br />
-            Across Urban Kenya
-          </h1>
+            <h1 className="ag-display" style={{
+              fontSize:'clamp(2.8rem, 7vw, 5rem)', fontWeight:600,
+              color:'#fff', lineHeight:1.08, marginBottom:'1.5rem'
+            }}>
+              Scaling <em style={{ color: ag.gold }}>Clean LPG Energy</em><br />
+              Across Urban Kenya
+            </h1>
 
-          <p className="text-lg md:text-xl text-green-100 max-w-3xl mx-auto mb-10">
-            AquaGas is building Kenya’s most trusted digital LPG delivery platform — focused on safety, speed, and scalable returns.
-          </p>
+            <p style={{
+              color:'rgba(255,255,255,0.6)', fontSize:'1.1rem',
+              maxWidth:'520px', margin:'0 auto 2.5rem', lineHeight:1.75
+            }}>
+              AquaGas is building Kenya's most trusted digital LPG delivery platform — focused on safety, speed, and scalable returns.
+            </p>
 
-          <div className="flex flex-wrap justify-center gap-6">
-            <a
-              href="#opportunity"
-              className="bg-emerald-500 hover:bg-emerald-600 px-10 py-4 rounded-xl font-bold text-lg shadow-lg flex items-center gap-3"
-            >
-              View Opportunity <ArrowRight />
-            </a>
-            <a
-              href="/contact?type=investor"
-              className="border-2 border-white px-10 py-4 rounded-xl font-bold text-lg hover:bg-white/10"
-            >
-              Speak to Founders →
-            </a>
+            <div style={{ display:'flex', justifyContent:'center', gap:'1rem', flexWrap:'wrap' }}>
+              <a href="#opportunity" style={{
+                display:'inline-flex', alignItems:'center', gap:'8px',
+                background: ag.flame, color:'#fff',
+                padding:'14px 28px', borderRadius:'8px',
+                fontWeight:600, fontSize:'0.95rem', textDecoration:'none'
+              }}>View Opportunity <ArrowRight size={18} /></a>
+              <a href="/contact?type=investor" style={{
+                display:'inline-flex', alignItems:'center',
+                padding:'14px 28px', borderRadius:'8px',
+                border:'1px solid rgba(255,255,255,0.25)',
+                color:'#fff', fontWeight:500, fontSize:'0.95rem', textDecoration:'none'
+              }}>Speak to Founders</a>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* KEY METRICS - horizontal scroll */}
-      <section className="-mt-20 relative z-10 pb-20">
-        <div className="max-w-6xl mx-auto px-6 relative">
-          {/* Scroll Buttons */}
-          <button onClick={() => scroll(metricsRef, 'left')} className="absolute left-0 top-1/2 -translate-y-1/2 bg-green-800 text-white p-3 rounded-full shadow-lg z-10">
-            ‹
-          </button>
-          <button onClick={() => scroll(metricsRef, 'right')} className="absolute right-0 top-1/2 -translate-y-1/2 bg-green-800 text-white p-3 rounded-full shadow-lg z-10">
-            ›
-          </button>
+        {/* ── METRICS ──────────────────────────────────────────────── */}
+        <section style={{ padding:'0 0 5rem' }}>
+          <div className="container mx-auto px-6" style={{ position:'relative', marginTop:'-3.5rem' }}>
+            <button className="scroll-btn" onClick={() => scroll(metricsRef, 'left')} style={{
+              position:'absolute', left:'-16px', top:'50%', transform:'translateY(-50%)',
+              background: ag.forest, color:'#fff', border:'none',
+              width:'44px', height:'44px', borderRadius:'50%',
+              fontSize:'1.4rem', cursor:'pointer', zIndex:10,
+              boxShadow:'0 4px 16px rgba(0,0,0,0.2)', display:'flex', alignItems:'center', justifyContent:'center'
+            }}>‹</button>
+            <button className="scroll-btn" onClick={() => scroll(metricsRef, 'right')} style={{
+              position:'absolute', right:'-16px', top:'50%', transform:'translateY(-50%)',
+              background: ag.forest, color:'#fff', border:'none',
+              width:'44px', height:'44px', borderRadius:'50%',
+              fontSize:'1.4rem', cursor:'pointer', zIndex:10,
+              boxShadow:'0 4px 16px rgba(0,0,0,0.2)', display:'flex', alignItems:'center', justifyContent:'center'
+            }}>›</button>
 
-          <div ref={metricsRef} className="flex gap-6 overflow-x-auto snap-x snap-mandatory scroll-smooth no-scrollbar py-6">
-            {[
-              { icon: Users, num: "5,000+", label: "Verified Users" },
-              { icon: TrendingUp, num: "1,200+", label: "Monthly Deliveries" },
-              { icon: DollarSign, num: "KES 8M+", label: "Annual Run Rate" },
-              { icon: Globe, num: "Nairobi+", label: "Expansion Ready" }
-            ].map((m, i) => (
-              <div key={i} className="bg-white rounded-3xl p-6 shadow-lg text-center flex-shrink-0 w-64 snap-start">
-                <m.icon className="w-12 h-12 mx-auto mb-4 text-emerald-500" />
-                <div className="text-3xl font-bold text-green-900">{m.num}</div>
-                <div className="text-gray-600 font-medium">{m.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* BUSINESS MODEL - Revenue Engine - horizontal scroll */}
-      <section className="py-24 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-6 text-center">
-          <h2 className="text-4xl font-bold text-green-900 mb-12">
-            Scalable Revenue Engine
-          </h2>
-
-          <div className="relative">
-            <button onClick={() => scroll(revenueRef, 'left')} className="absolute left-0 top-1/2 -translate-y-1/2 bg-green-800 text-white p-3 rounded-full shadow-lg z-10">
-              ‹
-            </button>
-            <button onClick={() => scroll(revenueRef, 'right')} className="absolute right-0 top-1/2 -translate-y-1/2 bg-green-800 text-white p-3 rounded-full shadow-lg z-10">
-              ›
-            </button>
-
-            <div ref={revenueRef} className="flex gap-6 overflow-x-auto snap-x snap-mandatory scroll-smooth no-scrollbar py-6">
+            <div ref={metricsRef} className="no-scroll" style={{
+              display:'flex', gap:'1.25rem', overflowX:'auto',
+              scrollSnapType:'x mandatory', padding:'1rem 0.5rem'
+            }}>
               {[
-                { icon: PieChart, title: "Order Commissions", desc: "10–15% per successful LPG transaction" },
-                { icon: DollarSign, title: "Vendor Subscriptions", desc: "Premium dashboards & compliance tools" },
-                { icon: BarChart2, title: "Logistics & Ads", desc: "Delivery fees + promoted vendor listings" }
-              ].map((b, i) => (
-                <div key={i} className="bg-white rounded-3xl p-8 shadow-lg flex-shrink-0 w-72 snap-start">
-                  <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <b.icon className="text-emerald-600" size={32} />
+                { icon: Users, num:'5,000+', label:'Verified Users', accent: ag.flame },
+                { icon: TrendingUp, num:'1,200+', label:'Monthly Deliveries', accent: ag.forest },
+                { icon: DollarSign, num:'KES 8M+', label:'Annual Run Rate', accent: ag.gold },
+                { icon: Globe, num:'Nairobi+', label:'Expansion Ready', accent: ag.flame },
+              ].map((m, i) => (
+                <div key={i} className="metric-card" style={{
+                  background:'#fff', borderRadius:'16px', padding:'2rem',
+                  textAlign:'center', flexShrink:0, width:'220px',
+                  scrollSnapAlign:'start', border:`1px solid ${ag.border}`,
+                  boxShadow:'0 4px 24px rgba(10,61,43,0.08)'
+                }}>
+                  <div style={{
+                    width:'52px', height:'52px', borderRadius:'12px',
+                    background:`${m.accent}12`,
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                    margin:'0 auto 1rem'
+                  }}>
+                    <m.icon size={26} color={m.accent} />
                   </div>
-                  <h3 className="text-2xl font-bold text-green-900 mb-4">{b.title}</h3>
-                  <p className="text-gray-600">{b.desc}</p>
+                  <div className="ag-display" style={{
+                    fontSize:'2.4rem', fontWeight:600, color: ag.text, lineHeight:1, fontStyle:'italic'
+                  }}>{m.num}</div>
+                  <div style={{ color: ag.mid, fontSize:'0.85rem', marginTop:'6px', fontWeight:500 }}>{m.label}</div>
                 </div>
               ))}
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ADMIN DASHBOARD PREVIEW */}
-      <section className="py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-center">
-          <div>
-            <span className="inline-block mb-4 px-4 py-1 bg-emerald-100 text-emerald-800 rounded-full text-sm font-medium">
-              Operational Transparency
-            </span>
-            <h2 className="text-4xl font-bold text-green-900 mb-6">
-              Investor-Grade Admin Dashboard
+        {/* ── REVENUE MODEL ────────────────────────────────────────── */}
+        <section id="opportunity" style={{ padding:'5rem 0', background:'#fff' }}>
+          <div className="container mx-auto px-6">
+            <div style={{ textAlign:'center', marginBottom:'3rem' }}>
+              <span style={{
+                display:'inline-block', padding:'5px 16px',
+                background:`${ag.forest}10`, borderRadius:'100px',
+                color: ag.forest, fontSize:'0.78rem', fontWeight:700,
+                letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:'1rem'
+              }}>Business Model</span>
+              <h2 className="ag-display" style={{
+                fontSize:'clamp(2rem, 4vw, 2.8rem)', fontWeight:600, color: ag.text
+              }}>Scalable <em style={{ color: ag.forest }}>Revenue Engine</em></h2>
+            </div>
+
+            <div style={{ position:'relative' }}>
+              <button className="scroll-btn" onClick={() => scroll(revenueRef, 'left')} style={{
+                position:'absolute', left:'-16px', top:'50%', transform:'translateY(-50%)',
+                background: ag.forest, color:'#fff', border:'none',
+                width:'44px', height:'44px', borderRadius:'50%',
+                fontSize:'1.4rem', cursor:'pointer', zIndex:10,
+                boxShadow:'0 4px 16px rgba(0,0,0,0.2)',
+                display:'flex', alignItems:'center', justifyContent:'center'
+              }}>‹</button>
+              <button className="scroll-btn" onClick={() => scroll(revenueRef, 'right')} style={{
+                position:'absolute', right:'-16px', top:'50%', transform:'translateY(-50%)',
+                background: ag.forest, color:'#fff', border:'none',
+                width:'44px', height:'44px', borderRadius:'50%',
+                fontSize:'1.4rem', cursor:'pointer', zIndex:10,
+                boxShadow:'0 4px 16px rgba(0,0,0,0.2)',
+                display:'flex', alignItems:'center', justifyContent:'center'
+              }}>›</button>
+
+              <div ref={revenueRef} className="no-scroll" style={{
+                display:'flex', gap:'1.5rem', overflowX:'auto',
+                scrollSnapType:'x mandatory', padding:'1rem 0.5rem'
+              }}>
+                {[
+                  { icon: PieChart, title:'Order Commissions', desc:'10–15% per successful LPG transaction, aligned with market rates.' },
+                  { icon: DollarSign, title:'Vendor Subscriptions', desc:'Premium dashboards, compliance tools, and priority placement.' },
+                  { icon: BarChart2, title:'Logistics & Listings', desc:'Delivery fees and promoted vendor listings drive additional revenue.' },
+                ].map((b, i) => (
+                  <div key={i} className="revenue-card" style={{
+                    background: ag.cream, borderRadius:'16px',
+                    padding:'2.25rem', flexShrink:0, width:'280px',
+                    scrollSnapAlign:'start', border:`1px solid ${ag.border}`,
+                    boxShadow:'0 2px 16px rgba(10,61,43,0.05)'
+                  }}>
+                    <div style={{
+                      width:'52px', height:'52px', borderRadius:'12px',
+                      background:`${ag.forest}10`,
+                      display:'flex', alignItems:'center', justifyContent:'center',
+                      marginBottom:'1.25rem'
+                    }}>
+                      <b.icon size={26} color={ag.forest} />
+                    </div>
+                    <h3 style={{ fontSize:'1.1rem', fontWeight:600, color: ag.text, marginBottom:'0.75rem' }}>{b.title}</h3>
+                    <p style={{ color: ag.mid, fontSize:'0.9rem', lineHeight:1.7 }}>{b.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── ADMIN DASHBOARD ──────────────────────────────────────── */}
+        <section style={{ padding:'5rem 0', background: ag.cream }}>
+          <div className="container mx-auto px-6">
+            <div style={{
+              display:'grid', gridTemplateColumns:'1fr 1fr', gap:'4rem',
+              alignItems:'center', maxWidth:'960px', margin:'0 auto'
+            }}>
+              <div>
+                <span style={{
+                  display:'inline-block', padding:'5px 16px',
+                  background:`${ag.forest}10`, borderRadius:'100px',
+                  color: ag.forest, fontSize:'0.78rem', fontWeight:700,
+                  letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:'1.25rem'
+                }}>Operational Transparency</span>
+
+                <h2 className="ag-display" style={{
+                  fontSize:'clamp(1.8rem, 3.5vw, 2.4rem)', fontWeight:600,
+                  color: ag.text, lineHeight:1.2, marginBottom:'1.5rem'
+                }}>
+                  Investor-Grade<br /><em style={{ color: ag.forest }}>Admin Dashboard</em>
+                </h2>
+
+                <ul style={{ display:'flex', flexDirection:'column', gap:'0.85rem' }}>
+                  {[
+                    'Real-time orders & revenue tracking',
+                    'Vendor compliance & EPRA safety logs',
+                    'Rider performance & delivery SLAs',
+                    'City-level expansion analytics',
+                  ].map((item, i) => (
+                    <li key={i} style={{ display:'flex', alignItems:'center', gap:'12px', color: ag.mid, fontSize:'0.95rem' }}>
+                      <span style={{
+                        width:'6px', height:'6px', borderRadius:'50%',
+                        background: ag.flame, flexShrink:0
+                      }}/>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div style={{
+                background:`linear-gradient(160deg, ${ag.forestDk} 0%, ${ag.forest} 100%)`,
+                borderRadius:'20px', padding:'3rem',
+                boxShadow:`0 24px 60px rgba(10,61,43,0.25)`
+              }}>
+                <LayoutDashboard size={44} color={ag.gold} style={{ marginBottom:'1.5rem' }} />
+                <p style={{ fontSize:'1.3rem', fontWeight:600, color:'#fff', marginBottom:'0.5rem' }}>Live Admin View</p>
+                <p style={{ color:'rgba(255,255,255,0.6)', lineHeight:1.75, fontSize:'0.95rem' }}>
+                  Designed for founders, operators, and investors — full visibility at every level of the business.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── CTA ──────────────────────────────────────────────────── */}
+        <section style={{
+          padding:'5rem 0',
+          background:`linear-gradient(135deg, ${ag.forestDk} 0%, ${ag.forest} 100%)`,
+          position:'relative', overflow:'hidden'
+        }}>
+          <div style={{
+            position:'absolute', top:'50%', left:'-100px', transform:'translateY(-50%)',
+            width:'500px', height:'500px', borderRadius:'50%',
+            border:`1px solid rgba(201,164,74,0.1)`, pointerEvents:'none'
+          }}/>
+          <div className="container mx-auto px-6" style={{ textAlign:'center', position:'relative' }}>
+            <h2 className="ag-display" style={{
+              fontSize:'clamp(2rem, 4vw, 3rem)', fontWeight:600, color:'#fff', marginBottom:'1rem'
+            }}>
+              Invest in Kenya's<br />
+              <em style={{ color: ag.gold }}>Clean Energy Infrastructure</em>
             </h2>
-            <ul className="space-y-4 text-lg text-gray-700">
-              <li>• Real-time orders & revenue tracking</li>
-              <li>• Vendor compliance & EPRA safety logs</li>
-              <li>• Rider performance & delivery SLAs</li>
-              <li>• City-level expansion analytics</li>
-            </ul>
-          </div>
-
-          <div className="bg-gradient-to-br from-green-900 to-emerald-900 rounded-3xl p-10 text-white shadow-2xl">
-            <LayoutDashboard size={48} className="mb-6 text-emerald-300" />
-            <p className="text-xl font-semibold mb-2">Live Admin View</p>
-            <p className="text-green-100">
-              Designed for founders, operators, and investors .
+            <p style={{ color:'rgba(255,255,255,0.6)', marginBottom:'2.5rem', fontSize:'1.05rem', maxWidth:'480px', margin:'0 auto 2.5rem' }}>
+              AquaGas combines regulation, technology, and logistics into a defensible LPG platform built to scale.
             </p>
+            <div style={{ display:'flex', justifyContent:'center', gap:'1rem', flexWrap:'wrap' }}>
+              <a href="/pitch-deck.pdf" style={{
+                background: ag.flame, color:'#fff',
+                padding:'14px 32px', borderRadius:'8px',
+                fontWeight:600, textDecoration:'none', fontSize:'0.95rem'
+              }}>Download Pitch Deck</a>
+              <a href="/contact?type=investor" style={{
+                padding:'14px 32px', borderRadius:'8px',
+                border:'1px solid rgba(255,255,255,0.25)',
+                color:'#fff', fontWeight:500, textDecoration:'none', fontSize:'0.95rem'
+              }}>Book a Meeting</a>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* FINAL CTA */}
-      <section className="py-24 bg-gradient-to-br from-emerald-500 to-green-600 text-white text-center">
-        <h2 className="text-4xl font-bold mb-6">
-          Invest in Kenya’s Clean Energy Infrastructure
-        </h2>
-        <p className="text-xl max-w-3xl mx-auto mb-10 opacity-90">
-          AquaGas combines regulation, technology, and logistics into a defensible LPG platform built to scale.
-        </p>
-        <div className="flex justify-center gap-6">
-          <a href="/pitch-deck.pdf" className="bg-white text-green-700 px-10 py-4 rounded-xl font-bold shadow-lg">
-            Download Pitch Deck
-          </a>
-          <a href="/contact?type=investor" className="border-2 border-white px-10 py-4 rounded-xl font-bold">
-            Book Meeting →
-          </a>
-        </div>
-      </section>
-
-      {/* Scrollbar hiding */}
-      <style jsx>{`
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-      `}</style>
-    </div>
+      </div>
+    </>
   );
 }
