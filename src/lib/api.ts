@@ -2,10 +2,18 @@
 // FILE: src/lib/api.ts
 // Updated to match backend API endpoints and responses
 //
-// FIX: register() was calling POST /auth/register — route does NOT exist.
-//      Correct endpoint is POST /auth/register/user (see routes/auth.js).
-//      Also: backend expects { fullName } but we were already sending it correctly.
-//      Added safe full_name fallback from first_name + last_name.
+// FIX 1: register() was calling POST /auth/register → 404
+//         Correct endpoint: POST /auth/register/user
+//
+// FIX 2: getProfile() was returning response.data (raw axios body)
+//         which is { account, profile, role, ... }.
+//         AuthContext.refreshUser() then reads response.data again,
+//         getting undefined → normalizeUser(null) → user never set.
+//         Now wrapped: { success: true, data: response.data } so
+//         AuthContext receives the backend body at response.data ✓
+//
+// FIX 3: updateProfile() had the same double-unwrap issue as getProfile.
+//         Wrapped consistently.
 // ============================================================
 
 import axios, { AxiosInstance, AxiosError } from 'axios';
@@ -37,7 +45,9 @@ import type {
 } from './types';
 
 // API Base URL from environment variable
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://aquagas-backend.onrender.com/api/v1').replace(/\/$/, '');
+const API_BASE_URL = (
+  process.env.NEXT_PUBLIC_API_URL || 'https://aquagas-backend.onrender.com/api/v1'
+).replace(/\/$/, '');
 
 // Create axios instance
 const api: AxiosInstance = axios.create({
@@ -48,25 +58,25 @@ const api: AxiosInstance = axios.create({
   },
 });
 
-// Request interceptor - Add auth token to requests
+// ── Request interceptor ──────────────────────────────────────────────
+// Reads token fresh on every request so tokens written just before
+// a refreshUser() call (phone OTP flow) are picked up immediately.
 api.interceptors.request.use(
   (config) => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+    const token =
+      typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Response interceptor - Handle errors globally
+// ── Response interceptor ─────────────────────────────────────────────
 api.interceptors.response.use(
   (response) => response,
   (error: AxiosError<ApiError>) => {
-    // Handle 401 Unauthorized
     if (error.response?.status === 401) {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('authToken');
@@ -74,7 +84,6 @@ api.interceptors.response.use(
       }
     }
 
-    // Handle network errors
     if (!error.response) {
       return Promise.reject({
         success: false,
@@ -83,7 +92,6 @@ api.interceptors.response.use(
       });
     }
 
-    // Return formatted error
     return Promise.reject(
       error.response?.data || {
         success: false,
@@ -100,12 +108,8 @@ api.interceptors.response.use(
 export const authService = {
   /**
    * Register a new user
-   *
-   * FIXED: was POST /auth/register → backend has no such route → 404
-   * CORRECT: POST /auth/register/user  (routes/auth.js)
-   *
-   * FIXED: backend returns user.first_name + user.last_name, not always user.full_name
-   *        Added safe fallback to build name from parts.
+   * Endpoint: POST /auth/register/user
+   * Backend returns: { message, token, role, redirect, user }
    */
   register: async (userData: RegisterData): Promise<ApiResponse<AuthResponse>> => {
     const response = await api.post('/auth/register/user', {
@@ -115,13 +119,13 @@ export const authService = {
       password: userData.password,
     });
 
-    // Backend returns: { message, token, role, redirect, user }
     const backendData = response.data;
 
     const user: User = {
       id: backendData.user.user_id,
-      name: backendData.user.full_name
-        || `${backendData.user.first_name ?? ''} ${backendData.user.last_name ?? ''}`.trim(),
+      name:
+        backendData.user.full_name ||
+        `${backendData.user.first_name ?? ''} ${backendData.user.last_name ?? ''}`.trim(),
       email: backendData.user.email,
       phone: backendData.user.phone_number || '',
       wallet: 0,
@@ -138,15 +142,14 @@ export const authService = {
 
   /**
    * Login user
+   * Endpoint: POST /auth/login
+   * Backend returns: { message, token, role, redirect, account, roleData }
    */
   login: async (credentials: LoginCredentials): Promise<ApiResponse<AuthResponse>> => {
     const response = await api.post('/auth/login', credentials);
 
-    // Backend returns: { message, token, role, redirect, account, roleData }
-    // Transform to match AuthResponse format
     const backendData = response.data;
 
-    // Build user object from roleData (for 'user' role)
     let user: User | null = null;
 
     if (backendData.roleData && backendData.role === 'user') {
@@ -154,7 +157,10 @@ export const authService = {
         id: backendData.account.account_id,
         name: `${backendData.roleData.first_name || ''} ${backendData.roleData.last_name || ''}`.trim(),
         email: backendData.account.email,
-        phone: backendData.roleData.phone_number || backendData.account.phone_number || '',
+        phone:
+          backendData.roleData.phone_number ||
+          backendData.account.phone_number ||
+          '',
         wallet: backendData.roleData.wallet_balance || 0,
         address: backendData.roleData.address || undefined,
       };
@@ -179,24 +185,36 @@ export const authService = {
 
   /**
    * Get current user profile
+   * Endpoint: GET /auth/profile
+   * Backend returns: { account, profile, role, profile_completed, password_set }
+   *
+   * FIX: Previously returned response.data directly (the raw backend body).
+   * AuthContext.refreshUser() then did response.data again → undefined.
+   * Now wrapped so AuthContext receives the backend body at response.data.
    */
   getProfile: async (): Promise<ApiResponse<User>> => {
-    const response = await api.get<ApiResponse<User>>('/auth/profile');
-    return response.data;
+    const response = await api.get('/auth/profile');
+    // response.data = { account, profile, role, ... }
+    // Wrap so callers get: { success, data: { account, profile, role, ... } }
+    return { success: true, data: response.data };
   },
 
   /**
    * Update user profile
+   * FIX: Same wrapping fix applied for consistency.
    */
   updateProfile: async (profileData: Partial<User>): Promise<ApiResponse<User>> => {
-    const response = await api.put<ApiResponse<User>>('/auth/profile', profileData);
-    return response.data;
+    const response = await api.put('/auth/profile', profileData);
+    return { success: true, data: response.data };
   },
 
   /**
    * Change password
    */
-  changePassword: async (data: { current_password: string; new_password: string }): Promise<ApiResponse<null>> => {
+  changePassword: async (data: {
+    current_password: string;
+    new_password: string;
+  }): Promise<ApiResponse<null>> => {
     const response = await api.put<ApiResponse<null>>('/auth/password', data);
     return response.data;
   },
@@ -212,7 +230,10 @@ export const authService = {
   /**
    * Reset password with token
    */
-  resetPassword: async (token: string, newPassword: string): Promise<ApiResponse<null>> => {
+  resetPassword: async (
+    token: string,
+    newPassword: string
+  ): Promise<ApiResponse<null>> => {
     const response = await api.post<ApiResponse<null>>('/auth/reset-password', {
       token,
       new_password: newPassword,
@@ -224,46 +245,37 @@ export const authService = {
 // ============================================================
 // Outlet Service
 // ============================================================
-
 export const outletService = {
-  /**
-   * Get nearby outlets based on location
-   */
-  getNearbyOutlets: async (params: NearbyOutletsParams): Promise<ApiResponse<Outlet[]>> => {
+  getNearbyOutlets: async (
+    params: NearbyOutletsParams
+  ): Promise<ApiResponse<Outlet[]>> => {
     const response = await api.get<ApiResponse<Outlet[]>>('/outlets/nearby', { params });
     return response.data;
   },
 
-  /**
-   * Get single outlet by ID
-   */
   getOutlet: async (outletId: string): Promise<ApiResponse<Outlet>> => {
     const response = await api.get<ApiResponse<Outlet>>(`/outlets/${outletId}`);
     return response.data;
   },
 
-  /**
-   * Get all outlets with pagination
-   */
-  getAllOutlets: async (params?: OutletQueryParams): Promise<PaginatedResponse<Outlet>> => {
+  getAllOutlets: async (
+    params?: OutletQueryParams
+  ): Promise<PaginatedResponse<Outlet>> => {
     const response = await api.get<PaginatedResponse<Outlet>>('/outlets', { params });
     return response.data;
   },
 
-  /**
-   * Get products for a specific outlet
-   */
   getOutletProducts: async (
     outletId: string,
     params?: OutletProductsParams
   ): Promise<PaginatedResponse<Product>> => {
-    const response = await api.get<PaginatedResponse<Product>>(`/outlets/${outletId}/products`, { params });
+    const response = await api.get<PaginatedResponse<Product>>(
+      `/outlets/${outletId}/products`,
+      { params }
+    );
     return response.data;
   },
 
-  /**
-   * Search outlets
-   */
   searchOutlets: async (query: string): Promise<ApiResponse<Outlet[]>> => {
     const response = await api.get<ApiResponse<Outlet[]>>('/outlets/search', {
       params: { q: query },
@@ -273,104 +285,80 @@ export const outletService = {
 };
 
 // ============================================================
-// Product Service - UPDATED TO MATCH BACKEND
+// Product Service
 // ============================================================
-
 export const productService = {
-  /**
-   * Get all products with filters
-   */
-  getProducts: async (params?: ProductQueryParams, signal?: AbortSignal): Promise<Product[]> => {
-    try {
-      const response = await api.get<{ products: Product[] }>('/products', { params, signal });
-      return response.data.products || [];
-    } catch (error) {
-      console.error('Error fetching products:', error);
-      throw error;
-    }
+  getProducts: async (
+    params?: ProductQueryParams,
+    signal?: AbortSignal
+  ): Promise<Product[]> => {
+    const response = await api.get<{ products: Product[] }>('/products', {
+      params,
+      signal,
+    });
+    return response.data.products || [];
   },
 
-  /**
-   * Get single product by ID
-   */
-  getProduct: async (productId: string | number, signal?: AbortSignal): Promise<Product> => {
+  getProduct: async (
+    productId: string | number,
+    signal?: AbortSignal
+  ): Promise<Product> => {
     if (!productId) throw new Error('Product ID is required');
-    try {
-      const response = await api.get<Product>(`/products/${productId}`, { signal });
-      return response.data;
-    } catch (error) {
-      console.error(`Error fetching product ${productId}:`, error);
-      throw error;
-    }
+    const response = await api.get<Product>(`/products/${productId}`, { signal });
+    return response.data;
   },
 
-  /**
-   * Get featured products
-   */
-  getFeaturedProducts: async (limit: number = 10, signal?: AbortSignal): Promise<Product[]> => {
-    try {
-      const response = await api.get<Product[]>('/products/featured', { params: { limit }, signal });
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching featured products:', error);
-      throw error;
-    }
+  getFeaturedProducts: async (
+    limit: number = 10,
+    signal?: AbortSignal
+  ): Promise<Product[]> => {
+    const response = await api.get<Product[]>('/products/featured', {
+      params: { limit },
+      signal,
+    });
+    return response.data;
   },
 
-  /**
-   * Search products
-   */
-  searchProducts: async (query: string, category?: string, signal?: AbortSignal): Promise<Product[]> => {
+  searchProducts: async (
+    query: string,
+    category?: string,
+    signal?: AbortSignal
+  ): Promise<Product[]> => {
     if (!query?.trim()) throw new Error('Search query is required');
-    try {
-      const response = await api.get<Product[]>('/products/search', {
-        params: { q: query, category },
-        signal,
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error searching products:', error);
-      throw error;
-    }
+    const response = await api.get<Product[]>('/products/search', {
+      params: { q: query, category },
+      signal,
+    });
+    return response.data;
   },
 
-  /**
-   * Get product categories
-   */
   getCategories: async (signal?: AbortSignal): Promise<ProductCategory[]> => {
-    try {
-      const response = await api.get<ProductCategory[]>('/products/categories', { signal });
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching categories:', error);
-      throw error;
-    }
+    const response = await api.get<ProductCategory[]>('/products/categories', {
+      signal,
+    });
+    return response.data;
   },
 
-  /**
-   * Get nearby products based on location
-   */
-  getNearbyProducts: async (params: NearbyProductsParams, signal?: AbortSignal): Promise<NearbyProductsResponse> => {
+  getNearbyProducts: async (
+    params: NearbyProductsParams,
+    signal?: AbortSignal
+  ): Promise<NearbyProductsResponse> => {
     const { lat, lng, radius = 50 } = params;
     if (!lat || !lng) throw new Error('Latitude and longitude are required');
-    if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+    if (
+      isNaN(lat) || isNaN(lng) ||
+      lat < -90 || lat > 90 ||
+      lng < -180 || lng > 180
+    ) {
       throw new Error('Invalid latitude or longitude values');
     }
-    try {
-      const response = await api.get<NearbyProductsResponse>('/products/nearby', {
-        params: { lat, lng, radius },
-        signal,
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching nearby products:', error);
-      throw error;
-    }
+    const response = await api.get<NearbyProductsResponse>('/products/nearby', {
+      params: { lat, lng, radius },
+      signal,
+    });
+    return response.data;
   },
 
-  /**
-   * Check product availability at nearby locations
-   */
   checkAvailability: async (
     productId: string | number,
     lat?: number,
@@ -378,83 +366,70 @@ export const productService = {
     signal?: AbortSignal
   ): Promise<AvailabilityResponse> => {
     if (!productId) throw new Error('Product ID is required');
-    try {
-      const response = await api.get<AvailabilityResponse>(`/products/${productId}/availability`, {
-        params: { lat, lng },
-        signal,
-      });
-      return response.data;
-    } catch (error) {
-      console.error(`Error checking availability for product ${productId}:`, error);
-      throw error;
-    }
+    const response = await api.get<AvailabilityResponse>(
+      `/products/${productId}/availability`,
+      { params: { lat, lng }, signal }
+    );
+    return response.data;
   },
 
-  /**
-   * Get vendors selling a specific product
-   */
-  getProductVendors: async (productId: string | number, signal?: AbortSignal): Promise<VendorLocation[]> => {
+  getProductVendors: async (
+    productId: string | number,
+    signal?: AbortSignal
+  ): Promise<VendorLocation[]> => {
     if (!productId) throw new Error('Product ID is required');
-    try {
-      const response = await api.get<VendorLocation[]>(`/products/${productId}/vendors`, { signal });
-      return response.data;
-    } catch (error) {
-      console.error(`Error fetching vendors for product ${productId}:`, error);
-      throw error;
-    }
+    const response = await api.get<VendorLocation[]>(
+      `/products/${productId}/vendors`,
+      { signal }
+    );
+    return response.data;
   },
 
-  /**
-   * Get products by multiple IDs (batch fetch)
-   */
-  getProductsByIds: async (productIds: (string | number)[], signal?: AbortSignal): Promise<Product[]> => {
+  getProductsByIds: async (
+    productIds: (string | number)[],
+    signal?: AbortSignal
+  ): Promise<Product[]> => {
     if (!productIds?.length) throw new Error('Product IDs are required');
-    try {
-      const response = await api.get<{ success: boolean; products: Product[] }>('/products/batch', {
-        params: { ids: productIds.join(',') },
-        signal,
-      });
-      return response.data.products || [];
-    } catch (error) {
-      console.error('Error fetching products by IDs:', error);
-      throw error;
-    }
+    const response = await api.get<{ success: boolean; products: Product[] }>(
+      '/products/batch',
+      { params: { ids: productIds.join(',') }, signal }
+    );
+    return response.data.products || [];
   },
 
-  /**
-   * Get related/similar products
-   */
-  getRelatedProducts: async (productId: string | number, limit: number = 4, signal?: AbortSignal): Promise<Product[]> => {
+  getRelatedProducts: async (
+    productId: string | number,
+    limit: number = 4,
+    signal?: AbortSignal
+  ): Promise<Product[]> => {
     if (!productId) throw new Error('Product ID is required');
     try {
-      const response = await api.get<{ success: boolean; data: Product[] }>(`/products/${productId}/related`, {
-        params: { limit },
-        signal,
-      });
+      const response = await api.get<{ success: boolean; data: Product[] }>(
+        `/products/${productId}/related`,
+        { params: { limit }, signal }
+      );
       return response.data.data || [];
-    } catch (error) {
-      console.error(`Error fetching related products for ${productId}:`, error);
+    } catch {
       return [];
     }
   },
 
-  /**
-   * Get product reviews
-   */
-  getProductReviews: async (productId: string | number, signal?: AbortSignal): Promise<any[]> => {
+  getProductReviews: async (
+    productId: string | number,
+    signal?: AbortSignal
+  ): Promise<any[]> => {
     if (!productId) throw new Error('Product ID is required');
     try {
-      const response = await api.get<{ success: boolean; reviews: any[] }>(`/products/${productId}/reviews`, { signal });
+      const response = await api.get<{ success: boolean; reviews: any[] }>(
+        `/products/${productId}/reviews`,
+        { signal }
+      );
       return response.data.reviews || [];
-    } catch (error) {
-      console.error(`Error fetching reviews for product ${productId}:`, error);
+    } catch {
       return [];
     }
   },
 
-  /**
-   * Add product review
-   */
   addProductReview: async (
     productId: string | number,
     reviewData: { rating: number; comment: string },
@@ -464,66 +439,63 @@ export const productService = {
     if (!reviewData.rating || reviewData.rating < 1 || reviewData.rating > 5) {
       throw new Error('Rating must be between 1 and 5');
     }
-    try {
-      const response = await api.post(`/products/${productId}/reviews`, reviewData, { signal });
-      return response.data;
-    } catch (error) {
-      console.error(`Error adding review for product ${productId}:`, error);
-      throw error;
-    }
+    const response = await api.post(
+      `/products/${productId}/reviews`,
+      reviewData,
+      { signal }
+    );
+    return response.data;
   },
 };
 
 // ============================================================
 // Order Service
 // ============================================================
-
 export const orderService = {
-  /**
-   * Create a new order
-   */
   createOrder: async (orderData: CreateOrderData): Promise<ApiResponse<Order>> => {
     const response = await api.post<ApiResponse<Order>>('/orders/draft', orderData);
     return response.data;
   },
 
-  /**
-   * Get all orders for current user
-   */
-  getOrders: async (params?: OrderQueryParams): Promise<PaginatedResponse<Order>> => {
-    const response = await api.get<PaginatedResponse<Order>>('/orders/user', { params });
+  getOrders: async (
+    params?: OrderQueryParams
+  ): Promise<PaginatedResponse<Order>> => {
+    const response = await api.get<PaginatedResponse<Order>>('/orders/user', {
+      params,
+    });
     return response.data;
   },
 
-  /**
-   * Get single order by ID
-   */
   getOrder: async (orderId: string): Promise<ApiResponse<Order>> => {
     const response = await api.get<ApiResponse<Order>>(`/orders/${orderId}`);
     return response.data;
   },
 
-  /**
-   * Cancel an order
-   */
-  cancelOrder: async (orderId: string, reason?: string): Promise<ApiResponse<Order>> => {
-    const response = await api.put<ApiResponse<Order>>(`/orders/${orderId}/cancel`, { reason });
+  cancelOrder: async (
+    orderId: string,
+    reason?: string
+  ): Promise<ApiResponse<Order>> => {
+    const response = await api.put<ApiResponse<Order>>(
+      `/orders/${orderId}/cancel`,
+      { reason }
+    );
     return response.data;
   },
 
-  /**
-   * Track order status
-   */
   trackOrder: async (orderId: string): Promise<ApiResponse<Order>> => {
     const response = await api.get<ApiResponse<Order>>(`/orders/${orderId}/track`);
     return response.data;
   },
 
-  /**
-   * Rate an order
-   */
-  rateOrder: async (orderId: string, rating: number, review?: string): Promise<ApiResponse<null>> => {
-    const response = await api.post<ApiResponse<null>>(`/orders/${orderId}/rate`, { rating, review });
+  rateOrder: async (
+    orderId: string,
+    rating: number,
+    review?: string
+  ): Promise<ApiResponse<null>> => {
+    const response = await api.post<ApiResponse<null>>(
+      `/orders/${orderId}/rate`,
+      { rating, review }
+    );
     return response.data;
   },
 };
@@ -531,118 +503,133 @@ export const orderService = {
 // ============================================================
 // Wallet Service
 // ============================================================
-
 export const walletService = {
-  /**
-   * Get wallet balance
-   */
   getBalance: async (): Promise<ApiResponse<{ balance: number }>> => {
-    const response = await api.get<ApiResponse<{ balance: number }>>('/wallet/balance');
+    const response = await api.get<ApiResponse<{ balance: number }>>(
+      '/wallet/balance'
+    );
     return response.data;
   },
 
-  /**
-   * Get wallet transactions
-   */
-  getTransactions: async (params?: { page?: number; limit?: number }): Promise<PaginatedResponse<WalletTransaction>> => {
-    const response = await api.get<PaginatedResponse<WalletTransaction>>('/wallet/transactions', { params });
+  getTransactions: async (params?: {
+    page?: number;
+    limit?: number;
+  }): Promise<PaginatedResponse<WalletTransaction>> => {
+    const response = await api.get<PaginatedResponse<WalletTransaction>>(
+      '/wallet/transactions',
+      { params }
+    );
     return response.data;
   },
 
-  /**
-   * Add money to wallet
-   */
-  addMoney: async (data: AddMoneyData): Promise<ApiResponse<WalletTransaction>> => {
-    const response = await api.post<ApiResponse<WalletTransaction>>('/wallet/add-money', data);
+  addMoney: async (
+    data: AddMoneyData
+  ): Promise<ApiResponse<WalletTransaction>> => {
+    const response = await api.post<ApiResponse<WalletTransaction>>(
+      '/wallet/add-money',
+      data
+    );
     return response.data;
   },
 
-  /**
-   * Withdraw money from wallet
-   */
-  withdrawMoney: async (amount: number, bankDetails: any): Promise<ApiResponse<WalletTransaction>> => {
-    const response = await api.post<ApiResponse<WalletTransaction>>('/wallet/withdraw', {
-      amount,
-      bank_details: bankDetails,
-    });
+  withdrawMoney: async (
+    amount: number,
+    bankDetails: any
+  ): Promise<ApiResponse<WalletTransaction>> => {
+    const response = await api.post<ApiResponse<WalletTransaction>>(
+      '/wallet/withdraw',
+      { amount, bank_details: bankDetails }
+    );
     return response.data;
   },
 };
 
 // ============================================================
-// Vendor Service (for vendor/admin users)
+// Vendor Service
 // ============================================================
-
 export const vendorService = {
-  /**
-   * Get vendor's outlets
-   */
-  getVendorOutlets: async (params?: OutletQueryParams): Promise<PaginatedResponse<Outlet>> => {
-    const response = await api.get<PaginatedResponse<Outlet>>('/vendor/outlets', { params });
+  getVendorOutlets: async (
+    params?: OutletQueryParams
+  ): Promise<PaginatedResponse<Outlet>> => {
+    const response = await api.get<PaginatedResponse<Outlet>>('/vendor/outlets', {
+      params,
+    });
     return response.data;
   },
 
-  /**
-   * Create new outlet
-   */
-  createOutlet: async (outletData: Partial<Outlet>): Promise<ApiResponse<Outlet>> => {
-    const response = await api.post<ApiResponse<Outlet>>('/vendor/outlets', outletData);
+  createOutlet: async (
+    outletData: Partial<Outlet>
+  ): Promise<ApiResponse<Outlet>> => {
+    const response = await api.post<ApiResponse<Outlet>>(
+      '/vendor/outlets',
+      outletData
+    );
     return response.data;
   },
 
-  /**
-   * Update outlet
-   */
-  updateOutlet: async (outletId: string, outletData: Partial<Outlet>): Promise<ApiResponse<Outlet>> => {
-    const response = await api.put<ApiResponse<Outlet>>(`/vendor/outlets/${outletId}`, outletData);
+  updateOutlet: async (
+    outletId: string,
+    outletData: Partial<Outlet>
+  ): Promise<ApiResponse<Outlet>> => {
+    const response = await api.put<ApiResponse<Outlet>>(
+      `/vendor/outlets/${outletId}`,
+      outletData
+    );
     return response.data;
   },
 
-  /**
-   * Delete outlet
-   */
   deleteOutlet: async (outletId: string): Promise<ApiResponse<null>> => {
-    const response = await api.delete<ApiResponse<null>>(`/vendor/outlets/${outletId}`);
+    const response = await api.delete<ApiResponse<null>>(
+      `/vendor/outlets/${outletId}`
+    );
     return response.data;
   },
 
-  /**
-   * Create product for outlet
-   */
-  createProduct: async (productData: CreateProductData): Promise<ApiResponse<Product>> => {
-    const response = await api.post<ApiResponse<Product>>('/vendor/products', productData);
+  createProduct: async (
+    productData: CreateProductData
+  ): Promise<ApiResponse<Product>> => {
+    const response = await api.post<ApiResponse<Product>>(
+      '/vendor/products',
+      productData
+    );
     return response.data;
   },
 
-  /**
-   * Update product
-   */
-  updateProduct: async (productId: string, productData: Partial<Product>): Promise<ApiResponse<Product>> => {
-    const response = await api.put<ApiResponse<Product>>(`/vendor/products/${productId}`, productData);
+  updateProduct: async (
+    productId: string,
+    productData: Partial<Product>
+  ): Promise<ApiResponse<Product>> => {
+    const response = await api.put<ApiResponse<Product>>(
+      `/vendor/products/${productId}`,
+      productData
+    );
     return response.data;
   },
 
-  /**
-   * Delete product
-   */
   deleteProduct: async (productId: string): Promise<ApiResponse<null>> => {
-    const response = await api.delete<ApiResponse<null>>(`/vendor/products/${productId}`);
+    const response = await api.delete<ApiResponse<null>>(
+      `/vendor/products/${productId}`
+    );
     return response.data;
   },
 
-  /**
-   * Get vendor orders
-   */
-  getVendorOrders: async (params?: OrderQueryParams): Promise<PaginatedResponse<Order>> => {
-    const response = await api.get<PaginatedResponse<Order>>('/vendor/orders', { params });
+  getVendorOrders: async (
+    params?: OrderQueryParams
+  ): Promise<PaginatedResponse<Order>> => {
+    const response = await api.get<PaginatedResponse<Order>>('/vendor/orders', {
+      params,
+    });
     return response.data;
   },
 
-  /**
-   * Update order status
-   */
-  updateOrderStatus: async (orderId: string, status: string): Promise<ApiResponse<Order>> => {
-    const response = await api.put<ApiResponse<Order>>(`/vendor/orders/${orderId}/status`, { status });
+  updateOrderStatus: async (
+    orderId: string,
+    status: string
+  ): Promise<ApiResponse<Order>> => {
+    const response = await api.put<ApiResponse<Order>>(
+      `/vendor/orders/${orderId}/status`,
+      { status }
+    );
     return response.data;
   },
 };
@@ -650,5 +637,4 @@ export const vendorService = {
 // ============================================================
 // Export default api instance
 // ============================================================
-
 export default api;
