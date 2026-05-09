@@ -1,172 +1,348 @@
-// Partners.jsx
 import React from 'react';
-import {
-  Users,
-  Truck,
-  Building2,
-  CheckCircle,
-  ArrowRight,
-  ChevronRight,
-  ShieldCheck,
-  DollarSign,
-  Clock,
-  Zap
-} from 'lucide-react';
+import { Users, Truck, Building2, CheckCircle, ArrowRight, ChevronRight, ShieldCheck, DollarSign, Clock, Zap } from 'lucide-react';
+
+const ag = {
+  forest: '#0A3D2B', forestDk: '#072A1E',
+  flame: '#E8621A', gold: '#C9A44A',
+  cream: '#FAFAF7', text: '#0F1A14',
+  mid: '#3D5246', border: '#D9E8DF',
+};
+
+const styles = `
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Outfit:wght@300;400;500;600;700&display=swap');
+  .ag-display { font-family: 'Cormorant Garamond', serif; }
+  .ag-body   { font-family: 'Outfit', sans-serif; }
+  .partner-tab { transition: background 0.2s, color 0.2s, border-color 0.2s; }
+  .partner-tab:hover { border-color: #0A3D2B !important; }
+  .benefit-card:hover { transform: translateY(-3px); box-shadow: 0 16px 40px rgba(10,61,43,0.1); }
+  .benefit-card { transition: transform 0.3s, box-shadow 0.3s; }
+  .req-item { transition: background 0.2s; }
+  .req-item:hover { background: #0A3D2B10 !important; }
+`;
+
+function StatBadge({ num, label }: { num: string, label: string }) {
+  return (
+    <div style={{ textAlign:'center', padding:'1.25rem' }}>
+      <div className="ag-display" style={{
+        fontSize:'2.2rem', fontWeight:600, color: ag.forest,
+        lineHeight:1, fontStyle:'italic', marginBottom:'6px'
+      }}>{num}</div>
+      <div style={{ fontSize:'0.82rem', color: ag.mid, fontWeight:500 }}>{label}</div>
+    </div>
+  );
+}
 
 export default function Partners() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+    <>
+      <style>{styles}</style>
+      <div className="ag-body" style={{ background: ag.cream, color: ag.text }}>
 
-      {/* HERO */}
-      <section className="relative bg-gradient-to-br from-green-700 via-green-600 to-green-500 text-white pt-28 pb-36">
-        <div className="max-w-7xl mx-auto px-6 text-center">
-          <span className="inline-block mb-6 px-6 py-2 bg-white/15 rounded-full text-sm font-medium">
-            AquaGas Partner Network • Kenya
-          </span>
+        {/* ── HERO ─────────────────────────────────────────────────── */}
+        <section style={{
+          background: ag.forestDk, position:'relative',
+          overflow:'hidden', padding:'5rem 0 8rem'
+        }}>
+          {[600, 440].map((size, i) => (
+            <div key={i} style={{
+              position:'absolute', top:'50%', left:'-160px',
+              transform:'translateY(-50%)',
+              width:`${size}px`, height:`${size}px`, borderRadius:'50%',
+              border:`1px solid rgba(201,164,74,${0.06 + i * 0.04})`, pointerEvents:'none'
+            }}/>
+          ))}
+          <div style={{
+            position:'absolute', bottom:0, left:0, right:0, height:'1px',
+            background:`linear-gradient(90deg, transparent, ${ag.gold}40, transparent)`
+          }}/>
 
-          <h1 className="text-4xl md:text-6xl font-extrabold leading-tight mb-6">
-            Partner With a Trusted <br />
-            <span className="text-green-900">EPRA-Aligned LPG Platform</span>
-          </h1>
+          <div className="container mx-auto px-6" style={{ textAlign:'center', position:'relative' }}>
+            <span style={{
+              display:'inline-block', padding:'6px 18px', borderRadius:'100px',
+              border:`1px solid rgba(255,255,255,0.15)`,
+              color:'rgba(255,255,255,0.7)', fontSize:'0.78rem',
+              letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:'1.75rem'
+            }}>AquaGas Partner Network · Kenya</span>
 
-          <p className="text-xl text-white/90 max-w-3xl mx-auto mb-8">
-            AquaGas connects verified LPG vendors and certified delivery riders
-            to thousands of households — safely, reliably, and transparently.
-          </p>
+            <h1 className="ag-display" style={{
+              fontSize:'clamp(2.8rem, 7vw, 5rem)', fontWeight:600,
+              color:'#fff', lineHeight:1.08, marginBottom:'1.5rem'
+            }}>
+              Partner With a<br />
+              <em style={{ color: ag.gold }}>Trusted LPG Platform</em>
+            </h1>
 
-          {/* EPRA Badge */}
-          <div className="flex justify-center mt-6">
-            <div className="flex items-center gap-3 bg-white text-green-900 px-6 py-3 rounded-xl shadow-md">
-              <ShieldCheck className="text-green-600" />
-              <div className="text-left">
-                <p className="font-semibold">EPRA Safety Aligned</p>
-                <p className="text-sm text-gray-600">LPG handling & delivery standards</p>
+            <p style={{
+              color:'rgba(255,255,255,0.6)', fontSize:'1.1rem',
+              maxWidth:'520px', margin:'0 auto 2rem', lineHeight:1.75
+            }}>
+              AquaGas connects verified LPG vendors and certified delivery riders to thousands of households — safely, reliably, and transparently.
+            </p>
+
+            {/* EPRA badge */}
+            <div style={{ display:'flex', justifyContent:'center', marginBottom:'2.5rem' }}>
+              <div style={{
+                display:'inline-flex', alignItems:'center', gap:'12px',
+                background:'rgba(255,255,255,0.08)',
+                border:'1px solid rgba(201,164,74,0.3)',
+                padding:'12px 20px', borderRadius:'12px'
+              }}>
+                <ShieldCheck size={20} color={ag.gold} />
+                <div style={{ textAlign:'left' }}>
+                  <p style={{ fontWeight:600, color:'#fff', fontSize:'0.9rem' }}>EPRA Safety Aligned</p>
+                  <p style={{ color:'rgba(255,255,255,0.5)', fontSize:'0.78rem' }}>LPG handling & delivery standards</p>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display:'flex', justifyContent:'center', gap:'1rem', flexWrap:'wrap' }}>
+              <a href="#vendor" style={{
+                display:'inline-flex', alignItems:'center', gap:'8px',
+                background: ag.flame, color:'#fff',
+                padding:'14px 28px', borderRadius:'8px',
+                fontWeight:600, fontSize:'0.95rem', textDecoration:'none'
+              }}>Apply as LPG Vendor <ArrowRight size={18} /></a>
+              <a href="#rider" style={{
+                display:'inline-flex', alignItems:'center',
+                padding:'14px 28px', borderRadius:'8px',
+                border:'1px solid rgba(255,255,255,0.25)',
+                color:'#fff', fontWeight:500, fontSize:'0.95rem', textDecoration:'none'
+              }}>Apply as Delivery Rider</a>
+            </div>
+          </div>
+        </section>
+
+        {/* ── BENEFIT CARDS ────────────────────────────────────────── */}
+        <section style={{ padding:'0 0 4rem' }}>
+          <div className="container mx-auto px-6">
+            <div style={{
+              display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(200px, 1fr))',
+              gap:'1.25rem', marginTop:'-3.5rem'
+            }}>
+              {[
+                { icon: Users, title:'Verified Customers', desc:'Access thousands of active gas users in Nairobi', accent: ag.flame },
+                { icon: Zap, title:'Fast Settlements', desc:'Mobile money payouts — no delays', accent: ag.forest },
+                { icon: ShieldCheck, title:'Safety First', desc:'Compliance and training support included', accent: ag.gold },
+                { icon: DollarSign, title:'Predictable Earnings', desc:'Transparent, competitive commission model', accent: ag.flame },
+              ].map((b, i) => (
+                <div key={i} className="benefit-card" style={{
+                  background:'#fff', borderRadius:'14px', padding:'1.75rem',
+                  textAlign:'center', border:`1px solid ${ag.border}`,
+                  boxShadow:'0 4px 20px rgba(10,61,43,0.06)'
+                }}>
+                  <div style={{
+                    width:'48px', height:'48px', borderRadius:'10px',
+                    background:`${b.accent}12`,
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                    margin:'0 auto 0.85rem'
+                  }}>
+                    <b.icon size={22} color={b.accent} />
+                  </div>
+                  <h3 style={{ fontWeight:600, color: ag.text, fontSize:'0.95rem', marginBottom:'0.5rem' }}>{b.title}</h3>
+                  <p style={{ color: ag.mid, fontSize:'0.83rem', lineHeight:1.6 }}>{b.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── VENDORS ──────────────────────────────────────────────── */}
+        <section id="vendor" style={{ padding:'5rem 0', background:'#fff' }}>
+          <div className="container mx-auto px-6">
+            <div style={{
+              display:'grid', gridTemplateColumns:'1fr 1fr', gap:'4rem',
+              alignItems:'center', maxWidth:'1000px', margin:'0 auto'
+            }}>
+              <div>
+                <span style={{
+                  display:'inline-block', padding:'5px 16px',
+                  background:`${ag.forest}10`, borderRadius:'100px',
+                  color: ag.forest, fontSize:'0.78rem', fontWeight:700,
+                  letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:'1.25rem'
+                }}>LPG Vendors</span>
+
+                <h2 className="ag-display" style={{
+                  fontSize:'clamp(1.8rem, 3.5vw, 2.5rem)', fontWeight:600,
+                  color: ag.text, lineHeight:1.15, marginBottom:'1.5rem'
+                }}>
+                  Scale Your Business<br />
+                  <em style={{ color: ag.forest }}>With Confidence</em>
+                </h2>
+
+                <ul style={{ display:'flex', flexDirection:'column', gap:'0.85rem', marginBottom:'2rem' }}>
+                  {[
+                    'Order & inventory management',
+                    'Access to verified customer base',
+                    'Secure digital payments',
+                    'EPRA-aligned safety standards',
+                  ].map((item, i) => (
+                    <li key={i} style={{ display:'flex', alignItems:'center', gap:'12px', color: ag.mid, fontSize:'0.95rem' }}>
+                      <CheckCircle size={17} color={ag.forest} style={{ flexShrink:0 }} />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+
+                <div style={{
+                  background: ag.cream, borderRadius:'12px',
+                  padding:'1.5rem', border:`1px solid ${ag.border}`, marginBottom:'2rem'
+                }}>
+                  <h4 style={{ fontWeight:600, color: ag.text, fontSize:'0.9rem', marginBottom:'0.85rem' }}>
+                    Vendor Requirements
+                  </h4>
+                  {[
+                    'Business registration certificate',
+                    'LPG safety compliance documentation',
+                    'Minimum stock availability',
+                    'Safety inspection readiness',
+                  ].map((req, i) => (
+                    <div key={i} className="req-item" style={{
+                      display:'flex', alignItems:'center', gap:'10px',
+                      padding:'8px 10px', borderRadius:'6px',
+                      fontSize:'0.85rem', color: ag.mid
+                    }}>
+                      <span style={{ width:'5px', height:'5px', borderRadius:'50%', background: ag.flame, flexShrink:0 }}/>
+                      {req}
+                    </div>
+                  ))}
+                </div>
+
+                <a href="/contact?type=vendor" style={{
+                  display:'inline-flex', alignItems:'center', gap:'8px',
+                  background: ag.forest, color:'#fff',
+                  padding:'14px 24px', borderRadius:'8px',
+                  fontWeight:600, fontSize:'0.9rem', textDecoration:'none'
+                }}>Apply as Verified Vendor <ChevronRight size={17} /></a>
+              </div>
+
+              {/* Stats panel */}
+              <div style={{
+                background: ag.cream, borderRadius:'16px',
+                border:`1px solid ${ag.border}`, overflow:'hidden'
+              }}>
+                <div style={{
+                  background:`linear-gradient(135deg, ${ag.forestDk}, ${ag.forest})`,
+                  padding:'1.75rem 2rem'
+                }}>
+                  <h3 className="ag-display" style={{ fontSize:'1.5rem', fontWeight:600, color:'#fff' }}>Vendor Metrics</h3>
+                </div>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', borderTop:`1px solid ${ag.border}` }}>
+                  {[
+                    { num:'60+', label:'Verified Vendors' },
+                    { num:'30%', label:'Avg Sales Growth' },
+                    { num:'98%', label:'Payment Reliability' },
+                    { num:'Dedicated', label:'Support Line' },
+                  ].map((s, i) => (
+                    <div key={i} style={{
+                      borderRight: i % 2 === 0 ? `1px solid ${ag.border}` : 'none',
+                      borderBottom: i < 2 ? `1px solid ${ag.border}` : 'none'
+                    }}>
+                      <StatBadge num={s.num} label={s.label} />
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
+        </section>
 
-          <div className="flex justify-center gap-6 mt-10 flex-wrap">
-            <a href="#vendor" className="bg-green-900 hover:bg-green-800 px-10 py-4 rounded-xl font-bold flex items-center gap-3">
-              Apply as LPG Vendor <ArrowRight />
-            </a>
-            <a href="#rider" className="border-2 border-white px-10 py-4 rounded-xl font-bold">
-              Apply as Delivery Rider
-            </a>
-          </div>
-        </div>
-      </section>
+        {/* ── RIDERS ───────────────────────────────────────────────── */}
+        <section id="rider" style={{ padding:'5rem 0', background: ag.cream }}>
+          <div className="container mx-auto px-6">
+            <div style={{
+              display:'grid', gridTemplateColumns:'1fr 1fr', gap:'4rem',
+              alignItems:'center', maxWidth:'1000px', margin:'0 auto'
+            }}>
+              {/* Stats panel left */}
+              <div style={{
+                background:'#fff', borderRadius:'16px',
+                border:`1px solid ${ag.border}`, overflow:'hidden',
+                order: 1
+              }}>
+                <div style={{
+                  background:`linear-gradient(135deg, ${ag.forestDk}, ${ag.forest})`,
+                  padding:'1.75rem 2rem'
+                }}>
+                  <h3 className="ag-display" style={{ fontSize:'1.5rem', fontWeight:600, color:'#fff' }}>Rider Metrics</h3>
+                </div>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', borderTop:`1px solid ${ag.border}` }}>
+                  {[
+                    { num:'120+', label:'Active Riders' },
+                    { num:'KES 700+', label:'Per Delivery' },
+                    { num:'95%', label:'On-Time Rate' },
+                    { num:'Weekly', label:'Payouts' },
+                  ].map((s, i) => (
+                    <div key={i} style={{
+                      borderRight: i % 2 === 0 ? `1px solid ${ag.border}` : 'none',
+                      borderBottom: i < 2 ? `1px solid ${ag.border}` : 'none'
+                    }}>
+                      <StatBadge num={s.num} label={s.label} />
+                    </div>
+                  ))}
+                </div>
+              </div>
 
-      {/* BENEFITS */}
-      <section className="-mt-24 relative z-10 pb-20">
-        <div className="max-w-6xl mx-auto px-6 grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[
-            { icon: Users, title: "Verified Customers", desc: "Access thousands of active gas users" },
-            { icon: Zap, title: "Fast Settlements", desc: "Mobile money payouts" },
-            { icon: ShieldCheck, title: "Safety First", desc: "Compliance & training support" },
-            { icon: DollarSign, title: "Predictable Earnings", desc: "Transparent commission model" }
-          ].map((b, i) => (
-            <div key={i} className="bg-white p-6 rounded-2xl shadow-md text-center">
-              <b.icon className="mx-auto text-green-600 mb-3" size={32} />
-              <h3 className="font-bold text-green-900">{b.title}</h3>
-              <p className="text-gray-600 mt-1">{b.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+              <div style={{ order: 2 }}>
+                <span style={{
+                  display:'inline-block', padding:'5px 16px',
+                  background:`${ag.flame}10`, borderRadius:'100px',
+                  color: ag.flame, fontSize:'0.78rem', fontWeight:700,
+                  letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:'1.25rem'
+                }}>Delivery Riders</span>
 
-      {/* VENDORS */}
-      <section id="vendor" className="py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-14 items-center">
-          <div>
-            <span className="inline-block bg-green-100 text-green-800 px-4 py-2 rounded-full mb-4">
-              LPG Vendors
-            </span>
+                <h2 className="ag-display" style={{
+                  fontSize:'clamp(1.8rem, 3.5vw, 2.5rem)', fontWeight:600,
+                  color: ag.text, lineHeight:1.15, marginBottom:'1.5rem'
+                }}>
+                  Certified Delivery<br />
+                  <em style={{ color: ag.flame }}>With Predictable Earnings</em>
+                </h2>
 
-            <h2 className="text-4xl font-bold text-green-950 mb-6">
-              Scale Your LPG Business With Confidence
-            </h2>
+                <ul style={{ display:'flex', flexDirection:'column', gap:'0.85rem', marginBottom:'2rem' }}>
+                  {[
+                    { icon: Truck, label:'Optimised delivery routes' },
+                    { icon: DollarSign, label:'Per-delivery payments' },
+                    { icon: Clock, label:'Flexible shifts' },
+                    { icon: ShieldCheck, label:'Safety training & gear provided' },
+                  ].map((item, i) => (
+                    <li key={i} style={{ display:'flex', alignItems:'center', gap:'12px', color: ag.mid, fontSize:'0.95rem', listStyle:'none' }}>
+                      <item.icon size={17} color={ag.flame} style={{ flexShrink:0 }} />
+                      {item.label}
+                    </li>
+                  ))}
+                </ul>
 
-            <ul className="space-y-5 text-lg text-gray-700 mb-8">
-              <li className="flex gap-3"><CheckCircle className="text-green-600" /> Order & inventory management</li>
-              <li className="flex gap-3"><CheckCircle className="text-green-600" /> Access verified customers</li>
-              <li className="flex gap-3"><CheckCircle className="text-green-600" /> Secure payments</li>
-              <li className="flex gap-3"><CheckCircle className="text-green-600" /> EPRA-aligned safety standards</li>
-            </ul>
+                <div style={{
+                  background:'#fff', borderRadius:'12px',
+                  padding:'1.5rem', border:`1px solid ${ag.border}`, marginBottom:'2rem'
+                }}>
+                  <h4 style={{ fontWeight:600, color: ag.text, fontSize:'0.9rem', marginBottom:'0.85rem' }}>
+                    Rider Requirements
+                  </h4>
+                  {['Valid driving licence', 'Motorcycle with carrier capacity', 'Smartphone & data plan', 'Safety training (provided)'].map((req, i) => (
+                    <div key={i} className="req-item" style={{
+                      display:'flex', alignItems:'center', gap:'10px',
+                      padding:'8px 10px', borderRadius:'6px',
+                      fontSize:'0.85rem', color: ag.mid
+                    }}>
+                      <span style={{ width:'5px', height:'5px', borderRadius:'50%', background: ag.flame, flexShrink:0 }}/>
+                      {req}
+                    </div>
+                  ))}
+                </div>
 
-            {/* Requirements */}
-            <div className="bg-gray-50 border rounded-xl p-6 mb-8">
-              <h4 className="font-bold mb-3">Vendor Requirements</h4>
-              <ul className="text-gray-700 space-y-2">
-                <li>• Business registration</li>
-                <li>• LPG safety compliance</li>
-                <li>• Minimum stock availability</li>
-                <li>• Safety inspection readiness</li>
-              </ul>
-            </div>
-
-            <a href="/contact?type=vendor" className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-xl font-bold inline-flex items-center gap-3">
-              Apply as Verified Vendor <ChevronRight />
-            </a>
-          </div>
-
-          <div className="bg-green-50 rounded-3xl p-10">
-            <h3 className="text-3xl font-bold mb-6 text-green-900">Vendor Metrics</h3>
-            <div className="grid grid-cols-2 gap-6 text-center">
-              <div><p className="text-3xl font-bold text-green-600">60+</p><p>Verified Vendors</p></div>
-              <div><p className="text-3xl font-bold text-green-600">30%</p><p>Avg Sales Growth</p></div>
-              <div><p className="text-3xl font-bold text-green-600">98%</p><p>Payment Reliability</p></div>
-              <div><p className="text-3xl font-bold text-green-600">Dedicated</p><p>Support</p></div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* RIDERS */}
-      <section id="rider" className="py-24 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-14 items-center">
-          <div>
-            <span className="inline-block bg-green-100 text-green-800 px-4 py-2 rounded-full mb-4">
-              Delivery Riders
-            </span>
-
-            <h2 className="text-4xl font-bold text-green-950 mb-6">
-              Certified LPG Delivery With Predictable Earnings
-            </h2>
-
-            <ul className="space-y-5 text-lg text-gray-700 mb-8">
-              <li className="flex gap-3"><Truck className="text-green-600" /> Optimized delivery routes</li>
-              <li className="flex gap-3"><DollarSign className="text-green-600" /> Per-delivery payments</li>
-              <li className="flex gap-3"><Clock className="text-green-600" /> Flexible shifts</li>
-              <li className="flex gap-3"><ShieldCheck className="text-green-600" /> Safety training & gear</li>
-            </ul>
-
-            <div className="bg-gray-50 border rounded-xl p-6 mb-8">
-              <h4 className="font-bold mb-3">Rider Requirements</h4>
-              <ul className="text-gray-700 space-y-2">
-                <li>• Valid driving license</li>
-                <li>• Motorcycle with carrier</li>
-                <li>• Smartphone & data</li>
-                <li>• Safety training (provided)</li>
-              </ul>
-            </div>
-
-            <a href="/contact?type=rider" className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-xl font-bold inline-flex items-center gap-3">
-              Apply as Certified Rider <ChevronRight />
-            </a>
-          </div>
-
-          <div className="bg-white rounded-3xl p-10">
-            <h3 className="text-3xl font-bold mb-6 text-green-900">Rider Metrics</h3>
-            <div className="grid grid-cols-2 gap-6 text-center">
-              <div><p className="text-3xl font-bold text-green-600">120+</p><p>Active Riders</p></div>
-              <div><p className="text-3xl font-bold text-green-600">KES 500–900</p><p>Per Delivery</p></div>
-              <div><p className="text-3xl font-bold text-green-600">95%</p><p>On-Time Rate</p></div>
-              <div><p className="text-3xl font-bold text-green-600">Weekly</p><p>Payouts</p></div>
+                <a href="/contact?type=rider" style={{
+                  display:'inline-flex', alignItems:'center', gap:'8px',
+                  background: ag.flame, color:'#fff',
+                  padding:'14px 24px', borderRadius:'8px',
+                  fontWeight:600, fontSize:'0.9rem', textDecoration:'none'
+                }}>Apply as Certified Rider <ChevronRight size={17} /></a>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-    </div>
+      </div>
+    </>
   );
 }
