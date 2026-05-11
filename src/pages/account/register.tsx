@@ -549,10 +549,10 @@ export default function RegisterPage() {
           <LeftPanel />
         </div>
 
-        {/* ── RIGHT: form ── *//*}
+     //   {/* ── RIGHT: form ── *//*}
         <div className="aq-right">
 
-          {/* Mobile logo bar *//*}
+         // {/* Mobile logo bar *//*}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px 4px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ width: 30, height: 30, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #ea580c, #c2410c)' }}>
@@ -567,13 +567,11 @@ export default function RegisterPage() {
             </Link>
           </div>
 
-          {/* ── Centered form wrapper ── *//*}
+       //   {/* ── Centered form wrapper ── *//*}
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 24px' }}>
             <div style={{ width: '100%', maxWidth: 400 }}>
 
-              {/* ═══════════════════════════════════════ */}
-              {/* METHOD SELECTION                        */}
-              {/* ═══════════════════════════════════════ */}/*
+          //    {/* METHOD SELECTION                        }
               {step === 'method' && (
                 <div className="aq-step">
                   <div style={{ marginBottom: 36 }}>
@@ -632,9 +630,8 @@ export default function RegisterPage() {
                 </div>
               )}
 
-              {/* ═══════════════════════════════════════ */}
-              {/* PHONE ENTRY                             */}
-              {/* ═══════════════════════════════════════ */}/*
+//              {/* PHONE ENTRY    
+
               {step === 'phone-entry' && (
                 <div className="aq-step">
                   <Dots n={3} active={0} />
@@ -665,9 +662,7 @@ export default function RegisterPage() {
                 </div>
               )}
 
-              {/* ═══════════════════════════════════════ */}
-              {/* OTP VERIFICATION                        */}
-              {/* ═══════════════════════════════════════ */}/*
+            //  {/* OTP VERIFICATION                        
               {step === 'phone-otp' && (
                 <div className="aq-step">
                   <Dots n={3} active={1} />
@@ -717,9 +712,9 @@ export default function RegisterPage() {
                 </div>
               )}
 
-              {/* ═══════════════════════════════════════ */}
-              {/* PHONE PROFILE COMPLETION                */}
-              {/* ═══════════════════════════════════════ */}/*
+             //{/* ═══════════════════════════════════════ 
+             // {/* PHONE PROFILE COMPLETION                
+             // {/* ═══════════════════════════════════════ 
               {step === 'phone-profile' && (
                 <div className="aq-step">
                   <Dots n={3} active={2} />
@@ -813,9 +808,9 @@ export default function RegisterPage() {
                 </div>
               )}
 
-              {/* ═══════════════════════════════════════ */}
-              {/* EMAIL + PASSWORD FORM                   */}
-              {/* ═══════════════════════════════════════ */}/*
+             // {/* ═══════════════════════════════════════ 
+             // {/* EMAIL + PASSWORD FORM                  
+            //  {/* ═══════════════════════════════════════ 
               {step === 'email-form' && (
                 <div className="aq-step">
                   <BackBtn onClick={() => setStep('method')} label="Choose another method" />
@@ -898,7 +893,7 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          {/* Footer */}/*
+         // {/* Footer 
           <div style={{ textAlign: 'center', padding: '4px 16px 20px' }}>
             <p style={{ fontSize: 10.5, color: '#d6d3d1', margin: 0 }}>
               © {new Date().getFullYear()} AquaGas Kenya · Nairobi · Secure payments
@@ -910,6 +905,7 @@ export default function RegisterPage() {
   );
 }
  */
+
    // ============================================================
 // FILE: src/pages/account/register.tsx
 //
