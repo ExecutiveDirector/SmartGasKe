@@ -144,7 +144,7 @@ function OutletRow({ outlet, products }: { outlet: Outlet; products: Product[] }
           </div>
         </div>
         <Link
-          href={`/shop/outlet/${outlet.outlet_id || outlet.id}`}
+          href={`/shop/${outlet.outlet_id || outlet.id}`}
           className="flex items-center gap-1 text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex-shrink-0 ml-3"
         >
           View all <ChevronRight size={14} />
