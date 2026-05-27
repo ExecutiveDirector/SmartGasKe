@@ -186,22 +186,9 @@ export default function ShopPage() {
   const [locationName, setLocationName]               = useState<string>('Locating…');
   const [sortBy, setSortBy]                           = useState<'nearest' | 'price-asc' | 'price-desc' | 'rating'>('nearest');
   const [sortOpen, setSortOpen]                       = useState(false);
-  const [isScrolled, setIsScrolled]                   = useState(false);
-  const [searchOpen, setSearchOpen]                   = useState(false);
 
-  const searchRef     = useRef<HTMLInputElement>(null);
-  const heroRef       = useRef<HTMLDivElement>(null);
-  const stickyInputRef = useRef<HTMLInputElement>(null);
-
-  // ── scroll detection ──────────────────────────────────────
-  useEffect(() => {
-    const handleScroll = () => {
-      const heroBottom = heroRef.current?.getBoundingClientRect().bottom ?? 0;
-      setIsScrolled(heroBottom < 0);
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const heroRef   = useRef<HTMLDivElement>(null);
 
   useEffect(() => { getUserLocation(); }, []);
 
@@ -214,13 +201,6 @@ export default function ShopPage() {
     return () => clearTimeout(timer);
   }, [searchInput]);
 
-  // Focus sticky search when opened
-  useEffect(() => {
-    if (searchOpen && stickyInputRef.current) {
-      stickyInputRef.current.focus();
-    }
-  }, [searchOpen]);
-
   // ── reverse geocode to get area name ──────────────────────
   const reverseGeocode = async (lat: number, lng: number) => {
     try {
@@ -229,7 +209,6 @@ export default function ShopPage() {
       );
       const data = await res.json();
       const addr = data.address || {};
-      // Pick the most meaningful granularity
       const name =
         addr.suburb ||
         addr.neighbourhood ||
@@ -425,201 +404,84 @@ export default function ShopPage() {
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/20 to-blue-50/40">
 
         {/* ════════════════════════════════════════════════════
-            STICKY TOP BAR — visible only after hero scrolls away
+            HERO — branding only
         ════════════════════════════════════════════════════ */}
         <div
-          className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${
-            isScrolled
-              ? 'translate-y-0 opacity-100 pointer-events-auto'
-              : '-translate-y-full opacity-0 pointer-events-none'
-          }`}
+          ref={heroRef}
+          className="relative overflow-hidden bg-gradient-to-br from-emerald-700 via-teal-700 to-emerald-800 pt-14 pb-5"
         >
-          <div className="bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-sm">
-            <div className="container mx-auto px-4 h-14 flex items-center gap-3">
-
-              {/* Location pill */}
-              <button
-                onClick={getUserLocation}
-                className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1.5 flex-shrink-0 hover:bg-emerald-100 transition-colors"
-              >
-                <MapPin size={13} className="text-emerald-600" />
-                <span className="text-xs font-semibold text-emerald-700 max-w-[100px] truncate">
-                  {locationName}
-                </span>
-              </button>
-
-              {/* Search bar — expands on open */}
-              <div className="flex-1 relative">
-                {searchOpen ? (
-                  <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-full px-3 py-1.5">
-                    <Search size={14} className="text-gray-400 flex-shrink-0" />
-                    <input
-                      ref={stickyInputRef}
-                      type="text"
-                      value={searchInput}
-                      onChange={(e) => setSearchInput(e.target.value)}
-                      placeholder="Search gas, cylinders…"
-                      className="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 outline-none"
-                    />
-                    {searchInput && (
-                      <button onClick={() => setSearchInput('')}>
-                        <X size={13} className="text-gray-400 hover:text-gray-600" />
-                      </button>
-                    )}
-                    <button
-                      onClick={() => setSearchOpen(false)}
-                      className="text-xs font-semibold text-gray-500 hover:text-gray-700 ml-1"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setSearchOpen(true)}
-                    className="w-full flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-full px-3 py-1.5 hover:bg-gray-100 transition-colors text-left"
-                  >
-                    <Search size={14} className="text-gray-400" />
-                    <span className="text-sm text-gray-400 flex-1">
-                      {searchInput || 'Search products…'}
-                    </span>
-                    {searchInput && (
-                      <span className="text-xs bg-emerald-500 text-white rounded-full w-4 h-4 flex items-center justify-center">
-                        1
-                      </span>
-                    )}
-                  </button>
-                )}
-              </div>
-
-              {/* Sort button */}
-              <div className="relative flex-shrink-0">
-                <button
-                  onClick={() => setSortOpen((v) => !v)}
-                  className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-full px-3 py-1.5 hover:bg-gray-100 transition-colors"
-                >
-                  <ArrowUpDown size={13} className="text-gray-500" />
-                  <span className="text-xs font-semibold text-gray-600 hidden sm:block">
-                    {activeSortLabel}
-                  </span>
-                </button>
-
-                {sortOpen && (
-                  <div className="absolute right-0 top-10 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden w-44 z-50">
-                    {SORT_OPTIONS.map((opt) => (
-                      <button
-                        key={opt.value}
-                        onClick={() => { setSortBy(opt.value as typeof sortBy); setSortOpen(false); }}
-                        className={`w-full flex items-center gap-2 px-4 py-2.5 text-sm transition-colors ${
-                          sortBy === opt.value
-                            ? 'bg-emerald-50 text-emerald-700 font-semibold'
-                            : 'text-gray-700 hover:bg-gray-50'
-                        }`}
-                      >
-                        <opt.icon size={13} />
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+          {/* Background texture */}
+          <div
+            className="absolute inset-0 opacity-10"
+            style={{
+              backgroundImage:
+                'radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 20%, white 1px, transparent 1px)',
+              backgroundSize: '40px 40px',
+            }}
+          />
+          <div className="container mx-auto px-4 relative">
+            <h1 className="text-white text-2xl font-black tracking-tight leading-tight">
+              Gas delivered
+              <span className="text-emerald-300"> to your door</span>
+            </h1>
           </div>
         </div>
 
         {/* ════════════════════════════════════════════════════
-            HERO SECTION
+            UNIFIED CONTROLS BAR (sticky)
+            Row 1: 📍 Location | 🔍 Search (flex-1) | within Xkm | Sort ▼
+            Row 2: Category chips
         ════════════════════════════════════════════════════ */}
-        <div
-          ref={heroRef}
-          className="relative overflow-hidden bg-gradient-to-br from-emerald-700 via-teal-700 to-emerald-800 pt-14 pb-6"
-        >
-          {/* Background texture */}
-          <div className="absolute inset-0 opacity-10"
-            style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 20%, white 1px, transparent 1px)', backgroundSize: '40px 40px' }}
-          />
+        <div className="sticky top-0 z-40 bg-white border-b border-gray-100 shadow-sm">
 
-          <div className="container mx-auto px-4 relative">
-            {/* Location row */}
+          {/* ── Row 1 ── */}
+          <div className="container mx-auto px-4 h-14 flex items-center gap-2">
+
+            {/* Location pill */}
             <button
               onClick={getUserLocation}
-              className="flex items-center gap-2 mb-4 group"
+              className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1.5 flex-shrink-0 hover:bg-emerald-100 transition-colors"
             >
-              <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center group-hover:bg-white/30 transition-colors">
-                <MapPin size={13} className="text-white" />
-              </div>
-              <div className="text-left">
-                <p className="text-emerald-200 text-[10px] uppercase tracking-widest font-semibold leading-none">
-                  Delivering to
-                </p>
-                <p className="text-white text-sm font-bold leading-tight mt-0.5">
-                  {locationName}
-                </p>
-              </div>
-              <ChevronDown size={14} className="text-emerald-300 group-hover:text-white transition-colors ml-0.5" />
+              <MapPin size={13} className="text-emerald-600" />
+              <span className="text-xs font-semibold text-emerald-700 max-w-[80px] truncate">
+                {locationName}
+              </span>
             </button>
 
-            {/* Headline */}
-            <h1 className="text-white text-2xl font-black tracking-tight mb-4 leading-tight">
-              Gas delivered<br />
-              <span className="text-emerald-300">to your door</span>
-            </h1>
+            {/* Divider */}
+            <div className="h-5 w-px bg-gray-200 flex-shrink-0" />
 
             {/* Search bar */}
-            <div className="relative mb-5">
-              <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+            <div className="flex-1 relative min-w-0">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
               <input
                 ref={searchRef}
                 type="text"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Search products, brands, sizes…"
-                className="w-full bg-white rounded-2xl pl-11 pr-4 py-3.5 text-sm text-gray-800 placeholder-gray-400 outline-none shadow-lg focus:ring-2 focus:ring-emerald-300"
+                placeholder="Search products, brands…"
+                className="w-full bg-gray-50 border border-gray-200 rounded-full pl-8 pr-8 py-1.5 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-emerald-400 focus:bg-white transition-colors"
               />
               {searchInput && (
                 <button
                   onClick={() => setSearchInput('')}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
-                  <X size={14} />
+                  <X size={13} />
                 </button>
               )}
             </div>
 
-            {/* Category chips */}
-            <div
-              className="flex gap-2 overflow-x-auto pb-1"
-              style={{ scrollbarWidth: 'none' }}
-            >
-              {categories.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setCategoryFilter(cat)}
-                  className={`flex-shrink-0 text-xs font-semibold px-3.5 py-1.5 rounded-full border transition-all ${
-                    categoryFilter === cat
-                      ? 'bg-white text-emerald-700 border-white shadow'
-                      : 'bg-white/15 text-white border-white/30 hover:bg-white/25'
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+            {/* Divider */}
+            <div className="h-5 w-px bg-gray-200 flex-shrink-0" />
 
-        {/* ════════════════════════════════════════════════════
-            FILTER / SORT BAR — sits right below hero, NOT sticky
-        ════════════════════════════════════════════════════ */}
-        <div className="bg-white border-b border-gray-100 shadow-sm">
-          <div className="container mx-auto px-4 h-12 flex items-center justify-between gap-3">
             {/* Radius selector */}
-            <div className="flex items-center gap-1.5 text-xs text-gray-500">
-              <Navigation size={13} className="text-emerald-600" />
-              <span className="font-medium">Within</span>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <Navigation size={12} className="text-emerald-600" />
               <select
                 value={radiusKm}
                 onChange={(e) => setRadiusKm(Number(e.target.value))}
-                className="bg-transparent font-bold text-gray-700 outline-none cursor-pointer"
+                className="bg-transparent text-xs font-bold text-gray-700 outline-none cursor-pointer"
               >
                 {[5, 10, 15, 20, 30, 50].map((r) => (
                   <option key={r} value={r}>{r}km</option>
@@ -628,26 +490,21 @@ export default function ShopPage() {
             </div>
 
             {/* Divider */}
-            <div className="h-5 w-px bg-gray-200" />
+            <div className="h-5 w-px bg-gray-200 flex-shrink-0" />
 
-            {/* Results count */}
-            <span className="text-xs text-gray-400 flex-1">
-              <span className="font-semibold text-gray-700">{outletsWithProducts.length}</span> outlets found
-            </span>
-
-            {/* Sort */}
-            <div className="relative">
+            {/* Sort button */}
+            <div className="relative flex-shrink-0">
               <button
                 onClick={() => setSortOpen((v) => !v)}
-                className="flex items-center gap-1.5 text-xs font-semibold text-gray-600 hover:text-gray-900 transition-colors"
+                className="flex items-center gap-1 text-xs font-semibold text-gray-600 hover:text-gray-900 transition-colors"
               >
                 <ArrowUpDown size={13} className="text-emerald-600" />
-                {activeSortLabel}
-                <ChevronDown size={12} className={`transition-transform ${sortOpen ? 'rotate-180' : ''}`} />
+                <span className="hidden sm:inline">{activeSortLabel}</span>
+                <ChevronDown size={11} className={`transition-transform ${sortOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {sortOpen && (
-                <div className="absolute right-0 top-8 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden w-44 z-50">
+                <div className="absolute right-0 top-9 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden w-44 z-50">
                   {SORT_OPTIONS.map((opt) => (
                     <button
                       key={opt.value}
@@ -665,6 +522,32 @@ export default function ShopPage() {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* ── Row 2: Category chips + outlet count ── */}
+          <div
+            className="flex items-center gap-2 overflow-x-auto px-4 pb-2.5"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setCategoryFilter(cat)}
+                className={`flex-shrink-0 text-xs font-semibold px-3.5 py-1 rounded-full border transition-all ${
+                  categoryFilter === cat
+                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                    : 'bg-white text-gray-600 border-gray-200 hover:border-emerald-300 hover:text-emerald-700'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+
+            {/* Separator + outlet count */}
+            <div className="h-4 w-px bg-gray-200 flex-shrink-0 mx-1" />
+            <span className="flex-shrink-0 text-xs text-gray-400 whitespace-nowrap">
+              <span className="font-semibold text-gray-600">{outletsWithProducts.length}</span> outlets
+            </span>
           </div>
         </div>
 
@@ -713,7 +596,7 @@ export default function ShopPage() {
             </div>
           )}
 
-          {/* OUTLET ROWS — each outlet is a horizontal scroll row */}
+          {/* OUTLET ROWS */}
           {outletsWithProducts.length > 0 ? (
             <div className="space-y-2">
               {outletsWithProducts.map((item) => (
@@ -738,9 +621,6 @@ export default function ShopPage() {
           @keyframes scrollX {
             from { transform: translate3d(0, 0, 0); }
             to   { transform: translate3d(-50%, 0, 0); }
-          }
-          .animate-scroll-x {
-            /* applied to the container, not individual cards */
           }
           /* Hide scrollbars globally for horizontal rows */
           .overflow-x-auto::-webkit-scrollbar { display: none; }
