@@ -1,15 +1,16 @@
 // ============================================================
 // FILE: src/pages/index.tsx
-// AquaGas — Premium Homepage
+// AquaGas — Premium Homepage with Vendor Outlets
 // ============================================================
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { Outlet, Product } from '@/lib/types';
 import Carousel from '@/components/Carousel';
 import VendorCard from '@/components/VendorCard';
 import ProductCard from '@/components/ProductCard';
+import OutletProductsSection from '@/components/OutletProductsSection';
 import {
   ShoppingBag,
   MapPin,
@@ -22,6 +23,10 @@ import {
   ChevronDown,
   Star,
   Flame,
+  Store,
+  ChevronRight,
+  Package,
+  RefreshCw,
 } from 'lucide-react';
 
 const API_URL =
@@ -50,13 +55,23 @@ interface VendorOutlet {
   county: string;
 }
 
+// ── Outlet with its products ─────────────────────────────────
+interface OutletWithProducts {
+  outlet: Outlet;
+  products: Product[];
+  loading: boolean;
+}
+
 export default function Home() {
   const [vendors, setVendors] = useState<Outlet[]>([]);
+  const [outletsWithProducts, setOutletsWithProducts] = useState<OutletWithProducts[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [outletsLoading, setOutletsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [heroVisible, setHeroVisible] = useState(false);
+  const [activeTab, setActiveTab] = useState<'outlets' | 'vendors'>('outlets');
   const heroRef = useRef<HTMLDivElement>(null);
 
   const carouselImages = [
@@ -66,7 +81,6 @@ export default function Home() {
   ];
 
   useEffect(() => {
-    // Trigger hero animation
     const t = setTimeout(() => setHeroVisible(true), 80);
     getUserLocation();
     fetchData();
@@ -110,7 +124,10 @@ export default function Home() {
       ]);
       if (vRes.ok) {
         const vData: Vendor[] = await vRes.json();
-        setVendors(transformVendors(vData));
+        const transformed = transformVendors(vData);
+        setVendors(transformed);
+        // Kick off outlet product loading after vendors are set
+        fetchOutletProducts(transformed, vData);
       }
       if (pRes.ok) {
         const pData = await pRes.json();
@@ -122,6 +139,56 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // ── Fetch products for each outlet ───────────────────────────
+  const fetchOutletProducts = async (transformedVendors: Outlet[], rawVendors: Vendor[]) => {
+    setOutletsLoading(true);
+
+    // Build a flat list of outlets from the raw vendor data
+    const outletList: { outlet: Outlet; outletId: number }[] = [];
+
+    rawVendors.forEach((vendor) => {
+      if (vendor.vendor_outlets?.length) {
+        vendor.vendor_outlets.forEach((vo) => {
+          const matchedOutlet = transformedVendors.find(
+            (t) => t.outlet_id === vo.outlet_id || t.id === vo.outlet_id.toString()
+          );
+          if (matchedOutlet) {
+            outletList.push({ outlet: matchedOutlet, outletId: vo.outlet_id });
+          }
+        });
+      }
+    });
+
+    // Initialise with loading state
+    setOutletsWithProducts(
+      outletList.map(({ outlet }) => ({ outlet, products: [], loading: true }))
+    );
+
+    // Fetch products for each outlet concurrently (cap at 6 outlets on homepage)
+    const limited = outletList.slice(0, 6);
+    const results = await Promise.allSettled(
+      limited.map(({ outletId, outlet }) =>
+        fetch(`${API_URL}/outlets/${outletId}/products`)
+          .then((r) => (r.ok ? r.json() : null))
+          .then((data) => {
+            const products: Product[] = data?.products || data?.data || [];
+            return { outlet, products };
+          })
+          .catch(() => ({ outlet, products: [] }))
+      )
+    );
+
+    const final: OutletWithProducts[] = results.map((r) => {
+      if (r.status === 'fulfilled') {
+        return { outlet: r.value.outlet, products: r.value.products, loading: false };
+      }
+      return { outlet: limited[0].outlet, products: [], loading: false };
+    });
+
+    setOutletsWithProducts(final.filter((o) => o.products.length > 0));
+    setOutletsLoading(false);
   };
 
   const transformVendors = (data: Vendor[]): Outlet[] =>
@@ -219,9 +286,6 @@ export default function Home() {
         />
       </Head>
 
-      {/* ─────────────────────────────────────────── */}
-      {/* Global styles + animations                  */}
-      {/* ─────────────────────────────────────────── */}
       <style>{`
         :root {
           --emerald: #10b981;
@@ -260,11 +324,6 @@ export default function Home() {
         }
         @keyframes spin {
           to { transform: rotate(360deg); }
-        }
-        @keyframes pulse-ring {
-          0%   { transform: scale(0.9); opacity: 0.8; }
-          70%  { transform: scale(1.3); opacity: 0; }
-          100% { transform: scale(0.9); opacity: 0; }
         }
         @keyframes float {
           0%, 100% { transform: translateY(0); }
@@ -319,13 +378,6 @@ export default function Home() {
           transform: translateY(-2px);
         }
 
-        .pill-filter {
-          transition: all .2s ease;
-          cursor: pointer;
-          border: none;
-          font-family: var(--font-body);
-        }
-
         .skeleton {
           background: linear-gradient(90deg, #0f2133 25%, #183044 50%, #0f2133 75%);
           background-size: 400px 100%;
@@ -333,19 +385,45 @@ export default function Home() {
           border-radius: 12px;
         }
 
-        .section-appear {
-          opacity: 0;
-          transform: translateY(24px);
-          transition: opacity .6s ease, transform .6s ease;
-        }
-        .section-appear.visible {
-          opacity: 1;
-          transform: translateY(0);
-        }
-
         .orb { animation: orb-drift 12s ease-in-out infinite; }
         .orb-2 { animation: orb-drift 16s ease-in-out infinite reverse; }
         .float-icon { animation: float 3s ease-in-out infinite; }
+
+        /* ── Tab styles ─────────────────────────────────── */
+        .tab-active {
+          color: #f0f6ff;
+          border-bottom: 2px solid #10b981;
+        }
+        .tab-inactive {
+          color: #7a9ab8;
+          border-bottom: 2px solid transparent;
+        }
+        .tab-inactive:hover { color: #a8c4d8; }
+
+        /* ── Outlet section on dark bg ───────────────────── */
+        .outlet-section-dark .bg-white {
+          background: var(--surface-2) !important;
+          border-color: rgba(255,255,255,0.08) !important;
+        }
+        .outlet-section-dark .text-slate-800,
+        .outlet-section-dark .text-slate-700 {
+          color: #e2ecf7 !important;
+        }
+        .outlet-section-dark .text-slate-400,
+        .outlet-section-dark .text-slate-500 {
+          color: #5a7a94 !important;
+        }
+        .outlet-section-dark .bg-slate-50,
+        .outlet-section-dark .bg-slate-100 {
+          background: rgba(255,255,255,0.04) !important;
+        }
+        .outlet-section-dark .border-slate-100 {
+          border-color: rgba(255,255,255,0.06) !important;
+        }
+
+        /* Scrollbar hide */
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
 
       <div style={{ minHeight: '100vh', background: 'var(--ink)', fontFamily: 'var(--font-body)' }}>
@@ -367,44 +445,16 @@ export default function Home() {
             background: 'linear-gradient(160deg, #020d18 0%, #041a2e 45%, #031a0e 100%)',
           }}
         >
-          {/* Ambient orbs */}
-          <div className="orb" style={{
-            position: 'absolute', top: '10%', right: '15%',
-            width: 480, height: 480,
-            background: 'radial-gradient(circle, rgba(16,185,129,0.13) 0%, transparent 70%)',
-            borderRadius: '50%', pointerEvents: 'none',
-          }} />
-          <div className="orb-2" style={{
-            position: 'absolute', bottom: '15%', left: '10%',
-            width: 360, height: 360,
-            background: 'radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%)',
-            borderRadius: '50%', pointerEvents: 'none',
-          }} />
+          <div className="orb" style={{ position: 'absolute', top: '10%', right: '15%', width: 480, height: 480, background: 'radial-gradient(circle, rgba(16,185,129,0.13) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }} />
+          <div className="orb-2" style={{ position: 'absolute', bottom: '15%', left: '10%', width: 360, height: 360, background: 'radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', backgroundImage: 'linear-gradient(rgba(16,185,129,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(16,185,129,0.03) 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
+          <div style={{ position: 'absolute', top: 0, right: '30%', width: 1, height: '100%', background: 'linear-gradient(to bottom, transparent, rgba(16,185,129,0.15), transparent)', pointerEvents: 'none' }} />
 
-          {/* Grid texture */}
-          <div style={{
-            position: 'absolute', inset: 0, pointerEvents: 'none',
-            backgroundImage: 'linear-gradient(rgba(16,185,129,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(16,185,129,0.03) 1px, transparent 1px)',
-            backgroundSize: '60px 60px',
-          }} />
-
-          {/* Diagonal accent line */}
-          <div style={{
-            position: 'absolute', top: 0, right: '30%', width: 1, height: '100%',
-            background: 'linear-gradient(to bottom, transparent, rgba(16,185,129,0.15), transparent)',
-            pointerEvents: 'none',
-          }} />
-
-          {/* Hero content */}
           <div style={{ position: 'relative', zIndex: 1, maxWidth: 900, padding: '0 24px', textAlign: 'center' }}>
-
-            {/* Eyebrow badge */}
             <div className="hero-badge" style={{ opacity: 0, display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: 100, padding: '6px 20px', marginBottom: 32 }}>
               <span style={{ width: 7, height: 7, background: '#10b981', borderRadius: '50%', display: 'inline-block', boxShadow: '0 0 8px #10b981' }} />
               <span style={{ color: '#10b981', fontSize: 13, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Fast Delivery · Nairobi & Beyond</span>
             </div>
-
-            {/* Main headline */}
             <h1 className="hero-line-1" style={{ opacity: 0, fontFamily: 'var(--font-display)', fontSize: 'clamp(42px, 7vw, 88px)', fontWeight: 900, lineHeight: 1.05, color: '#f0f6ff', margin: '0 0 8px', letterSpacing: '-0.03em' }}>
               Kenya's Fastest
             </h1>
@@ -413,25 +463,17 @@ export default function Home() {
                 Gas Delivery
               </span>
             </h1>
-
             <p className="hero-line-3" style={{ opacity: 0, fontSize: 'clamp(16px, 2vw, 20px)', color: 'var(--text-muted)', lineHeight: 1.7, maxWidth: 600, margin: '0 auto 48px', fontWeight: 400 }}>
               Order LPG cylinders from verified outlets near you. Safe, affordable, and at your doorstep in under 2 hours.
             </p>
-
-            {/* CTAs */}
             <div className="hero-ctas" style={{ opacity: 0, display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
               <Link href="/shop" className="btn-glow-green" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, color: '#fff', padding: '16px 36px', borderRadius: 14, fontWeight: 700, fontSize: 16, textDecoration: 'none', letterSpacing: '-0.01em' }}>
-                <Flame size={18} />
-                Order Gas Now
-                <ArrowRight size={16} />
+                <Flame size={18} /> Order Gas Now <ArrowRight size={16} />
               </Link>
               <Link href="/shop" className="btn-glow-blue" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, color: '#fff', padding: '16px 36px', borderRadius: 14, fontWeight: 600, fontSize: 16, textDecoration: 'none', letterSpacing: '-0.01em' }}>
-                <MapPin size={18} />
-                Find Near Me
+                <MapPin size={18} /> Find Near Me
               </Link>
             </div>
-
-            {/* Trust indicators */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 32, marginTop: 56, flexWrap: 'wrap' }}>
               {[
                 { num: `${vendors.length || '20'}+`, label: 'Active Outlets' },
@@ -446,7 +488,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Scroll cue */}
           <div style={{ position: 'absolute', bottom: 32, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
             <span style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Scroll</span>
             <ChevronDown size={18} color="var(--text-muted)" style={{ animation: 'scroll-bounce 1.6s ease-in-out infinite' }} />
@@ -465,8 +506,6 @@ export default function Home() {
         ═══════════════════════════════════════════════ */}
         <section style={{ background: 'var(--ink-2)', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', padding: '48px 24px' }}>
           <div style={{ maxWidth: 1280, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20 }}>
-
-            {/* Card 1 — Outlets */}
             <div className="stat-card" style={{ background: 'linear-gradient(135deg, rgba(16,185,129,0.08), rgba(16,185,129,0.02))', border: '1px solid rgba(16,185,129,0.18)', borderRadius: 20, padding: '28px 28px', display: 'flex', alignItems: 'center', gap: 20 }}>
               <div style={{ width: 56, height: 56, background: 'rgba(16,185,129,0.15)', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <ShoppingBag size={26} color="#10b981" />
@@ -476,8 +515,6 @@ export default function Home() {
                 <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '5px 0 0', fontWeight: 500 }}>Active Outlets</p>
               </div>
             </div>
-
-            {/* Card 2 — Delivery */}
             <div className="stat-card" style={{ background: 'linear-gradient(135deg, rgba(59,130,246,0.08), rgba(59,130,246,0.02))', border: '1px solid rgba(59,130,246,0.18)', borderRadius: 20, padding: '28px 28px', display: 'flex', alignItems: 'center', gap: 20 }}>
               <div style={{ width: 56, height: 56, background: 'rgba(59,130,246,0.15)', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Zap size={26} color="#3b82f6" />
@@ -487,8 +524,6 @@ export default function Home() {
                 <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '5px 0 0', fontWeight: 500 }}>Lightning Delivery</p>
               </div>
             </div>
-
-            {/* Card 3 — Safe */}
             <div className="stat-card" style={{ background: 'linear-gradient(135deg, rgba(16,185,129,0.08), rgba(16,185,129,0.02))', border: '1px solid rgba(16,185,129,0.18)', borderRadius: 20, padding: '28px 28px', display: 'flex', alignItems: 'center', gap: 20 }}>
               <div style={{ width: 56, height: 56, background: 'rgba(16,185,129,0.15)', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Shield size={26} color="#10b981" />
@@ -498,8 +533,6 @@ export default function Home() {
                 <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '5px 0 0', fontWeight: 500 }}>Safe & Certified</p>
               </div>
             </div>
-
-            {/* Card 4 — Support */}
             <div className="stat-card" style={{ background: 'linear-gradient(135deg, rgba(59,130,246,0.08), rgba(59,130,246,0.02))', border: '1px solid rgba(59,130,246,0.18)', borderRadius: 20, padding: '28px 28px', display: 'flex', alignItems: 'center', gap: 20 }}>
               <div style={{ width: 56, height: 56, background: 'rgba(59,130,246,0.15)', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Clock size={26} color="#3b82f6" />
@@ -509,7 +542,6 @@ export default function Home() {
                 <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '5px 0 0', fontWeight: 500 }}>Customer Support</p>
               </div>
             </div>
-
           </div>
         </section>
 
@@ -525,10 +557,7 @@ export default function Home() {
                 <p style={{ color: '#fca5a5', fontWeight: 600, margin: 0, fontSize: 15 }}>Unable to load data</p>
                 <p style={{ color: '#f87171', fontSize: 13, margin: '4px 0 0' }}>{error}</p>
               </div>
-              <button
-                onClick={fetchData}
-                style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.35)', color: '#fca5a5', borderRadius: 10, padding: '8px 20px', fontWeight: 600, fontSize: 14, cursor: 'pointer', fontFamily: 'var(--font-body)' }}
-              >
+              <button onClick={fetchData} style={{ background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.35)', color: '#fca5a5', borderRadius: 10, padding: '8px 20px', fontWeight: 600, fontSize: 14, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
                 Retry
               </button>
             </div>
@@ -539,25 +568,19 @@ export default function Home() {
           {/* ─────────────────────────────────────── */}
           {(loading || featuredProducts.length > 0) && (
             <section style={{ marginBottom: 88 }}>
-              {/* Section header */}
               <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 40, flexWrap: 'wrap', gap: 16 }}>
                 <div>
-                  {/* Eyebrow */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                     <div style={{ width: 28, height: 2, background: 'linear-gradient(90deg,#10b981,#3b82f6)', borderRadius: 2 }} />
                     <span style={{ fontSize: 11, fontWeight: 600, color: '#10b981', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Handpicked for you</span>
                   </div>
-                  <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 4vw, 42px)', fontWeight: 700, color: '#f0f6ff', margin: 0, letterSpacing: '-0.025em', lineHeight: 1.1 }}>
-                    Featured Products
-                  </h2>
+                  <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 4vw, 42px)', fontWeight: 700, color: '#f0f6ff', margin: 0, letterSpacing: '-0.025em', lineHeight: 1.1 }}>Featured Products</h2>
                   <p style={{ color: 'var(--text-muted)', marginTop: 8, fontSize: 15, fontWeight: 400 }}>Popular cylinders & accessories</p>
                 </div>
                 <Link href="/shop" className="btn-glow-green" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: '#fff', padding: '13px 28px', borderRadius: 12, fontWeight: 600, fontSize: 15, textDecoration: 'none' }}>
                   View All <ArrowRight size={16} />
                 </Link>
               </div>
-
-              {/* Skeleton or grid */}
               {loading ? (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 24 }}>
                   {[...Array(4)].map((_, i) => (
@@ -585,11 +608,13 @@ export default function Home() {
             </section>
           )}
 
-          {/* ─────────────────────────────────────── */}
-          {/* VENDORS NEAR YOU                         */}
-          {/* ─────────────────────────────────────── */}
+          {/* ─────────────────────────────────────────────────────
+              OUTLETS & VENDORS — Tabbed section
+          ──────────────────────────────────────────────────────── */}
           <section style={{ marginBottom: 88 }}>
-            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 40, flexWrap: 'wrap', gap: 16 }}>
+
+            {/* Section header */}
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 32, flexWrap: 'wrap', gap: 16 }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                   <div style={{ width: 28, height: 2, background: 'linear-gradient(90deg,#3b82f6,#10b981)', borderRadius: 2 }} />
@@ -607,38 +632,121 @@ export default function Home() {
               </Link>
             </div>
 
-            {/* Loading spinner */}
-            {loading && (
-              <div style={{ display: 'flex', justifyContent: 'center', padding: '64px 0' }}>
-                <div style={{ width: 48, height: 48, border: '3px solid rgba(16,185,129,0.15)', borderTop: '3px solid #10b981', borderRadius: '50%', animation: 'spin 0.9s linear infinite' }} />
-              </div>
-            )}
+            {/* Tabs */}
+            <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: 32 }}>
+              {[
+                { id: 'outlets', label: 'Shop by Outlet', icon: <Store size={15} /> },
+                { id: 'vendors', label: 'All Vendors', icon: <Package size={15} /> },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as 'outlets' | 'vendors')}
+                  className={activeTab === tab.id ? 'tab-active' : 'tab-inactive'}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    padding: '10px 20px', fontSize: 14, fontWeight: 600,
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    fontFamily: 'var(--font-body)', transition: 'all .2s ease',
+                    marginBottom: -1,
+                  }}
+                >
+                  {tab.icon} {tab.label}
+                </button>
+              ))}
+            </div>
 
-            {/* Vendor grid */}
-            {!loading && vendors.length > 0 && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 24 }}>
-                {vendors.slice(0, 6).map((vendor) => (
-                  <div className="vendor-card-wrap" key={vendor.id}>
-                    <VendorCard outlet={vendor} />
+            {/* ── Tab: Shop by Outlet ──────────────────────── */}
+            {activeTab === 'outlets' && (
+              <div className="outlet-section-dark">
+                {/* Loading state */}
+                {(loading || outletsLoading) && outletsWithProducts.length === 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'center', padding: '64px 0' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                      <div style={{ width: 48, height: 48, border: '3px solid rgba(16,185,129,0.15)', borderTop: '3px solid #10b981', borderRadius: '50%', animation: 'spin 0.9s linear infinite' }} />
+                      <span style={{ color: 'var(--text-muted)', fontSize: 14 }}>Loading outlets…</span>
+                    </div>
                   </div>
-                ))}
+                )}
+
+                {/* Outlets with products */}
+                {!loading && outletsWithProducts.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {outletsWithProducts.map(({ outlet, products, loading: ol }) => (
+                      <OutletProductsSection
+                        key={outlet.id || outlet.outlet_id}
+                        outlet={outlet}
+                        products={products}
+                        isLoading={ol}
+                        showOutletHeader
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {/* Empty state */}
+                {!loading && !outletsLoading && outletsWithProducts.length === 0 && (
+                  <div style={{ textAlign: 'center', padding: '72px 24px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 24 }}>
+                    <div className="float-icon" style={{ width: 72, height: 72, background: 'rgba(16,185,129,0.1)', borderRadius: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+                      <Store size={32} color="#10b981" />
+                    </div>
+                    <p style={{ color: '#f0f6ff', fontSize: 18, fontWeight: 600, margin: '0 0 8px', fontFamily: 'var(--font-display)' }}>No outlet products found</p>
+                    <p style={{ color: 'var(--text-muted)', fontSize: 14, margin: '0 0 24px' }}>Products may still be loading or unavailable in your area</p>
+                    <button
+                      onClick={fetchData}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)', color: '#10b981', borderRadius: 10, padding: '10px 22px', fontWeight: 600, fontSize: 14, cursor: 'pointer', fontFamily: 'var(--font-body)' }}
+                    >
+                      <RefreshCw size={15} /> Retry
+                    </button>
+                  </div>
+                )}
+
+                {/* View all CTA */}
+                {!loading && outletsWithProducts.length > 0 && (
+                  <div style={{ textAlign: 'center', marginTop: 32 }}>
+                    <Link
+                      href="/shop"
+                      className="btn-glow-green"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 10, color: '#fff', padding: '14px 32px', borderRadius: 12, fontWeight: 600, fontSize: 15, textDecoration: 'none' }}
+                    >
+                      <Store size={17} /> Browse All Outlets <ArrowRight size={16} />
+                    </Link>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Empty */}
-            {!loading && !error && vendors.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '72px 24px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 24 }}>
-                <div className="float-icon" style={{ width: 72, height: 72, background: 'rgba(59,130,246,0.1)', borderRadius: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-                  <MapPin size={32} color="#3b82f6" />
-                </div>
-                <p style={{ color: '#f0f6ff', fontSize: 18, fontWeight: 600, margin: '0 0 8px', fontFamily: 'var(--font-display)' }}>No outlets found</p>
-                <p style={{ color: 'var(--text-muted)', fontSize: 14, margin: 0 }}>Please check back shortly</p>
-              </div>
+            {/* ── Tab: All Vendors grid ─────────────────────── */}
+            {activeTab === 'vendors' && (
+              <>
+                {loading && (
+                  <div style={{ display: 'flex', justifyContent: 'center', padding: '64px 0' }}>
+                    <div style={{ width: 48, height: 48, border: '3px solid rgba(16,185,129,0.15)', borderTop: '3px solid #10b981', borderRadius: '50%', animation: 'spin 0.9s linear infinite' }} />
+                  </div>
+                )}
+                {!loading && vendors.length > 0 && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 24 }}>
+                    {vendors.slice(0, 6).map((vendor) => (
+                      <div className="vendor-card-wrap" key={vendor.id}>
+                        <VendorCard outlet={vendor} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {!loading && !error && vendors.length === 0 && (
+                  <div style={{ textAlign: 'center', padding: '72px 24px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 24 }}>
+                    <div className="float-icon" style={{ width: 72, height: 72, background: 'rgba(59,130,246,0.1)', borderRadius: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+                      <MapPin size={32} color="#3b82f6" />
+                    </div>
+                    <p style={{ color: '#f0f6ff', fontSize: 18, fontWeight: 600, margin: '0 0 8px', fontFamily: 'var(--font-display)' }}>No outlets found</p>
+                    <p style={{ color: 'var(--text-muted)', fontSize: 14, margin: 0 }}>Please check back shortly</p>
+                  </div>
+                )}
+              </>
             )}
           </section>
 
           {/* ─────────────────────────────────────── */}
-          {/* WHY AQUAGAS — Feature Trio              */}
+          {/* WHY AQUAGAS                              */}
           {/* ─────────────────────────────────────── */}
           <section style={{ marginBottom: 88 }}>
             <div style={{ textAlign: 'center', marginBottom: 48 }}>
@@ -651,23 +759,13 @@ export default function Home() {
                 Built for Kenya
               </h2>
             </div>
-
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
               {[
                 { icon: <Zap size={28} color="#10b981" />, color: '#10b981', title: 'Same-Day Delivery', desc: 'Order before 4 PM and get your gas delivered the same day across Nairobi, Kiambu, Machakos, and more.' },
-                { icon: <Shield size={28} color="#3b82f6" />, color: '#3b82f6', title: 'Safety First', desc: 'All our partner outlets are Kenya Energy Regulation Board certified. Your family\'s safety is non-negotiable.' },
+                { icon: <Shield size={28} color="#3b82f6" />, color: '#3b82f6', title: 'Safety First', desc: "All our partner outlets are Kenya Energy Regulation Board certified. Your family's safety is non-negotiable." },
                 { icon: <Star size={28} color="#10b981" />, color: '#10b981', title: 'Trusted Vendors', desc: 'Every vendor is vetted, rated by real customers, and monitored for quality and reliability.' },
               ].map((feat) => (
-                <div
-                  key={feat.title}
-                  className="stat-card"
-                  style={{
-                    background: `linear-gradient(145deg, ${feat.color}08, ${feat.color}02)`,
-                    border: `1px solid ${feat.color}20`,
-                    borderRadius: 22,
-                    padding: '36px 32px',
-                  }}
-                >
+                <div key={feat.title} className="stat-card" style={{ background: `linear-gradient(145deg, ${feat.color}08, ${feat.color}02)`, border: `1px solid ${feat.color}20`, borderRadius: 22, padding: '36px 32px' }}>
                   <div style={{ width: 60, height: 60, background: `${feat.color}14`, borderRadius: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 22 }}>
                     {feat.icon}
                   </div>
@@ -683,10 +781,8 @@ export default function Home() {
             CTA BANNER
         ═══════════════════════════════════════════════ */}
         <section style={{ position: 'relative', overflow: 'hidden', background: 'linear-gradient(135deg, #031a0e 0%, #041a2e 50%, #020d18 100%)', borderTop: '1px solid var(--border)', padding: '80px 24px' }}>
-          {/* decorative orbs */}
           <div style={{ position: 'absolute', top: -80, right: '20%', width: 300, height: 300, background: 'radial-gradient(circle, rgba(16,185,129,0.14) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }} />
           <div style={{ position: 'absolute', bottom: -60, left: '10%', width: 250, height: 250, background: 'radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }} />
-
           <div style={{ position: 'relative', maxWidth: 720, margin: '0 auto', textAlign: 'center' }}>
             <div style={{ display: 'inline-block', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: 100, padding: '5px 18px', marginBottom: 24 }}>
               <span style={{ fontSize: 12, color: '#10b981', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Limited time — free delivery on first order</span>
@@ -699,8 +795,7 @@ export default function Home() {
             </p>
             <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
               <Link href="/shop" className="btn-glow-green" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, color: '#fff', padding: '18px 40px', borderRadius: 14, fontWeight: 700, fontSize: 17, textDecoration: 'none', letterSpacing: '-0.01em' }}>
-                <Flame size={20} />
-                Shop Now
+                <Flame size={20} /> Shop Now
               </Link>
               <Link href="/about" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, color: '#94a3b8', padding: '18px 40px', borderRadius: 14, fontWeight: 600, fontSize: 17, textDecoration: 'none', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)' }}>
                 Learn More
