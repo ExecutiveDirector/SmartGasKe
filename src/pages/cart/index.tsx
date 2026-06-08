@@ -23,6 +23,7 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { calculateCartPricing } from '@/lib/utils/pricing';
 
 export default function CartPage() {
   const router = useRouter();
@@ -42,10 +43,11 @@ export default function CartPage() {
   const cartOutlet = getCartOutlet();
   
   // Calculate pricing
-  const subtotal = cartTotal;
-  const tax = subtotal * 0.06; // 16% VAT
-  const deliveryFee = subtotal > 5000 ? 0 : 100; // Free delivery over KES 5,000
-  const total = subtotal + tax + deliveryFee;
+  //const subtotal = cartTotal;
+  //const tax = subtotal * 0.06; // 16% VAT
+  //const deliveryFee = subtotal > 5000 ? 0 : 100; // Free delivery over KES 5,000
+  //const total = subtotal + tax + deliveryFee;
+const { subtotal, tax, deliveryFee, total } = calculateCartPricing(cartTotal);
 
   const handleClearCart = async () => {
     if (window.confirm('Are you sure you want to remove all items from your cart?')) {
