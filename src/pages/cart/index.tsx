@@ -414,7 +414,7 @@ export default function CartPage() {
                   </div>
 
                   <div className="flex justify-between text-gray-700">
-                    <span className="font-medium">Tax (16% VAT)</span>
+                    <span className="font-medium">Srevice fee (6% VAT)</span>
                     <span className="font-bold">KES {tax.toFixed(0).toLocaleString()}</span>
                   </div>
 
