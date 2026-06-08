@@ -330,7 +330,7 @@ export default function CartPage() {
                   </div>
 
                   <div className="flex justify-between items-center text-gray-600">
-                    <span className="font-medium">Tax (16%)</span>
+                    <span className="font-medium">Service fee (6%)</span>
                     <span className="font-bold text-gray-800">{formatPrice(tax)}</span>
                   </div>
 
