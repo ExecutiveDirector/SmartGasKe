@@ -416,7 +416,7 @@ const { subtotal, tax, deliveryFee, total } = calculateCartPricing(cartTotal);
                   </div>
 
                   <div className="flex justify-between text-gray-700">
-                    <span className="font-medium">Srevice fee (6% VAT)</span>
+                    <span className="font-medium">Service fee (6% )</span>
                     <span className="font-bold">KES {tax.toFixed(0).toLocaleString()}</span>
                   </div>
 
