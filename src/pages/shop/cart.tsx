@@ -364,7 +364,7 @@ export default function CartPage() {
                 <div className="flex justify-between items-center mb-7">
                   <span className="text-xl font-bold text-gray-900">Total</span>
                   <span className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-blue-600">
-                    {formatPrice(grandTotal)}
+                    {formatPrice(total)}
                   </span>
                 </div>
 
