@@ -32,6 +32,7 @@ import {
 import { useCart } from '@/lib/context/CartContext';
 import { useAuth } from '@/lib/context/AuthContext';
 import toast from 'react-hot-toast';
+import { calculateCartPricing } from '@/lib/utils/pricing';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://aquagas-backend.onrender.com/api/v1';
 
@@ -468,10 +469,11 @@ export default function CheckoutPage() {
   const [mapEditorOpen, setMapEditorOpen]     = useState(false);
 
   // Pricing
-  const subtotal    = cartTotal;
-  const tax         = subtotal * 0.06;
-  const deliveryFee = subtotal > 5000 ? 0 : 100;
-  const total       = subtotal + tax + deliveryFee;
+ // const subtotal    = cartTotal;
+ // const tax         = subtotal * 0.06;
+ // const deliveryFee = subtotal > 5000 ? 0 : 100;
+  //const total       = subtotal + tax + deliveryFee;
+const { subtotal, tax, deliveryFee, total } = calculateCartPricing(cartTotal);
 
   // Form state
   const [formData, setFormData] = useState({
