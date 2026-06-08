@@ -25,6 +25,7 @@ import { useCart } from '@/lib/context/CartContext';
 import { DELIVERY_FEE } from '@/lib/constants';
 import { formatPrice } from '@/lib/utils';
 import toast from 'react-hot-toast';
+import { calculateCartPricing } from '@/lib/utils/pricing';
 
 // ============================================================
 // Product Image Component — matches checkout page pattern
@@ -72,10 +73,11 @@ export default function CartPage() {
   const router = useRouter();
   const { cart, updateQuantity, removeFromCart, clearCart, total } = useCart();
 
-  const subtotal = total;
-  const tax = subtotal * 0.06;
-  const deliveryFee = subtotal > 5000 ? 0 : DELIVERY_FEE;
-  const grandTotal = subtotal + tax + deliveryFee;
+//  const subtotal = total;
+ // const tax = subtotal * 0.06;
+//  const deliveryFee = subtotal > 5000 ? 0 : DELIVERY_FEE;
+ // const grandTotal = subtotal + tax + deliveryFee;
+const { subtotal, tax, deliveryFee, total } = calculateCartPricing(cartTotal);
 
   const handleUpdateQuantity = (productId: string, outletId: string, newQuantity: number) => {
     if (newQuantity < 1) return;
