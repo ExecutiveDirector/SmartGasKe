@@ -630,7 +630,7 @@ const { subtotal, tax, deliveryFee, total } = calculateCartPricing(cartTotal);
           price:        item.price,
         })),
 
-        total_price:        total,
+        total_price: calculateCartPricing(cartTotal).total,
         customer_email:     formData.email,
         customer_phone:     formData.phone,
         delivery_address:   formData.address,
@@ -1059,7 +1059,7 @@ const { subtotal, tax, deliveryFee, total } = calculateCartPricing(cartTotal);
                     <span className="font-bold">KES {subtotal.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between text-gray-700">
-                    <span className="font-medium">Tax (16%)</span>
+                    <span className="font-medium">Service fee (0.06%)</span>
                     <span className="font-bold">KES {tax.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</span>
                   </div>
                   <div className="flex justify-between text-gray-700">
