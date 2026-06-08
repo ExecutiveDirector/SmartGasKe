@@ -71,13 +71,10 @@ const ProductImage: React.FC<ProductImageProps> = ({ src, alt, emoji }) => {
 // ============================================================
 export default function CartPage() {
   const router = useRouter();
-  const { cart, updateQuantity, removeFromCart, clearCart, total } = useCart();
+  const { cart, updateQuantity, removeFromCart, clearCart, total: cartTotal } = useCart();
 
-//  const subtotal = total;
- // const tax = subtotal * 0.06;
-//  const deliveryFee = subtotal > 5000 ? 0 : DELIVERY_FEE;
- // const grandTotal = subtotal + tax + deliveryFee;
-const { subtotal, tax, deliveryFee, total } = calculateCartPricing(cartTotal);
+  const { subtotal, tax, deliveryFee, total } = calculateCartPricing(cartTotal);
+
 
   const handleUpdateQuantity = (productId: string, outletId: string, newQuantity: number) => {
     if (newQuantity < 1) return;
