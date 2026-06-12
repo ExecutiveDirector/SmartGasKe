@@ -14,6 +14,17 @@
 //
 // FIX 3: updateProfile() had the same double-unwrap issue as getProfile.
 //         Wrapped consistently.
+//
+// FIX 4: outletService.getOutlet() — backend GET /outlets/:outletId
+//         returns { outlet: {...} }, not the outlet directly.
+//         Now unwrapped and normalized into the Outlet shape.
+//
+// FIX 5: outletService.getOutletProducts() — backend
+//         GET /outlets/:outletId/products returns a flat object
+//         { outlet_id, outlet_name, vendor_name, ..., products: [...], product_count },
+//         not { data: [...], pagination: {...} }.
+//         Now mapped into PaginatedResponse<Product> with each raw
+//         product normalized into the full Product shape.
 // ============================================================
 
 import axios, { AxiosInstance, AxiosError } from 'axios';
@@ -253,9 +264,61 @@ export const outletService = {
     return response.data;
   },
 
+  /**
+   * Get single outlet by ID
+   * Endpoint: GET /outlets/:outletId
+   * Backend (getOutletById) returns: { outlet: { outlet_id, outlet_name, vendor_id,
+   *   vendor_name, location: { lat, lng }, address: { line_1, line_2, city, county,
+   *   postal_code }, phone, email, is_active, is_open, opening_time, closing_time,
+   *   created_at, ... } }
+   *
+   * FIX: Previously returned response.data as if it were the Outlet directly.
+   * Now unwraps `outlet` and normalizes into the frontend Outlet shape.
+   */
   getOutlet: async (outletId: string): Promise<ApiResponse<Outlet>> => {
-    const response = await api.get<ApiResponse<Outlet>>(`/outlets/${outletId}`);
-    return response.data;
+    const response = await api.get<{ outlet: any }>(`/outlets/${outletId}`);
+    const o = response.data.outlet;
+
+    if (!o) {
+      return { success: false, data: undefined as unknown as Outlet, error: 'Outlet not found' };
+    }
+
+    const outlet: Outlet = {
+      id: o.outlet_id?.toString() || outletId,
+      outlet_id: o.outlet_id,
+      name: o.outlet_name || '',
+      outlet_name: o.outlet_name,
+      vendor: o.vendor_name || '',
+      vendor_id: o.vendor_id,
+      vendor_name: o.vendor_name,
+      rating: o.rating ?? 0,
+      reviews: o.reviews ?? 0,
+      address: [
+        o.address?.line_1,
+        o.address?.line_2,
+        o.address?.city,
+        o.address?.county,
+      ]
+        .filter(Boolean)
+        .join(', '),
+      phone: o.phone || '',
+      contact_phone: o.phone,
+      email: o.email,
+      featured: o.featured ?? false,
+      latitude: o.location?.lat ?? undefined,
+      longitude: o.location?.lng ?? undefined,
+      is_active: o.is_active ?? true,
+      opening_hours:
+        o.opening_time && o.closing_time
+          ? `${o.opening_time} - ${o.closing_time}`
+          : undefined,
+      city: o.address?.city,
+      county: o.address?.county,
+      created_at: o.created_at,
+      isOpen: o.is_open,
+    };
+
+    return { success: true, data: outlet };
   },
 
   getAllOutlets: async (
@@ -265,15 +328,85 @@ export const outletService = {
     return response.data;
   },
 
+  /**
+   * Get products for a specific outlet
+   * Endpoint: GET /outlets/:outletId/products
+   * Backend (getOutletWithProducts) returns a FLAT object:
+   *   { outlet_id, outlet_name, vendor_id, vendor_name, location, address, phone,
+   *     email, is_open, opening_time, closing_time, products: [...], product_count }
+   *
+   * Each raw product item is shaped as:
+   *   { product_id, product_name, description, price, current_price, image_url,
+   *     category, category_id, stock_quantity, unit, is_available }
+   *
+   * FIX: Previously assumed { data: [...], pagination: {...} }.
+   * Now maps the flat response into PaginatedResponse<Product>, normalizing
+   * each raw product into the full Product shape required by ProductCard etc.
+   */
   getOutletProducts: async (
     outletId: string,
     params?: OutletProductsParams
   ): Promise<PaginatedResponse<Product>> => {
-    const response = await api.get<PaginatedResponse<Product>>(
-      `/outlets/${outletId}/products`,
-      { params }
-    );
-    return response.data;
+    const response = await api.get<{
+      outlet_id: string;
+      outlet_name: string;
+      vendor_id?: string;
+      vendor_name?: string;
+      products: any[];
+      product_count: number;
+    }>(`/outlets/${outletId}/products`, { params });
+
+    const rawProducts = response.data.products || [];
+    const total = response.data.product_count ?? rawProducts.length;
+
+    const products: Product[] = rawProducts.map((p) => ({
+      id: p.product_id?.toString() || '',
+      product_id: p.product_id,
+      name: p.product_name || '',
+      title: p.product_name || '',
+      product_name: p.product_name || '',
+      description: p.description || '',
+
+      price: p.current_price ?? p.price ?? 0,
+      base_price: p.current_price ?? p.price ?? 0,
+
+      image: p.image_url || 'https://via.placeholder.com/400x400?text=Product',
+
+      is_active: p.is_available ?? true,
+      isActive: p.is_available ?? true,
+      is_featured: false,
+      featured: false,
+
+      stock: p.stock_quantity ?? 0,
+      inStock: (p.stock_quantity ?? 0) > 0,
+      availability:
+        p.is_available && (p.stock_quantity ?? 0) > 0 ? 'Available' : 'Out of Stock',
+
+      unit: p.unit,
+      unit_of_measure: p.unit,
+
+      rating: 0,
+      reviews: 0,
+
+      category: p.category || '',
+      category_id: p.category_id ? Number(p.category_id) : undefined,
+
+      outlet_id: outletId,
+      outlet_name: response.data.outlet_name,
+      vendor_id: response.data.vendor_id ? Number(response.data.vendor_id) : undefined,
+      vendor_name: response.data.vendor_name,
+    }));
+
+    return {
+      success: true,
+      data: products,
+      pagination: {
+        page: Number(params?.page) || 1,
+        limit: Number(params?.limit) || total,
+        total,
+        pages: 1, // backend endpoint does not currently paginate
+      },
+    };
   },
 
   searchOutlets: async (query: string): Promise<ApiResponse<Outlet[]>> => {
