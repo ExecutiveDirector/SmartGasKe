@@ -1,25 +1,31 @@
 {
+  "name": "AquaGas - Smart LPG & Water Delivery",
   "short_name": "AquaGas",
-  "name": "AquaGas - Smart LPG Distribution",
+  "description": "Fast, reliable, and secure LPG gas and water delivery platform.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#2563EB",
+  "background_color": "#FFFFFF",
+  "lang": "en",
   "icons": [
     {
-      "src": "favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
+      "src": "/favicon.ico",
+      "sizes": "16x16 24x24 32x32 48x48 64x64",
       "type": "image/x-icon"
     },
     {
-      "src": "logo192.png",
+      "src": "/logo192.png",
+      "sizes": "192x192",
       "type": "image/png",
-      "sizes": "192x192"
+      "purpose": "any maskable"
     },
     {
-      "src": "logo512.png",
+      "src": "/logo512.png",
+      "sizes": "512x512",
       "type": "image/png",
-      "sizes": "512x512"
+      "purpose": "any maskable"
     }
-  ],
-  "start_url": ".",
-  "display": "standalone",
-  "theme_color": "#2563eb",
-  "background_color": "#ffffff"
+  ]
 }
