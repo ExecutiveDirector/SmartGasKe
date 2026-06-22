@@ -1,29 +1,54 @@
-// ============================================================
-// FILE: public/manifest.json - PWA Manifest
-// ============================================================
-
 {
+  "name": "AquaGas - Smart LPG & Water Delivery",
   "short_name": "AquaGas",
-  "name": "AquaGas - Smart LPG Distribution",
+  "description": "Order LPG gas cylinders and bottled water from trusted vendors with real-time tracking and secure payments.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#2563EB",
+  "background_color": "#FFFFFF",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": [
+    "business",
+    "shopping",
+    "utilities"
+  ],
   "icons": [
     {
-      "src": "favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
+      "src": "/favicon.ico",
+      "sizes": "16x16 24x24 32x32 48x48 64x64",
       "type": "image/x-icon"
     },
     {
-      "src": "logo192.png",
+      "src": "/logo192.png",
+      "sizes": "192x192",
       "type": "image/png",
-      "sizes": "192x192"
+      "purpose": "any maskable"
     },
     {
-      "src": "logo512.png",
+      "src": "/logo512.png",
+      "sizes": "512x512",
       "type": "image/png",
-      "sizes": "512x512"
+      "purpose": "any maskable"
     }
   ],
-  "start_url": ".",
-  "display": "standalone",
-  "theme_color": "#2563eb",
-  "background_color": "#ffffff"
+  "shortcuts": [
+    {
+      "name": "Order Gas",
+      "short_name": "Gas",
+      "url": "/shop?category=gas"
+    },
+    {
+      "name": "Order Water",
+      "short_name": "Water",
+      "url": "/shop?category=water"
+    },
+    {
+      "name": "My Orders",
+      "short_name": "Orders",
+      "url": "/orders"
     }
+  ]
+}
