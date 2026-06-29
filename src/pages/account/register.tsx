@@ -468,8 +468,10 @@ export default function RegisterPage() {
       toast.success('Welcome to AquaGas! 🎉');
       router.push('/account');
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || err?.message || 'Registration failed');
-    } finally {
+  // authService.register() throws a plain Error with the backend message already extracted.
+  // err?.response?.data?.error would only work if we were catching a raw Axios error,
+  // which we're not — so use err.message directly.
+  toast.error(err?.message || 'Registration failed. Please try again.'); } finally {
       setBusy(false);
     }
   };
