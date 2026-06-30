@@ -223,10 +223,14 @@ export const authService = {
    * Change password
    */
   changePassword: async (data: {
-    current_password: string;
-    new_password: string;
+    currentPassword?: string;
+    newPassword: string;
   }): Promise<ApiResponse<null>> => {
-    const response = await api.put<ApiResponse<null>>('/auth/password', data);
+    // FIX: was PUT /auth/password with current_password/new_password —
+    // the backend only has POST /auth/change-password and reads
+    // currentPassword/newPassword (camelCase). Every call 404'd before
+    // it could even validate the password.
+    const response = await api.post<ApiResponse<null>>('/auth/change-password', data);
     return response.data;
   },
 
