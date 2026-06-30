@@ -245,10 +245,29 @@ export const authService = {
     token: string,
     newPassword: string
   ): Promise<ApiResponse<null>> => {
+    // FIX: backend's authController.resetPassword reads req.body.newPassword
+    // (camelCase) — this was sending new_password and silently 400'ing
+    // with "Token and new password are required" on every attempt.
     const response = await api.post<ApiResponse<null>>('/auth/reset-password', {
       token,
-      new_password: newPassword,
+      newPassword,
     });
+    return response.data;
+  },
+
+  /**
+   * Verify email address using the token from the emailed verification link
+   */
+  verifyEmail: async (token: string): Promise<ApiResponse<null>> => {
+    const response = await api.post<ApiResponse<null>>('/auth/verify-email', { token });
+    return response.data;
+  },
+
+  /**
+   * Resend the email verification link
+   */
+  resendVerification: async (email: string): Promise<ApiResponse<null>> => {
+    const response = await api.post<ApiResponse<null>>('/auth/resend-verification', { email });
     return response.data;
   },
 };
