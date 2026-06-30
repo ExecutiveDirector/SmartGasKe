@@ -111,6 +111,20 @@ class AuthService {
   }
 
   /**
+   * Verify email using the token from the emailed verification link
+   */
+  async verifyEmail(token: string): Promise<ApiResponse<null>> {
+    return await authApi.verifyEmail(token);
+  }
+
+  /**
+   * Resend the email verification link
+   */
+  async resendVerification(email: string): Promise<ApiResponse<null>> {
+    return await authApi.resendVerification(email);
+  }
+
+  /**
    * Check if user is authenticated
    */
   isAuthenticated(): boolean {
