@@ -465,7 +465,7 @@ export default function RegisterPage() {
         phone:    formatPhone(ef.phone.trim()),
         password: ef.pw,
       });
-      toast.success('Welcome to AquaGas! 🎉');
+      toast.success('Welcome to AquaGas! 🎉 Check your email to verify your account.');
       router.push('/account');
     } catch (err: any) {
   // authService.register() throws a plain Error with the backend message already extracted.
