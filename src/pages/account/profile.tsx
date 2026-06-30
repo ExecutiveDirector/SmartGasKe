@@ -152,8 +152,8 @@ export default function ProfilePage() {
     setSubmitting(true);
     try {
       await authService.changePassword({
-        current_password: passwordForm.currentPassword,
-        new_password: passwordForm.newPassword,
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword,
       });
       toast.success('Password changed successfully!');
       setPasswordForm({
