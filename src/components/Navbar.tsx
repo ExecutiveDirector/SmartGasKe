@@ -18,6 +18,7 @@ export default function Navbar() {
     { href: '/founder', label: 'Founder' },
     { href: '/how-it-works', label: 'How It Works' },
     { href: '/technology', label: 'Technology' },
+    { href: '/blog', label: 'Blog' },
     { href: '/investors', label: 'Investors' },
     { href: '/partners', label: 'Partners' },
     { href: '/contact', label: 'Contact' },
