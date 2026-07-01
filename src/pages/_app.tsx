@@ -23,8 +23,10 @@ import NProgress from 'nprogress';
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
 
-  // Detect shop pages
+  // Detect immersive pages that own their own chrome (nav/footer)
   const isShopPage = router.pathname.startsWith('/shop');
+  const isBlogPage = router.pathname.startsWith('/blog');
+  const hideGlobalChrome = isShopPage || isBlogPage;
 
   // Show loading bar on route changes
   useEffect(() => {
@@ -53,14 +55,14 @@ export default function App({ Component, pageProps }: AppProps) {
       <AuthProvider>
         <CartProvider>
           <div className="min-h-screen bg-gray-50 flex flex-col">
-            <Navbar />
+            {/* Shop and Blog own their own nav/footer for a fully immersive feel */}
+            {!hideGlobalChrome && <Navbar />}
 
             <main className="flex-grow">
               <Component {...pageProps} />
             </main>
 
-            {/* Hide footer on shop pages */}
-            {!isShopPage && <Footer />}
+            {!hideGlobalChrome && <Footer />}
 
             {/* ← shows 1-min warning before auto-logout */}
             <InactivityWarning />
