@@ -52,7 +52,16 @@ const pwStrength = (pw: string) => {
   };
 };
 
-type Step = 'method' | 'phone-entry' | 'phone-otp' | 'phone-profile' | 'email-form';
+type Step =
+  | 'method'
+  | 'phone-entry'
+  | 'phone-otp'
+  | 'phone-login-otp'      // 2FA: existing account, email code to finish login
+  | 'phone-profile'
+  | 'phone-verify-email'   // new-user phone flow: final email OTP before account is created
+  | 'email-form'
+  | 'email-verify-email'   // email-first flow: step 2 — verify emailed code
+  | 'email-verify-phone';  // email-first flow: step 3 — verify phone code, then account is created
 
 // ── OTP Input ────────────────────────────────────────────────────────
 const OTPBox: React.FC<{ value: string; onChange: (v: string) => void; error: boolean }> = ({ value, onChange, error }) => {
@@ -306,7 +315,7 @@ export default function RegisterPage() {
   const router = useRouter();
 
   // ── FIX: also pull refreshUser so phone flows can hydrate context ──
-  const { register, refreshUser, isAuthenticated, loading } = useAuth();
+  const { refreshUser, isAuthenticated, loading } = useAuth();
 
   const [step, setStep]           = useState<Step>('method');
   const [busy, setBusy]           = useState(false);
@@ -320,9 +329,24 @@ export default function RegisterPage() {
   const [prof, setProf] = useState({ fn: '', ln: '', email: '', pw: '', cpw: '', setPw: false });
   const [showPw, setShowPw] = useState(false);
 
+  // 2FA login (existing account found during phone-entry)
+  const [loginOtp, setLoginOtp]       = useState('');
+  const [loginOtpErr, setLoginOtpErr] = useState(false);
+  const [maskedEmail, setMaskedEmail] = useState('');
+
+  // Phone-first flow: final email OTP before the account is created
+  const [phoneEmailOtp, setPhoneEmailOtp]       = useState('');
+  const [phoneEmailOtpErr, setPhoneEmailOtpErr] = useState(false);
+
   const [ef, setEf]     = useState({ name: '', email: '', phone: '', pw: '', cpw: '' });
   const [errs, setErrs] = useState<Record<string, string>>({});
   const [showEPw, setShowEPw] = useState(false);
+
+  // Email-first flow: step 2 (email OTP) and step 3 (phone OTP)
+  const [emailStepOtp, setEmailStepOtp]       = useState('');
+  const [emailStepOtpErr, setEmailStepOtpErr] = useState(false);
+  const [emailPhoneOtp, setEmailPhoneOtp]       = useState('');
+  const [emailPhoneOtpErr, setEmailPhoneOtpErr] = useState(false);
 
   useEffect(() => {
     if (!loading && isAuthenticated) router.replace('/account');
@@ -360,6 +384,11 @@ export default function RegisterPage() {
   // the old code only wrote it to localStorage — AuthContext.user was
   // never updated, so isAuthenticated stayed false on /account.
   // Now we call refreshUser() so the context is fully hydrated first.
+  //
+  // UPDATED: existing accounts with an email on file no longer get a
+  // token from this step alone — the backend now requires a second
+  // factor (a code emailed to the account's address) before granting
+  // access. Only accounts with no email on file still log in directly.
   const verifyOTP = async () => {
     if (otp.replace(/\s/g, '').length !== 6) { setOtpErr(true); return; }
     setBusy(true); setOtpErr(false);
@@ -367,15 +396,24 @@ export default function RegisterPage() {
       const data = await apiPost<{
         verified: boolean;
         token?: string;
-        needsRegistration?: boolean;
+        isNewUser?: boolean;
         accountExists?: boolean;
+        requiresEmailOtp?: boolean;
+        maskedEmail?: string;
       }>('/verify-otp', { phone: formatPhone(phone.trim()), otp: otp.replace(/\s/g, '') });
 
-      if (data.token && !data.needsRegistration) {
-        // ── FIX: existing user login via OTP ──────────────────────────
-        // 1. Store token so getProfile() can read it
+      if (data.requiresEmailOtp) {
+        // Existing account, second factor required — a code was just
+        // emailed to the address on file.
+        setMaskedEmail(data.maskedEmail || '');
+        startTimer();
+        setStep('phone-login-otp');
+        return;
+      }
+
+      if (data.token) {
+        // Existing account with no email on file — phone alone is enough.
         localStorage.setItem('authToken', data.token);
-        // 2. Hydrate AuthContext (calls getProfile internally)
         await refreshUser();
         toast.success('Welcome back!');
         router.push('/account');
@@ -392,16 +430,39 @@ export default function RegisterPage() {
     }
   };
 
-  // ── PHONE REGISTER ──────────────────────────────────────────────────
-  // FIX: after a successful phone registration the old code wrote the
-  // token to localStorage but never updated AuthContext.user, so the
-  // /account page saw isAuthenticated === false and redirected to login.
-  // Now we call refreshUser() to populate the context before navigating.
+  // ── VERIFY LOGIN EMAIL OTP (2FA second factor) ─────────────────────
+  const verifyLoginEmailOtp = async () => {
+    if (loginOtp.replace(/\s/g, '').length !== 6) { setLoginOtpErr(true); return; }
+    setBusy(true); setLoginOtpErr(false);
+    try {
+      const data = await apiPost<{ token?: string }>('/verify-login-email-otp', {
+        phone: formatPhone(phone.trim()),
+        otp: loginOtp.replace(/\s/g, ''),
+      });
+      if (data.token) {
+        localStorage.setItem('authToken', data.token);
+        await refreshUser();
+      }
+      toast.success('Welcome back!');
+      router.push('/account');
+    } catch (e: any) {
+      setLoginOtpErr(true);
+      toast.error(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // ── PHONE REGISTER — STEP 1: submit profile, triggers email OTP ────
+  // UPDATED: this no longer creates the account directly. Email is now
+  // required (it's the second verification factor) — the account is only
+  // created once that email code is confirmed, in verifyPhoneRegEmailOtp.
   const phoneRegister = async () => {
     const e: Record<string, string> = {};
     if (prof.fn.trim().length < 2) e.fn = 'Required (min 2 chars)';
     if (prof.ln.trim().length < 2) e.ln = 'Required (min 2 chars)';
-    if (prof.email && !isValidEmail(prof.email)) e.email = 'Invalid email';
+    if (!prof.email.trim()) e.email = 'Email is required to verify your account';
+    else if (!isValidEmail(prof.email)) e.email = 'Invalid email';
     if (prof.setPw) {
       if (prof.pw.length < 8)
         e.pw = 'Min 8 characters';
@@ -418,20 +479,14 @@ export default function RegisterPage() {
         phone:     formatPhone(phone.trim()),
         firstName: prof.fn.trim(),
         lastName:  prof.ln.trim(),
+        email:     normalizeEmail(prof.email),
       };
-      if (prof.email)            body.email    = normalizeEmail(prof.email);
       if (prof.setPw && prof.pw) body.password = prof.pw;
 
-      const data = await apiPost<{ token?: string }>('/register/phone', body);
-
-      // ── FIX: store token then hydrate context ─────────────────────
-      if (data.token) {
-        localStorage.setItem('authToken', data.token);
-        await refreshUser();
-      }
-
-      toast.success('Welcome to AquaGas! 🎉');
-      router.push('/account');
+      await apiPost('/register/phone/start', body);
+      startTimer();
+      setStep('phone-verify-email');
+      toast.success('Code sent to your email');
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -439,8 +494,42 @@ export default function RegisterPage() {
     }
   };
 
-  // ── EMAIL REGISTER ──────────────────────────────────────────────────
-  // Uses AuthContext.register() which already calls setUser() — no change needed.
+  // ── PHONE REGISTER — STEP 2: verify emailed code, account is created ──
+  const verifyPhoneRegEmailOtp = async () => {
+    if (phoneEmailOtp.replace(/\s/g, '').length !== 6) { setPhoneEmailOtpErr(true); return; }
+    setBusy(true); setPhoneEmailOtpErr(false);
+    try {
+      await apiPost('/register/phone/verify-email', {
+        phone: formatPhone(phone.trim()),
+        otp: phoneEmailOtp.replace(/\s/g, ''),
+      });
+      toast.success('Account created! Please log in.');
+      router.push('/account/login');
+    } catch (e: any) {
+      setPhoneEmailOtpErr(true);
+      toast.error(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const resendPhoneRegEmailOtp = async () => {
+    setBusy(true);
+    try {
+      await apiPost('/register/phone/resend-email-otp', { phone: formatPhone(phone.trim()) });
+      startTimer();
+      toast.success('Code resent');
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // ── EMAIL REGISTER — STEP 1: submit form, triggers email OTP ───────
+  // UPDATED: no longer creates the account or logs the user in directly.
+  // The account is only created after both the email code (step 2) and
+  // the phone code (step 3) are confirmed.
   const emailRegister = async (ev: React.FormEvent) => {
     ev.preventDefault();
     const e: Record<string, string> = {};
@@ -459,19 +548,83 @@ export default function RegisterPage() {
 
     setBusy(true);
     try {
-      await register({
+      await apiPost('/register/user/start', {
         fullName: ef.name.trim(),
         email:    normalizeEmail(ef.email),
         phone:    formatPhone(ef.phone.trim()),
         password: ef.pw,
       });
-      toast.success('Welcome to AquaGas! 🎉 Check your email to verify your account.');
-      router.push('/account');
+      startTimer();
+      setStep('email-verify-email');
+      toast.success('Code sent to your email');
     } catch (err: any) {
-  // authService.register() throws a plain Error with the backend message already extracted.
-  // err?.response?.data?.error would only work if we were catching a raw Axios error,
-  // which we're not — so use err.message directly.
-  toast.error(err?.message || 'Registration failed. Please try again.'); } finally {
+      toast.error(err?.message || 'Registration failed. Please try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // ── EMAIL REGISTER — STEP 2: verify emailed code, triggers phone OTP ──
+  const verifyEmailRegOtp = async () => {
+    if (emailStepOtp.replace(/\s/g, '').length !== 6) { setEmailStepOtpErr(true); return; }
+    setBusy(true); setEmailStepOtpErr(false);
+    try {
+      await apiPost('/register/user/verify-email', {
+        email: normalizeEmail(ef.email),
+        otp: emailStepOtp.replace(/\s/g, ''),
+      });
+      startTimer();
+      setStep('email-verify-phone');
+      toast.success('Email verified — code sent to your phone');
+    } catch (e: any) {
+      setEmailStepOtpErr(true);
+      toast.error(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const resendEmailRegOtp = async () => {
+    setBusy(true);
+    try {
+      await apiPost('/register/user/resend-email-otp', { email: normalizeEmail(ef.email) });
+      startTimer();
+      toast.success('Code resent');
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // ── EMAIL REGISTER — STEP 3: verify phone code, account is created ──
+  const verifyPhoneRegOtpForEmailFlow = async () => {
+    if (emailPhoneOtp.replace(/\s/g, '').length !== 6) { setEmailPhoneOtpErr(true); return; }
+    setBusy(true); setEmailPhoneOtpErr(false);
+    try {
+      await apiPost('/register/user/verify-phone', {
+        email: normalizeEmail(ef.email),
+        otp: emailPhoneOtp.replace(/\s/g, ''),
+      });
+      toast.success('Account created! Please log in.');
+      router.push('/account/login');
+    } catch (e: any) {
+      setEmailPhoneOtpErr(true);
+      toast.error(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const resendEmailRegPhoneOtp = async () => {
+    setBusy(true);
+    try {
+      await apiPost('/register/user/resend-phone-otp', { email: normalizeEmail(ef.email) });
+      startTimer();
+      toast.success('Code resent');
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
       setBusy(false);
     }
   };
@@ -639,7 +792,7 @@ export default function RegisterPage() {
               {/* ═══════════════════════════════════════ */}
               {step === 'phone-entry' && (
                 <div className="aq-step">
-                  <Dots n={3} active={0} />
+                  <Dots n={4} active={0} />
                   <BackBtn onClick={() => setStep('method')} />
 
                   <div style={{ marginBottom: 32 }}>
@@ -672,7 +825,7 @@ export default function RegisterPage() {
               {/* ═══════════════════════════════════════ */}
               {step === 'phone-otp' && (
                 <div className="aq-step">
-                  <Dots n={3} active={1} />
+                  <Dots n={4} active={1} />
                   <BackBtn onClick={() => setStep('phone-entry')} label="Change number" />
 
                   <div style={{ marginBottom: 32 }}>
@@ -720,11 +873,47 @@ export default function RegisterPage() {
               )}
 
               {/* ═══════════════════════════════════════ */}
+              {/* PHONE 2FA — EMAIL CODE (existing account) */}
+              {/* ═══════════════════════════════════════ */}
+              {step === 'phone-login-otp' && (
+                <div className="aq-step">
+                  <BackBtn onClick={() => setStep('phone-otp')} label="Back" />
+
+                  <div style={{ marginBottom: 32 }}>
+                    <div style={{ width: 48, height: 48, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20, background: 'linear-gradient(145deg, #f0fdf4, #bbf7d0)', border: '1.5px solid #86efac' }}>
+                      <Mail size={22} style={{ color: '#16a34a' }} />
+                    </div>
+                    <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '2rem', fontWeight: 700, lineHeight: 1.1, letterSpacing: '-0.02em', color: '#1c1917', margin: '0 0 8px' }}>
+                      One more step
+                    </h2>
+                    <p style={{ color: '#78716c', fontSize: 14, margin: 0 }}>
+                      We found your account. Enter the code sent to{' '}
+                      <strong style={{ color: '#1c1917' }}>{maskedEmail || 'your email'}</strong> to finish logging in.
+                    </p>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                    <OTPBox value={loginOtp} onChange={v => { setLoginOtp(v); setLoginOtpErr(false); }} error={loginOtpErr} />
+
+                    {loginOtpErr && (
+                      <p style={{ textAlign: 'center', fontSize: 12.5, fontWeight: 600, color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, margin: 0 }}>
+                        <XCircle size={12} /> Incorrect or expired code
+                      </p>
+                    )}
+
+                    <PrimaryBtn onClick={verifyLoginEmailOtp} loading={busy} disabled={loginOtp.replace(/\s/g, '').length !== 6}>
+                      {busy ? 'Verifying…' : 'Verify & log in'}
+                    </PrimaryBtn>
+                  </div>
+                </div>
+              )}
+
+              {/* ═══════════════════════════════════════ */}
               {/* PHONE PROFILE COMPLETION                */}
               {/* ═══════════════════════════════════════ */}
               {step === 'phone-profile' && (
                 <div className="aq-step">
-                  <Dots n={3} active={2} />
+                  <Dots n={4} active={2} />
 
                   <div style={{ marginBottom: 20 }}>
                     <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '2rem', fontWeight: 700, lineHeight: 1.1, letterSpacing: '-0.02em', color: '#1c1917', margin: '0 0 8px' }}>
@@ -753,7 +942,7 @@ export default function RegisterPage() {
                         onChange={e => { setProf(p => ({ ...p, ln: e.target.value })); setErrs(r => ({ ...r, ln: '' })); }} />
                     </div>
 
-                    <FormInput label="Email Address" error={errs.email} hint="Optional — for receipts & updates"
+                    <FormInput label="Email Address" error={errs.email} hint="We'll send a code here to finish creating your account"
                       icon={<Mail size={14} />} type="email"
                       value={prof.email} placeholder="you@example.com"
                       onChange={e => { setProf(p => ({ ...p, email: e.target.value })); setErrs(r => ({ ...r, email: '' })); }} />
@@ -802,7 +991,7 @@ export default function RegisterPage() {
                     </div>
 
                     <PrimaryBtn onClick={phoneRegister} loading={busy}>
-                      {busy ? 'Creating account…' : <>Create account <ChevronRight size={14} /></>}
+                      {busy ? 'Sending code…' : <>Continue <ChevronRight size={14} /></>}
                     </PrimaryBtn>
 
                     <p style={{ textAlign: 'center', fontSize: 11.5, color: '#a8a29e', margin: 0 }}>
@@ -816,10 +1005,62 @@ export default function RegisterPage() {
               )}
 
               {/* ═══════════════════════════════════════ */}
+              {/* PHONE FLOW — FINAL EMAIL VERIFICATION   */}
+              {/* ═══════════════════════════════════════ */}
+              {step === 'phone-verify-email' && (
+                <div className="aq-step">
+                  <Dots n={4} active={3} />
+
+                  <div style={{ marginBottom: 32 }}>
+                    <div style={{ width: 48, height: 48, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20, background: 'linear-gradient(145deg, #f0fdf4, #bbf7d0)', border: '1.5px solid #86efac' }}>
+                      <Mail size={22} style={{ color: '#16a34a' }} />
+                    </div>
+                    <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '2rem', fontWeight: 700, lineHeight: 1.1, letterSpacing: '-0.02em', color: '#1c1917', margin: '0 0 8px' }}>
+                      Verify your email
+                    </h2>
+                    <p style={{ color: '#78716c', fontSize: 14, margin: 0 }}>
+                      Sent to <strong style={{ color: '#1c1917' }}>{prof.email}</strong>. Enter it below to finish creating your account.
+                    </p>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                    <OTPBox value={phoneEmailOtp} onChange={v => { setPhoneEmailOtp(v); setPhoneEmailOtpErr(false); }} error={phoneEmailOtpErr} />
+
+                    {phoneEmailOtpErr && (
+                      <p style={{ textAlign: 'center', fontSize: 12.5, fontWeight: 600, color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, margin: 0 }}>
+                        <XCircle size={12} /> Incorrect or expired code
+                      </p>
+                    )}
+
+                    <PrimaryBtn onClick={verifyPhoneRegEmailOtp} loading={busy} disabled={phoneEmailOtp.replace(/\s/g, '').length !== 6}>
+                      {busy ? 'Creating account…' : 'Verify & create account'}
+                    </PrimaryBtn>
+
+                    <div style={{ textAlign: 'center' }}>
+                      {countdown > 0 ? (
+                        <p style={{ fontSize: 12.5, color: '#a8a29e', margin: 0 }}>
+                          Resend in <span style={{ fontWeight: 700, color: '#ea580c' }}>{countdown}s</span>
+                        </p>
+                      ) : (
+                        <button onClick={resendPhoneRegEmailOtp} disabled={busy} style={{
+                          fontSize: 12.5, fontWeight: 700, color: '#ea580c',
+                          background: 'none', border: 'none', cursor: 'pointer',
+                          display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'inherit',
+                        }}>
+                          <RefreshCw size={12} /> Resend code
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ═══════════════════════════════════════ */}
               {/* EMAIL + PASSWORD FORM                   */}
               {/* ═══════════════════════════════════════ */}
               {step === 'email-form' && (
                 <div className="aq-step">
+                  <Dots n={3} active={0} />
                   <BackBtn onClick={() => setStep('method')} label="Choose another method" />
 
                   <div style={{ marginBottom: 28 }}>
@@ -876,7 +1117,7 @@ export default function RegisterPage() {
                     </label>
 
                     <PrimaryBtn type="submit" loading={busy}>
-                      {busy ? 'Creating account…' : <>Create account <ChevronRight size={14} /></>}
+                      {busy ? 'Sending code…' : <>Continue <ChevronRight size={14} /></>}
                     </PrimaryBtn>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -894,6 +1135,119 @@ export default function RegisterPage() {
                     Already have an account?{' '}
                     <Link href="/account/login" style={{ fontWeight: 700, color: '#ea580c', textDecoration: 'none' }}>Log in</Link>
                   </p>
+                </div>
+              )}
+
+              {/* ═══════════════════════════════════════ */}
+              {/* EMAIL FLOW — STEP 2: VERIFY EMAIL CODE  */}
+              {/* ═══════════════════════════════════════ */}
+              {step === 'email-verify-email' && (
+                <div className="aq-step">
+                  <Dots n={3} active={1} />
+                  <BackBtn onClick={() => setStep('email-form')} label="Change details" />
+
+                  <div style={{ marginBottom: 32 }}>
+                    <div style={{ width: 48, height: 48, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20, background: 'linear-gradient(145deg, #f0fdf4, #bbf7d0)', border: '1.5px solid #86efac' }}>
+                      <Mail size={22} style={{ color: '#16a34a' }} />
+                    </div>
+                    <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '2rem', fontWeight: 700, lineHeight: 1.1, letterSpacing: '-0.02em', color: '#1c1917', margin: '0 0 8px' }}>
+                      Verify your email
+                    </h2>
+                    <p style={{ color: '#78716c', fontSize: 14, margin: 0 }}>
+                      Sent to <strong style={{ color: '#1c1917' }}>{ef.email}</strong>
+                    </p>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                    <OTPBox value={emailStepOtp} onChange={v => { setEmailStepOtp(v); setEmailStepOtpErr(false); }} error={emailStepOtpErr} />
+
+                    {emailStepOtpErr && (
+                      <p style={{ textAlign: 'center', fontSize: 12.5, fontWeight: 600, color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, margin: 0 }}>
+                        <XCircle size={12} /> Incorrect or expired code
+                      </p>
+                    )}
+
+                    <PrimaryBtn onClick={verifyEmailRegOtp} loading={busy} disabled={emailStepOtp.replace(/\s/g, '').length !== 6}>
+                      {busy ? 'Verifying…' : 'Verify email'}
+                    </PrimaryBtn>
+
+                    <div style={{ textAlign: 'center' }}>
+                      {countdown > 0 ? (
+                        <p style={{ fontSize: 12.5, color: '#a8a29e', margin: 0 }}>
+                          Resend in <span style={{ fontWeight: 700, color: '#ea580c' }}>{countdown}s</span>
+                        </p>
+                      ) : (
+                        <button onClick={resendEmailRegOtp} disabled={busy} style={{
+                          fontSize: 12.5, fontWeight: 700, color: '#ea580c',
+                          background: 'none', border: 'none', cursor: 'pointer',
+                          display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'inherit',
+                        }}>
+                          <RefreshCw size={12} /> Resend code
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ═══════════════════════════════════════ */}
+              {/* EMAIL FLOW — STEP 3: VERIFY PHONE CODE  */}
+              {/* ═══════════════════════════════════════ */}
+              {step === 'email-verify-phone' && (
+                <div className="aq-step">
+                  <Dots n={3} active={2} />
+
+                  <div className="aq-verified" style={{ display: 'flex', alignItems: 'center', gap: 12, borderRadius: 12, padding: '12px 16px', marginBottom: 24, background: '#f0fdf4', border: '1.5px solid #bbf7d0' }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: '#dcfce7' }}>
+                      <CheckCircle size={16} style={{ color: '#16a34a' }} />
+                    </div>
+                    <div>
+                      <p style={{ fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#15803d', margin: '0 0 2px' }}>Email verified</p>
+                      <p style={{ fontSize: 13.5, fontWeight: 600, color: '#1c1917', margin: 0 }}>{ef.email}</p>
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: 32 }}>
+                    <div style={{ width: 48, height: 48, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20, background: 'linear-gradient(145deg, #fff7ed, #fed7aa)' }}>
+                      <Smartphone size={22} style={{ color: '#ea580c' }} />
+                    </div>
+                    <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '2rem', fontWeight: 700, lineHeight: 1.1, letterSpacing: '-0.02em', color: '#1c1917', margin: '0 0 8px' }}>
+                      Verify your phone
+                    </h2>
+                    <p style={{ color: '#78716c', fontSize: 14, margin: 0 }}>
+                      Sent to <strong style={{ color: '#1c1917' }}>{formatPhone(ef.phone.trim())}</strong>. This completes your account.
+                    </p>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                    <OTPBox value={emailPhoneOtp} onChange={v => { setEmailPhoneOtp(v); setEmailPhoneOtpErr(false); }} error={emailPhoneOtpErr} />
+
+                    {emailPhoneOtpErr && (
+                      <p style={{ textAlign: 'center', fontSize: 12.5, fontWeight: 600, color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, margin: 0 }}>
+                        <XCircle size={12} /> Incorrect or expired code
+                      </p>
+                    )}
+
+                    <PrimaryBtn onClick={verifyPhoneRegOtpForEmailFlow} loading={busy} disabled={emailPhoneOtp.replace(/\s/g, '').length !== 6}>
+                      {busy ? 'Creating account…' : 'Verify & create account'}
+                    </PrimaryBtn>
+
+                    <div style={{ textAlign: 'center' }}>
+                      {countdown > 0 ? (
+                        <p style={{ fontSize: 12.5, color: '#a8a29e', margin: 0 }}>
+                          Resend in <span style={{ fontWeight: 700, color: '#ea580c' }}>{countdown}s</span>
+                        </p>
+                      ) : (
+                        <button onClick={resendEmailRegPhoneOtp} disabled={busy} style={{
+                          fontSize: 12.5, fontWeight: 700, color: '#ea580c',
+                          background: 'none', border: 'none', cursor: 'pointer',
+                          display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'inherit',
+                        }}>
+                          <RefreshCw size={12} /> Resend code
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
 
