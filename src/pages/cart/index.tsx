@@ -3,7 +3,7 @@
 // Enhanced Cart Page - Uses Pre-Extracted Images from CartContext
 // ============================================================
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -35,10 +35,20 @@ export default function CartPage() {
     total: cartTotal,
     itemCount,
     getCartOutlet,
+    refreshPrices,
   } = useCart();
 
   const [isClearing, setIsClearing] = useState(false);
   const [removingItems, setRemovingItems] = useState<Set<string>>(new Set());
+
+  // Re-validate cart prices against the live product data whenever the
+  // cart is opened, so a price change made after an item was added (from
+  // a listing page that may be serving a stale/cached price) doesn't
+  // silently persist through to checkout.
+  useEffect(() => {
+    refreshPrices();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const cartOutlet = getCartOutlet();
   
