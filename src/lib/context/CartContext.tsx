@@ -24,6 +24,7 @@ export interface CartContextType {
   itemCount: number;
   getCartOutlet: () => Outlet | null;
   isInCart: (productId: string, outletId: string) => boolean;
+  refreshPrices: () => Promise<void>;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -121,9 +122,19 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
           return prevCart;
         }
 
+        // Refresh the item with whatever fresh product data was just passed in
+        // (price, stock, name, images, etc.) — not just the quantity. Without
+        // this, an item added earlier keeps its price frozen at whatever it
+        // was on the very first add, even after the vendor changes it and the
+        // user re-adds it from a page showing the updated price.
+        const priceChanged = prevCart[existingItemIndex].price !== product.price;
+        if (priceChanged) {
+          toast(`Price updated to KES ${product.price.toLocaleString()}`, { icon: '💰' });
+        }
+
         return prevCart.map((item, index) =>
           index === existingItemIndex
-            ? { ...item, quantity: item.quantity + 1 }
+            ? { ...item, ...product, id: productId, outlet: { ...outlet, id: outletId }, quantity: item.quantity + 1 }
             : item
         );
       }
@@ -203,6 +214,55 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   };
 
   /**
+   * Re-validate every cart item's price against the live product endpoint.
+   * This is the safety net for the case where an item was added while the
+   * "nearby products" listing was serving a stale/cached price — it pulls
+   * the authoritative current price for each item and updates the cart if
+   * anything has changed, surfacing a toast so the user isn't surprised
+   * at checkout.
+   */
+  const refreshPrices = async () => {
+    if (cart.length === 0) return;
+
+    const { default: productService } = await import('../services/productService');
+
+    const updates = await Promise.all(
+      cart.map(async (item) => {
+        const itemProductId = (item.id || item.product_id)?.toString();
+        if (!itemProductId) return null;
+        try {
+          const fresh = await productService.getProduct(itemProductId);
+          if (fresh && typeof fresh.price === 'number' && fresh.price !== item.price) {
+            return { itemProductId, oldPrice: item.price, newPrice: fresh.price };
+          }
+        } catch {
+          // Product lookup failed (deleted, endpoint unavailable, etc.) —
+          // leave the cart item as-is rather than blocking the user.
+        }
+        return null;
+      })
+    );
+
+    const changed = updates.filter(Boolean) as { itemProductId: string; oldPrice: number; newPrice: number }[];
+    if (changed.length === 0) return;
+
+    setCart((prevCart) =>
+      prevCart.map((item) => {
+        const itemProductId = (item.id || item.product_id)?.toString();
+        const match = changed.find((c) => c.itemProductId === itemProductId);
+        return match ? { ...item, price: match.newPrice } : item;
+      })
+    );
+
+    changed.forEach((c) => {
+      toast(`A price in your cart was updated: KES ${c.oldPrice.toLocaleString()} → KES ${c.newPrice.toLocaleString()}`, {
+        icon: '💰',
+        duration: 5000,
+      });
+    });
+  };
+
+  /**
    * Clear entire cart
    */
   const clearCart = () => {
@@ -242,6 +302,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     itemCount,
     getCartOutlet,
     isInCart,
+    refreshPrices,
   };
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
