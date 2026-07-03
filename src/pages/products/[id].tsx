@@ -7,7 +7,7 @@
 // "View Details" link (/products/[id]) was 404-ing.
 // ============================================================
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -25,13 +25,14 @@ import toast from 'react-hot-toast';
 
 import { useProduct } from '@/lib/hooks/useProducts';
 import { useCart } from '@/lib/hooks/useCart';
+import { productService as productServiceClass } from '@/lib/services';
+import { VendorLocation } from '@/lib/types';
 import {
   extractAllImages,
   getProductImageUrl,
 } from '@/lib/utils/imageUtils';
 import {
   getProductDisplayName,
-  getStockStatusMessage,
   formatPrice,
   createFallbackOutlet,
 } from '@/lib/utils/productTransform';
@@ -46,6 +47,20 @@ export default function ProductDetailPage() {
 
   const [activeImage, setActiveImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
+
+  // The `products` table is just the catalog (name, price, images, etc).
+  // Actual stock lives per-outlet in `vendor_inventory`, so the generic
+  // product-by-id lookup doesn't carry a real stock number. Fetch the
+  // outlet-level listings separately to get the real stock figure.
+  const [vendorLocations, setVendorLocations] = useState<VendorLocation[] | null>(null);
+
+  useEffect(() => {
+    if (!productId) return;
+    productServiceClass
+      .getProductVendors(productId)
+      .then((locations) => setVendorLocations(locations || []))
+      .catch(() => setVendorLocations([])); // endpoint may not exist yet — fail quietly
+  }, [productId]);
 
   // ── Loading state ─────────────────────────────────────────
   if (loading) {
@@ -81,9 +96,60 @@ export default function ProductDetailPage() {
   const displayName = getProductDisplayName(product);
   const images = extractAllImages(product.images || product.product_images || getProductImageUrl(product));
   const sizeLabel = product.size || product.size_specification || product.sizeSpecification;
-  const stockMessage = getStockStatusMessage(product);
-  const isOutOfStock = (product.stock ?? 0) === 0 || product.is_active === false;
-  const outlet = createFallbackOutlet(product);
+
+  // Real stock total across outlets selling this product (from vendor_inventory,
+  // via /products/:id/vendors). Sum rather than picking one outlet, since a
+  // product can be stocked at several outlets.
+  const totalOutletStock =
+    vendorLocations && vendorLocations.length > 0
+      ? vendorLocations.reduce((sum, v) => sum + (v.stock ?? 0), 0)
+      : null;
+
+  // Only treat something as "known" stock if the catalog record itself
+  // actually returned a numeric stock field — don't invent a 0.
+  const catalogStock = typeof product.stock === 'number' ? product.stock : null;
+
+  // Prefer the real per-outlet total; fall back to the catalog field;
+  // if neither is available yet (still loading, or endpoint missing),
+  // treat as unknown rather than "0 in stock".
+  const knownStock = vendorLocations === null ? catalogStock : (totalOutletStock ?? catalogStock);
+
+  // Only explicit `false` counts as inactive — `undefined` just means the
+  // field wasn't in this response, not that the product is disabled.
+  const isExplicitlyInactive = product.is_active === false || product.isActive === false;
+
+  const isOutOfStock = isExplicitlyInactive || knownStock === 0;
+
+  const stockMessage = isExplicitlyInactive
+    ? 'Not available'
+    : knownStock === null
+    ? 'In Stock'
+    : knownStock === 0
+    ? 'Out of stock'
+    : knownStock <= 5
+    ? `Only ${knownStock} left`
+    : `${knownStock} in stock`;
+
+  const outlet =
+    vendorLocations && vendorLocations.length > 0
+      ? {
+          id: vendorLocations[0].outlet_id.toString(),
+          outlet_id: vendorLocations[0].outlet_id,
+          name: vendorLocations[0].outlet_name,
+          outlet_name: vendorLocations[0].outlet_name,
+          vendor: vendorLocations[0].vendor_name,
+          vendor_id: vendorLocations[0].vendor_id,
+          vendor_name: vendorLocations[0].vendor_name,
+          rating: vendorLocations[0].vendor_rating || 0,
+          reviews: 0,
+          address: vendorLocations[0].address || '',
+          phone: vendorLocations[0].contact_phone || '',
+          featured: false,
+          is_active: true,
+          latitude: vendorLocations[0].latitude,
+          longitude: vendorLocations[0].longitude,
+        }
+      : createFallbackOutlet(product);
 
   const handleAddToCart = () => {
     try {
@@ -272,7 +338,7 @@ export default function ProductDetailPage() {
                       {quantity}
                     </span>
                     <button
-                      onClick={() => setQuantity((q) => Math.min(product.stock || 99, q + 1))}
+                      onClick={() => setQuantity((q) => Math.min(knownStock ?? 99, q + 1))}
                       className="w-9 h-9 flex items-center justify-center text-slate-600 hover:bg-slate-50 transition-colors"
                     >
                       +
