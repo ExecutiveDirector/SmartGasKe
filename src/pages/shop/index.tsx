@@ -272,7 +272,7 @@ export default function ShopPage() {
       vendors.forEach((vendor: any) => {
         (vendor.outlets || []).forEach((outletData: any) => {
           let products: Product[] = (outletData.products || [])
-            .filter((p: any) => p.is_available || p.isActive)
+            .filter((p: any) => p.is_available !== false && p.isActive !== false && p.is_active !== false)
             .map((p: any) => parseProduct(p, vendor, outletData));
 
           if (categoryFilter !== 'All') {
@@ -364,8 +364,8 @@ export default function ShopPage() {
     size_specification: p.size_specification,
     unit:               p.unit_of_measure || '',
     unit_of_measure:    p.unit_of_measure,
-    is_active:          p.is_available !== false,
-    isActive:           p.is_available !== false,
+    is_active:          p.is_available !== false && p.is_active !== false,
+    isActive:           p.is_available !== false && p.is_active !== false,
     outlet_id:          outlet.outlet_id?.toString(),
     outlet_name:        outlet.outlet_name,
     vendor_name:        vendor.name || vendor.business_name,
