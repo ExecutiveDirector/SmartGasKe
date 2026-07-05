@@ -24,7 +24,7 @@ export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
 
   // Detect immersive pages that own their own chrome (nav/footer)
-  const isShopPage = router.pathname.startsWith('/shop');
+ // const isShopPage = router.pathname.startsWith('/shop');
   const isBlogPage = router.pathname.startsWith('/blog');
   const hideGlobalChrome = isShopPage || isBlogPage;
 
