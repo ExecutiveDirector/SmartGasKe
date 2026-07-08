@@ -19,7 +19,7 @@ import {
 import { useCart } from '@/lib/context/CartContext';
 import { useAuth } from '@/lib/context/AuthContext';
 import toast from 'react-hot-toast';
-import { calculateCartPricing } from '@/lib/utils/pricing';
+import { calculateCartPricing, fetchPricingConfig, FALLBACK_PRICING_CONFIG, PricingConfig } from '@/lib/utils/pricing';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://aquagas-backend.onrender.com/api/v1';
 
@@ -232,9 +232,10 @@ interface OutletCardProps {
   outlet: any;
   selected: boolean;
   onSelect: () => void;
+  pickupFeeGeneral: number;
 }
 
-const OutletCard: React.FC<OutletCardProps> = ({ outlet, selected, onSelect }) => (
+const OutletCard: React.FC<OutletCardProps> = ({ outlet, selected, onSelect, pickupFeeGeneral }) => (
   <button
     type="button"
     onClick={onSelect}
@@ -262,7 +263,8 @@ const OutletCard: React.FC<OutletCardProps> = ({ outlet, selected, onSelect }) =
           </p>
         )}
         <div className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-[11px] font-semibold">
-          <Check size={10} />FREE Pickup
+          <Check size={10} />
+          {outlet.vendor_type === 'general' ? `KES ${pickupFeeGeneral} Pickup` : 'FREE Pickup'}
         </div>
       </div>
     </div>
@@ -299,10 +301,25 @@ export default function CheckoutPage() {
   const [mapEditorOpen, setMapEditorOpen]     = useState(false);
 
   // ── Pricing ────────────────────────────────────────────────
-  const { subtotal, tax, deliveryFee: baseFee, total } = calculateCartPricing(cartTotal);
-  // Pickup is always free
-  const deliveryFee = deliveryMode === 'pickup' ? 0 : baseFee;
-  const finalTotal  = subtotal + tax + deliveryFee;
+  // Live constants from the backend — previously this hardcoded its own
+  // stale copy of DELIVERY_FEE/FREE_DELIVERY_THRESHOLD, AND treated every
+  // pickup as free regardless of vendor type. The backend actually charges
+  // a flat pickup fee for "general" (non-gas) vendors — gas vendor pickup
+  // is the only one that's free. This now mirrors calculateOrderPricing()
+  // on the server exactly, so the preview matches what's actually charged.
+  const [pricingConfig, setPricingConfig] = useState<PricingConfig>(FALLBACK_PRICING_CONFIG);
+  useEffect(() => {
+    fetchPricingConfig().then(setPricingConfig);
+  }, []);
+
+  const cartOutlet = getCartOutlet?.();
+  const vendorType: 'gas' | 'general' = cartOutlet?.vendor_type === 'general' ? 'general' : 'gas';
+
+  const { subtotal, tax, deliveryFee, total: finalTotal } = calculateCartPricing(
+    cartTotal,
+    pricingConfig,
+    { isPickup: deliveryMode === 'pickup', vendorType }
+  );
 
   // ── Form state ─────────────────────────────────────────────
   const [formData, setFormData] = useState({
@@ -685,7 +702,11 @@ export default function CheckoutPage() {
                         <Store size={22} className={deliveryMode === 'pickup' ? 'text-white' : 'text-gray-500'} />
                       </div>
                       <p className="font-bold text-gray-900 text-sm">Pickup</p>
-                      <p className="text-xs text-emerald-600 font-semibold mt-0.5">FREE — No delivery fee</p>
+                      <p className="text-xs text-emerald-600 font-semibold mt-0.5">
+                        {vendorType === 'general'
+                          ? `KES ${pricingConfig.pickup_fee_general} service fee`
+                          : 'FREE — No delivery fee'}
+                      </p>
                     </button>
                   </div>
 
@@ -902,6 +923,7 @@ export default function CheckoutPage() {
                               outlet={outlet}
                               selected={selectedOutlet?.outlet_id === outlet.outlet_id || selectedOutlet?.id === outlet.id}
                               onSelect={() => setSelectedOutlet(outlet)}
+                              pickupFeeGeneral={pricingConfig.pickup_fee_general}
                             />
                           ))}
                         </div>

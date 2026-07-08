@@ -135,6 +135,7 @@ export interface Product {
   outlet_name?: string;
   vendor_name?: string;
   vendor_id?: number;
+  vendor_type?: 'gas' | 'general';
   
   // Availability locations
   available_at?: VendorLocation[];
@@ -268,6 +269,7 @@ export interface Outlet {
   vendor: string;
   vendor_id?: string | number;
   vendor_name?: string;
+  vendor_type?: 'gas' | 'general';
   distance?: number;
   distance_km?: number;
   rating: number;

@@ -2,24 +2,24 @@
 // FILE: src/lib/api.ts
 // Updated to match backend API endpoints and responses
 //
-// FIX 1: register() was calling POST /auth/register → 404
+//  register() was calling POST /auth/register → 404
 //         Correct endpoint: POST /auth/register/user
 //
-// FIX 2: getProfile() was returning response.data (raw axios body)
+//  getProfile() was returning response.data (raw axios body)
 //         which is { account, profile, role, ... }.
 //         AuthContext.refreshUser() then reads response.data again,
 //         getting undefined → normalizeUser(null) → user never set.
 //         Now wrapped: { success: true, data: response.data } so
 //         AuthContext receives the backend body at response.data ✓
 //
-// FIX 3: updateProfile() had the same double-unwrap issue as getProfile.
+//  updateProfile() had the same double-unwrap issue as getProfile.
 //         Wrapped consistently.
 //
-// FIX 4: outletService.getOutlet() — backend GET /outlets/:outletId
+//  outletService.getOutlet() — backend GET /outlets/:outletId
 //         returns { outlet: {...} }, not the outlet directly.
 //         Now unwrapped and normalized into the Outlet shape.
 //
-// FIX 5: outletService.getOutletProducts() — backend
+//  outletService.getOutletProducts() — backend
 //         GET /outlets/:outletId/products returns a flat object
 //         { outlet_id, outlet_name, vendor_name, ..., products: [...], product_count },
 //         not { data: [...], pagination: {...} }.
@@ -314,6 +314,7 @@ export const outletService = {
       vendor: o.vendor_name || '',
       vendor_id: o.vendor_id,
       vendor_name: o.vendor_name,
+      vendor_type: o.vendor_type,
       rating: o.rating ?? 0,
       reviews: o.reviews ?? 0,
       address: [
@@ -375,6 +376,7 @@ export const outletService = {
       outlet_name: string;
       vendor_id?: string;
       vendor_name?: string;
+      vendor_type?: 'gas' | 'general';
       products: any[];
       product_count: number;
     }>(`/outlets/${outletId}/products`, { params });
@@ -418,6 +420,7 @@ export const outletService = {
       outlet_name: response.data.outlet_name,
       vendor_id: response.data.vendor_id ? Number(response.data.vendor_id) : undefined,
       vendor_name: response.data.vendor_name,
+      vendor_type: response.data.vendor_type,
     }));
 
     return {

@@ -3,7 +3,7 @@
 // ENHANCED: Professional green & blue design with image loading
 // ============================================================
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -22,10 +22,9 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { useCart } from '@/lib/context/CartContext';
-import { DELIVERY_FEE } from '@/lib/constants';
 import { formatPrice } from '@/lib/utils';
 import toast from 'react-hot-toast';
-import { calculateCartPricing } from '@/lib/utils/pricing';
+import { calculateCartPricing, fetchPricingConfig, FALLBACK_PRICING_CONFIG, PricingConfig } from '@/lib/utils/pricing';
 
 // ============================================================
 // Product Image Component — matches checkout page pattern
@@ -73,7 +72,16 @@ export default function CartPage() {
   const router = useRouter();
   const { cart, updateQuantity, removeFromCart, clearCart, total: cartTotal } = useCart();
 
-  const { subtotal, tax, deliveryFee, total } = calculateCartPricing(cartTotal);
+  // Live pricing constants from the backend (utils/pricing.js) — no more
+  // hardcoded, drifted copies. This is a home-delivery preview; the actual
+  // fee/free-delivery choice (and pickup vendor_type handling) happens on
+  // the checkout page once delivery mode is chosen.
+  const [pricingConfig, setPricingConfig] = useState<PricingConfig>(FALLBACK_PRICING_CONFIG);
+  useEffect(() => {
+    fetchPricingConfig().then(setPricingConfig);
+  }, []);
+
+  const { subtotal, tax, deliveryFee, total } = calculateCartPricing(cartTotal, pricingConfig);
 
 
   const handleUpdateQuantity = (productId: string, outletId: string, newQuantity: number) => {
@@ -330,7 +338,7 @@ export default function CartPage() {
                   </div>
 
                   <div className="flex justify-between items-center text-gray-600">
-                    <span className="font-medium">Service fee (6%)</span>
+                    <span className="font-medium">Service fee ({Math.round(pricingConfig.tax_rate * 100)}%)</span>
                     <span className="font-bold text-gray-800">{formatPrice(tax)}</span>
                   </div>
 
@@ -348,10 +356,10 @@ export default function CartPage() {
                     )}
                   </div>
 
-                  {subtotal < 5000 && (
+                  {subtotal < pricingConfig.free_delivery_threshold && (
                     <div className="bg-blue-50 border border-blue-100 rounded-2xl p-3 text-xs text-blue-700 font-medium">
                       💡 Add{' '}
-                      <span className="font-bold">{formatPrice(5000 - subtotal)}</span>{' '}
+                      <span className="font-bold">{formatPrice(pricingConfig.free_delivery_threshold - subtotal)}</span>{' '}
                       more for free delivery
                     </div>
                   )}

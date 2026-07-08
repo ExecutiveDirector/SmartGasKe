@@ -1,0 +1,109 @@
+# dependencies
+/node_modules/
+/.pnp/
+.pnp.js
+
+# next.js
+/.next/
+/out/
+
+# production
+/build/
+/dist/
+
+# misc
+.DS_Store
+Thumbs.db
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# local env files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# testing
+/coverage/
+
+# IDEs and editors
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# system files
+*.DS_Store
+*.AppleDouble
+*.LSOverride
+
+# macOS
+.AppleDB
+.AppleDesktop
+.DS_Store?
+.Spotlight-V100
+.Trashes
+Icon?
+
+# Linux
+*~
+.*.swp
+
+# environment files
+.local
+
+# Vercel
+.vercel/
+
+# npm package locks
+package-lock.json
+
+# Yarn
+yarn.lock
+
+# pnpm
+pnpm-lock.yaml
+
+# generated coverage and reports
+coverage/
+clover.xml
+
+# storybook
+/.out/
+
+# optional npm cache directory
+.npm
+
+# temporary files
+*.tmp
+*.temp
+
+# log and debug files
+*.log
+
+# Yarn 2
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+.yarn/cache/
+
+# OS generated files
+.DS_Store
+
+# Editor backup files
+*.bak
+*.orig
