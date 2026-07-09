@@ -20,6 +20,7 @@ import { useCart } from '@/lib/context/CartContext';
 import { useAuth } from '@/lib/context/AuthContext';
 import toast from 'react-hot-toast';
 import { calculateCartPricing, fetchPricingConfig, FALLBACK_PRICING_CONFIG, PricingConfig } from '@/lib/utils/pricing';
+import { outletService } from '@/lib/api';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://aquagas-backend.onrender.com/api/v1';
 
@@ -312,8 +313,14 @@ export default function CheckoutPage() {
     fetchPricingConfig().then(setPricingConfig);
   }, []);
 
-  const cartOutlet = getCartOutlet?.();
-  const vendorType: 'gas' | 'general' = cartOutlet?.vendor_type === 'general' ? 'general' : 'gas';
+  // vendor_type must come from a live outlet fetch, not getCartOutlet()
+  // directly — the cart is persisted to localStorage, so an item added
+  // before vendor_type existed on the outlet shape (or before a vendor's
+  // type was corrected) would freeze that stale value forever otherwise.
+  // selectedOutlet is seeded from the cart for a fast first paint, then
+  // refreshed from GET /outlets/:id in the pickup-mode effect above.
+  const vendorType: 'gas' | 'general' =
+    selectedOutlet?.vendor_type === 'general' ? 'general' : 'gas';
 
   const { subtotal, tax, deliveryFee, total: finalTotal } = calculateCartPricing(
     cartTotal,
@@ -380,9 +387,25 @@ export default function CheckoutPage() {
     if (deliveryMode !== 'pickup') return;
     const outlet = getCartOutlet?.();
     if (outlet) {
-      // Use the cart's outlet directly
+      // Use the cart's outlet as a starting point immediately (fast paint),
+      // but the cart persists to localStorage — an item added before a
+      // vendor_type (or any other) field existed on the outlet shape will
+      // have that field permanently missing from its frozen snapshot, even
+      // after the site itself is redeployed with the fix. Refresh from the
+      // live endpoint in the background so pricing (vendor_type-dependent
+      // pickup fee) is always current, not whatever was cached at add-time.
       setOutlets([outlet]);
       setSelectedOutlet(outlet);
+
+      const outletId = outlet.outlet_id || outlet.id;
+      if (outletId) {
+        outletService.getOutlet(String(outletId)).then((res) => {
+          if (res.data) {
+            setOutlets([res.data]);
+            setSelectedOutlet(res.data);
+          }
+        }).catch(() => { /* keep the cached outlet on failure */ });
+      }
       return;
     }
     // Fallback: fetch from API
