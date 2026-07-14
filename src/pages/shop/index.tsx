@@ -126,7 +126,12 @@ function OutletRow({ outlet, products }: { outlet: Outlet; products: Product[] }
               {outlet.outlet_name || outlet.name}
             </h3>
             <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
-              {outlet.distance_km !== undefined && (
+              {outlet.nationwide ? (
+                <span className="flex items-center gap-1">
+                  <Zap size={11} />
+                  Delivers Nationwide
+                </span>
+              ) : outlet.distance_km !== undefined && (
                 <span className="flex items-center gap-1">
                   <MapPin size={11} />
                   {outlet.distance_km < 1
@@ -302,8 +307,9 @@ export default function ShopPage() {
               vendor:        vendor.name || vendor.business_name || '',
               vendor_id:     vendor.vendor_id,
               vendor_name:   vendor.name || vendor.business_name || '',
-              distance:      outletData.distance_km || 0,
-              distance_km:   outletData.distance_km || 0,
+              distance:      outletData.distance_km ?? undefined,
+              distance_km:   outletData.distance_km ?? undefined,
+              nationwide:    outletData.nationwide === true || outletData.distance_km == null,
               rating:        vendor.rating || 4.5,
               reviews:       vendor.total_reviews || 0,
               address:       outletData.location?.address || outletData.address_line_1 || '',
@@ -323,7 +329,13 @@ export default function ShopPage() {
       });
 
       allOutlets.sort((a, b) => {
-        if (sortBy === 'nearest')    return (a.outlet.distance || 0) - (b.outlet.distance || 0);
+        if (sortBy === 'nearest') {
+          // Nationwide outlets have no real distance — always sort them
+          // after outlets with an actual computed distance.
+          if (a.outlet.nationwide && !b.outlet.nationwide) return 1;
+          if (!a.outlet.nationwide && b.outlet.nationwide) return -1;
+          return (a.outlet.distance ?? Infinity) - (b.outlet.distance ?? Infinity);
+        }
         if (sortBy === 'price-asc')  return Math.min(...a.products.map((p) => p.price)) - Math.min(...b.products.map((p) => p.price));
         if (sortBy === 'price-desc') return Math.max(...b.products.map((p) => p.price)) - Math.max(...a.products.map((p) => p.price));
         if (sortBy === 'rating')     return (b.outlet.rating || 0) - (a.outlet.rating || 0);
