@@ -272,6 +272,7 @@ export interface Outlet {
   vendor_type?: 'gas' | 'general';
   distance?: number;
   distance_km?: number;
+  nationwide?: boolean; // true when this outlet is exempt from location restriction (vendor_type='general')
   rating: number;
   reviews: number;
   address: string;
