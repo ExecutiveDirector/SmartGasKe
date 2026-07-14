@@ -130,8 +130,13 @@ export default function OutletProductsSection({
                       {/* Open/Closed */}
                       <StatusBadge isOpen={outlet.isOpen} />
 
-                      {/* Distance */}
-                      {outlet.distance !== undefined && outlet.distance > 0 && (
+                      {/* Distance / Nationwide */}
+                      {outlet.nationwide ? (
+                        <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg">
+                          <MapPin size={11} />
+                          Delivers Nationwide
+                        </span>
+                      ) : outlet.distance !== undefined && outlet.distance > 0 && (
                         <span className="flex items-center gap-1.5 text-xs font-medium text-sky-600 bg-sky-50 px-2.5 py-1 rounded-lg">
                           <MapPin size={11} />
                           {outlet.distance.toFixed(1)} km
