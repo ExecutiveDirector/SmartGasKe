@@ -14,7 +14,7 @@ import {
   User, Mail, Phone, MapPin, Truck, Check, Loader, ArrowLeft,
   AlertCircle, Shield, Package, Edit2, Edit3, X, Map, Navigation,
   CheckCircle2, Building2, Clock, Calendar, Store, ChevronRight,
-  Zap, CalendarClock,
+  Zap, CalendarClock, Wallet, Banknote, Smartphone, CreditCard,
 } from 'lucide-react';
 import { useCart } from '@/lib/context/CartContext';
 import { useAuth } from '@/lib/context/AuthContext';
@@ -282,6 +282,12 @@ export default function CheckoutPage() {
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orderId, setOrderId]         = useState('');
 
+  // ── Payment method ─────────────────────────────────────────
+  type PayMethod = 'pesapal' | 'sasapay' | 'cod' | 'wallet';
+  const [paymentMethod, setPaymentMethod] = useState<PayMethod>('pesapal');
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [mpesaWaiting, setMpesaWaiting]   = useState<string | null>(null); // message while waiting for the PIN
+
   // ── Delivery type state ────────────────────────────────────
   // 'home_delivery' | 'pickup'
   const [deliveryMode, setDeliveryMode] = useState<'home_delivery' | 'pickup'>('home_delivery');
@@ -428,6 +434,30 @@ export default function CheckoutPage() {
   }, [deliveryMode]);
 
   // Validation
+  // Wallet balance (signed-in customers only) for the "Pay with wallet" option
+  useEffect(() => {
+    if (!isAuthenticated) { setWalletBalance(null); return; }
+    const token = getToken ? getToken() : null;
+    if (!token) return;
+    let cancelled = false;
+    fetch('/api/wallet/balance', { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((w) => {
+        if (cancelled || !w) return;
+        const raw = w.balance ?? w.wallet?.balance;
+        const n = Number(raw);
+        setWalletBalance(Number.isFinite(n) ? n : null);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
+
+  // Cash on delivery only makes sense for home delivery
+  useEffect(() => {
+    if (deliveryMode === 'pickup' && paymentMethod === 'cod') setPaymentMethod('pesapal');
+  }, [deliveryMode, paymentMethod]);
+
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
     if (!formData.name || formData.name.trim().length < 2) newErrors.name = 'Name must be at least 2 characters';
@@ -547,7 +577,61 @@ export default function CheckoutPage() {
       const createdOrderId = orderResult.order_id || orderResult.order?.order_id || `ORD-${Date.now()}`;
       setOrderId(createdOrderId);
 
-      // Pesapal payment
+      const jsonHeaders = headers;
+      const post = async (url: string, body: unknown) => {
+        const r = await fetch(url, { method: 'POST', headers: jsonHeaders, body: JSON.stringify(body) });
+        let data: any = {};
+        try { data = await r.json(); } catch { /* keep empty */ }
+        if (!r.ok) throw new Error(data?.error || data?.message || `Request failed (${r.status})`);
+        return data;
+      };
+      const finishPlaced = () => { setOrderPlaced(true); clearCart(); };
+      const dropDraft = () => { post('/api/orders/cancel-draft', { order_id: createdOrderId }).catch(() => {}); };
+
+      if (paymentMethod === 'cod') {
+        // Cash on delivery: the rider collects the total at the door.
+        try {
+          await post('/api/orders/confirm', { order_id: createdOrderId, payment_method: 'cod', phone_number: formData.phone });
+        } catch (e) { dropDraft(); throw e; }
+        finishPlaced();
+        return;
+      }
+
+      if (paymentMethod === 'wallet') {
+        try {
+          await post('/api/orders/pay-wallet', { order_id: createdOrderId });
+        } catch (e) { dropDraft(); throw e; }
+        finishPlaced();
+        return;
+      }
+
+      if (paymentMethod === 'sasapay') {
+        // M-Pesa STK push; wait for the customer to enter their PIN.
+        let started: any;
+        try {
+          started = await post('/api/payments/sasapay', { order_id: createdOrderId, phone_number: formData.phone });
+        } catch (e) { dropDraft(); throw e; }
+        setMpesaWaiting(started?.message || 'Check your phone and enter your M-Pesa PIN to pay.');
+        const deadline = Date.now() + 120_000;
+        let outcome: 'paid' | 'failed' | 'timeout' = 'timeout';
+        while (Date.now() < deadline) {
+          await new Promise((r) => setTimeout(r, 3000));
+          try {
+            const sr = await fetch(`/api/payments/sasapay?order_id=${encodeURIComponent(createdOrderId)}`, { headers: jsonHeaders });
+            if (sr.ok) {
+              const st = await sr.json();
+              if (st.payment_status === 'paid') { outcome = 'paid'; break; }
+              if (st.payment_status === 'failed') { outcome = 'failed'; break; }
+            }
+          } catch { /* keep polling */ }
+        }
+        setMpesaWaiting(null);
+        if (outcome === 'paid') { finishPlaced(); return; }
+        if (outcome === 'failed') { dropDraft(); throw new Error('The M-Pesa payment was cancelled or failed. You have not been charged.'); }
+        throw new Error('We have not received your M-Pesa payment yet. If you already paid, check My Orders in a minute.');
+      }
+
+      // Pesapal payment (card, bank, M-Pesa via Pesapal)
       const paymentResponse = await fetch('/api/payments/initiate', {
         method: 'POST', headers,
         body: JSON.stringify({ order_id: createdOrderId, customer_email: formData.email, customer_phone: formData.phone }),
@@ -564,6 +648,7 @@ export default function CheckoutPage() {
 
     } catch (error: any) {
       console.error('❌ Checkout error:', error);
+      setMpesaWaiting(null);
       toast.error(error.message || 'Failed to process checkout. Please try again.');
       setSubmitting(false);
     }
@@ -965,28 +1050,61 @@ export default function CheckoutPage() {
                   )}
                 </div>
 
-                {/* ── Payment info ── */}
+                {/* ── Payment method ── */}
                 <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-3xl p-7">
                   <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <Shield size={22} className="text-blue-600" />Secure Payment
+                    <Shield size={22} className="text-blue-600" />Payment Method
                   </h3>
-                  <p className="text-gray-700 text-sm mb-5">After placing your order, you'll be redirected to Pesapal's secure payment page.</p>
-                  <div className="space-y-2.5 mb-5">
-                    {[
-                      { color: 'bg-green-500', label: 'M-Pesa', sub: 'Mobile money' },
-                      { color: 'bg-blue-500',  label: 'Card',   sub: 'Visa / Mastercard' },
-                      { color: 'bg-purple-500', label: 'Bank',  sub: 'Direct transfer' },
-                    ].map(({ color, label, sub }) => (
-                      <div key={label} className="flex items-center gap-3 text-sm text-gray-700">
-                        <div className={`w-7 h-7 rounded-full ${color} text-white flex items-center justify-center text-xs font-bold flex-shrink-0`}>✓</div>
-                        <span><strong>{label}</strong> — {sub}</span>
-                      </div>
-                    ))}
+                  <div className="space-y-3">
+                    {([
+                      { id: 'sasapay' as const, icon: Smartphone, title: 'M-Pesa', sub: 'Get a prompt on your phone and enter your PIN',
+                        disabled: !isAuthenticated, note: !isAuthenticated ? 'Sign in to pay with M-Pesa' : '' },
+                      { id: 'pesapal' as const, icon: CreditCard, title: 'Card / Bank / more', sub: "Redirects to Pesapal's secure payment page",
+                        disabled: false, note: '' },
+                      { id: 'cod' as const, icon: Banknote, title: 'Cash on delivery', sub: 'Pay the rider in cash when your order arrives',
+                        disabled: deliveryMode === 'pickup', note: deliveryMode === 'pickup' ? 'Only for home delivery' : '' },
+                      ...(isAuthenticated && (walletBalance ?? 0) > 0 ? [{
+                        id: 'wallet' as const, icon: Wallet, title: 'AquaGas wallet',
+                        sub: `Balance KES ${(walletBalance ?? 0).toLocaleString()}`,
+                        disabled: (walletBalance ?? 0) < finalTotal,
+                        note: (walletBalance ?? 0) < finalTotal ? 'Balance is lower than the order total' : '',
+                      }] : []),
+                    ]).map(({ id, icon: Icon, title, sub, disabled, note }) => {
+                      const selected = paymentMethod === id && !disabled;
+                      return (
+                        <button
+                          type="button" key={id} disabled={disabled}
+                          onClick={() => setPaymentMethod(id)}
+                          className={`w-full text-left flex items-center gap-4 p-4 rounded-2xl border-2 transition ${
+                            disabled ? 'bg-gray-50 border-gray-200 opacity-60 cursor-not-allowed'
+                              : selected ? 'bg-white border-blue-600 shadow-md' : 'bg-white border-gray-200 hover:border-blue-300'}`}
+                        >
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${selected ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'}`}>
+                            <Icon size={20} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-gray-900 text-sm">{title}</p>
+                            <p className="text-xs text-gray-500">{note || sub}</p>
+                          </div>
+                          {selected && <CheckCircle2 size={20} className="text-blue-600 flex-shrink-0" />}
+                        </button>
+                      );
+                    })}
                   </div>
-                  <div className="p-3 bg-white rounded-xl border border-green-200">
-                    <p className="text-xs text-gray-700 flex items-center gap-2 font-medium"><Shield size={14} className="text-green-600" />256-bit SSL encryption</p>
+                  <div className="mt-5 p-3 bg-white rounded-xl border border-green-200">
+                    <p className="text-xs text-gray-700 flex items-center gap-2 font-medium"><Shield size={14} className="text-green-600" />Payments are processed securely</p>
                   </div>
                 </div>
+
+                {mpesaWaiting && (
+                  <div className="bg-emerald-50 border-2 border-emerald-200 rounded-2xl p-5 flex items-start gap-3" role="status">
+                    <Loader className="animate-spin text-emerald-600 flex-shrink-0 mt-0.5" size={20} />
+                    <div>
+                      <p className="font-semibold text-emerald-900 text-sm">Waiting for your M-Pesa PIN…</p>
+                      <p className="text-xs text-emerald-800 mt-1">{mpesaWaiting} Please keep this page open.</p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Submit */}
                 <button
@@ -995,8 +1113,8 @@ export default function CheckoutPage() {
                   className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-5 rounded-2xl hover:from-blue-700 hover:to-blue-800 font-bold text-lg transition disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-xl hover:shadow-2xl transform hover:scale-[1.01] active:scale-[0.99] duration-200"
                 >
                   {submitting
-                    ? <><Loader className="animate-spin" size={22} />Processing...</>
-                    : <><Check size={22} />Proceed to Payment — KES {finalTotal.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</>
+                    ? <><Loader className="animate-spin" size={22} />{mpesaWaiting ? 'Waiting for payment...' : 'Processing...'}</>
+                    : <><Check size={22} />{paymentMethod === 'cod' ? 'Place Order' : paymentMethod === 'wallet' ? 'Pay from Wallet' : paymentMethod === 'sasapay' ? 'Pay with M-Pesa' : 'Proceed to Payment'} — KES {finalTotal.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</>
                   }
                 </button>
                 <p className="text-center text-xs text-gray-500">By placing your order, you agree to our terms and conditions</p>
