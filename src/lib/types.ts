@@ -32,6 +32,7 @@ export interface RegisterData {
 
 export interface AuthResponse {
   token: string;
+  refreshToken?: string;
   role?: string;
   admin_role?: string | null;
   redirect?: string;

@@ -85,12 +85,50 @@ api.interceptors.request.use(
 );
 
 // ── Response interceptor ─────────────────────────────────────────────
+// Customers stay signed in: on 401 we silently swap the stored refresh token
+// for a new access token and retry once. Only a definitive rejection (401/403
+// from /auth/refresh) signs the customer out.
+let refreshing: Promise<string | null> | null = null;
+
+async function refreshSession(): Promise<string | null> {
+  const refreshToken = localStorage.getItem('refreshToken');
+  if (!refreshToken) return null;
+  try {
+    const res = await axios.post(`${API_BASE_URL}/auth/refresh`, { refreshToken }, { timeout: 20000 });
+    const { token, refreshToken: next } = res.data || {};
+    if (!token) return null;
+    localStorage.setItem('authToken', token);
+    if (next) localStorage.setItem('refreshToken', next);
+    return token;
+  } catch (e) {
+    const status = (e as AxiosError)?.response?.status;
+    if (status === 401 || status === 403) {
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('refreshToken');
+    }
+    return null;
+  }
+}
+
 api.interceptors.response.use(
   (response) => response,
-  (error: AxiosError<ApiError>) => {
-    if (error.response?.status === 401) {
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('authToken');
+  async (error: AxiosError<ApiError>) => {
+    const original = error.config as (typeof error.config & { _retried?: boolean }) | undefined;
+    if (
+      error.response?.status === 401 &&
+      typeof window !== 'undefined' &&
+      original &&
+      !original._retried &&
+      !String(original.url || '').includes('/auth/login')
+    ) {
+      original._retried = true;
+      refreshing = refreshing || refreshSession().finally(() => { refreshing = null; });
+      const token = await refreshing;
+      if (token) {
+        original.headers.Authorization = `Bearer ${token}`;
+        return api(original);
+      }
+      if (!localStorage.getItem('authToken')) {
         window.location.href = '/account/login';
       }
     }
