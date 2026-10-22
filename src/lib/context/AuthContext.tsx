@@ -21,7 +21,8 @@ import { User } from '../types';
 import { authService } from '../api';
 
 // ── Constants ────────────────────────────────────────────────
-const INACTIVITY_LIMIT_MS = 10 * 60 * 1000; // 10 minutes
+// Customers stay signed in; only a long idle gap (30 days) ends the session.
+const INACTIVITY_LIMIT_MS = 30 * 24 * 60 * 60 * 1000;
 const TOKEN_KEY            = 'authToken';
 const USER_KEY             = 'authUser';
 const LAST_ACTIVE_KEY      = 'lastActiveAt';
@@ -131,6 +132,7 @@ function msSinceLastActive(): number {
 function clearAuthStorage() {
   try {
     localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem(USER_KEY);
     localStorage.removeItem(LAST_ACTIVE_KEY);
   } catch { /* ignore */ }
@@ -158,7 +160,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     touchLastActive();
     if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
     inactivityTimer.current = setTimeout(() => {
-      console.info('⏱ Auto-logout: 10 minutes of inactivity');
+      console.info('⏱ Auto-logout: long inactivity');
       logout();
     }, INACTIVITY_LIMIT_MS);
   }, [logout]);
@@ -223,6 +225,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!response?.data) throw new Error('Login failed');
 
     localStorage.setItem(TOKEN_KEY, response.data.token);
+    if (response.data.refreshToken) localStorage.setItem('refreshToken', response.data.refreshToken);
 
     // Login response: { token, account, roleData }
     // Merge account + roleData for the full user object
@@ -247,6 +250,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!response?.data) throw new Error('Registration failed');
 
     localStorage.setItem(TOKEN_KEY, response.data.token);
+    if (response.data.refreshToken) localStorage.setItem('refreshToken', response.data.refreshToken);
 
     // Register response: { token, user: { user_id, first_name, last_name, ... } }
     const newUser = normalizeUser(response.data.user ?? null);
