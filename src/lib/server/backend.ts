@@ -18,11 +18,13 @@ export async function forward(
 ) {
   try {
     const auth = req.headers.authorization;
+    const orderToken = req.headers['x-order-token'];
     const backendRes = await fetch(`${API_URL}${opts.path}`, {
       method: opts.method,
       headers: {
         'Content-Type': 'application/json',
         ...(auth && { Authorization: auth }),
+        ...(typeof orderToken === 'string' && orderToken && { 'x-order-token': orderToken }),
       },
       ...(opts.method === 'POST' && { body: JSON.stringify(opts.body ?? {}) }),
     });

@@ -577,7 +577,12 @@ export default function CheckoutPage() {
       const createdOrderId = orderResult.order_id || orderResult.order?.order_id || `ORD-${Date.now()}`;
       setOrderId(createdOrderId);
 
-      const jsonHeaders = headers;
+      // Guest orders get a per-order token from the backend; send it on every follow-up call.
+      const orderToken: string | undefined = orderResult.order_access_token || orderResult.order?.order_access_token;
+      if (orderToken) {
+        try { sessionStorage.setItem(`order_token_${createdOrderId}`, orderToken); } catch { /* private mode */ }
+      }
+      const jsonHeaders: HeadersInit = { ...headers, ...(orderToken && { 'x-order-token': orderToken }) };
       const post = async (url: string, body: unknown) => {
         const r = await fetch(url, { method: 'POST', headers: jsonHeaders, body: JSON.stringify(body) });
         let data: any = {};
@@ -633,7 +638,7 @@ export default function CheckoutPage() {
 
       // Pesapal payment (card, bank, M-Pesa via Pesapal)
       const paymentResponse = await fetch('/api/payments/initiate', {
-        method: 'POST', headers,
+        method: 'POST', headers: jsonHeaders,
         body: JSON.stringify({ order_id: createdOrderId, customer_email: formData.email, customer_phone: formData.phone }),
       });
       let paymentResult: any;
