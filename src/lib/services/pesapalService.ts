@@ -5,16 +5,31 @@
 
 import axios from 'axios';
 
+// SERVER-ONLY credentials. Never use a NEXT_PUBLIC_ name for a secret: Next.js inlines
+// NEXT_PUBLIC_* values into any browser bundle that references them. This module must only
+// be imported from API routes / server code.
+// Legacy NEXT_PUBLIC_* names are still read so existing deployments keep working, but they
+// log a warning — rename the variables and rotate the Pesapal key if it was ever set that way.
+const fromEnv = (name: string, legacy: string): string => {
+  const v = process.env[name];
+  if (v) return v;
+  const old = process.env[legacy];
+  if (old) {
+    console.warn(`[pesapal] ${legacy} is deprecated and unsafe for secrets — rename it to ${name}`);
+    return old;
+  }
+  return '';
+};
+
 const PESAPAL_BASE_URL =
-  process.env.NEXT_PUBLIC_PESAPAL_BASE_URL || 'https://pay.pesapal.com/v3';
+  process.env.PESAPAL_BASE_URL || process.env.NEXT_PUBLIC_PESAPAL_BASE_URL || 'https://pay.pesapal.com/v3';
 
-const PESAPAL_CONSUMER_KEY =
-  process.env.NEXT_PUBLIC_PESAPAL_CONSUMER_KEY || '';
+const PESAPAL_CONSUMER_KEY = fromEnv('PESAPAL_CONSUMER_KEY', 'NEXT_PUBLIC_PESAPAL_CONSUMER_KEY');
 
-const PESAPAL_CONSUMER_SECRET =
-  process.env.NEXT_PUBLIC_PESAPAL_CONSUMER_SECRET || '';
+const PESAPAL_CONSUMER_SECRET = fromEnv('PESAPAL_CONSUMER_SECRET', 'NEXT_PUBLIC_PESAPAL_CONSUMER_SECRET');
 
 const PESAPAL_CALLBACK_URL =
+  process.env.PESAPAL_CALLBACK_URL ||
   process.env.NEXT_PUBLIC_PESAPAL_CALLBACK_URL ||
   `${process.env.NEXT_PUBLIC_APP_URL}/api/payments/callback`;
 
