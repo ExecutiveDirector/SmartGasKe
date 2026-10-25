@@ -12,12 +12,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const authHeader = req.headers.authorization;
+    const orderToken = req.headers['x-order-token'];
 
     const backendRes = await fetch(`${API_URL}/payments/initiate`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         ...(authHeader && { Authorization: authHeader }),
+        ...(typeof orderToken === 'string' && orderToken && { 'x-order-token': orderToken }),
       },
       body: JSON.stringify(req.body), // forward order_id, customer_email, customer_phone
     });

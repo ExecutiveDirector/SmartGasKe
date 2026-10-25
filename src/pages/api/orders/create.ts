@@ -252,6 +252,8 @@ export default async function handler(
       success: true,
       order_id: responseData.order?.order_id || responseData.order?.id,
       order_number: responseData.order?.order_number,
+      // Guest orders only: needed to view / pay / confirm / cancel this order later.
+      order_access_token: responseData.order?.order_access_token,
       message: responseData.message || 'Order created successfully',
       order: responseData.order,
     });

@@ -79,6 +79,16 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    // Guest orders: send the per-order token (saved at checkout) for /orders/<id>[/...] calls.
+    if (typeof window !== 'undefined') {
+      const m = /\/orders\/(\d{1,20})(?:\/|$|\?)/.exec(config.url || '');
+      if (m) {
+        try {
+          const ot = sessionStorage.getItem(`order_token_${m[1]}`);
+          if (ot) config.headers['x-order-token'] = ot;
+        } catch { /* storage unavailable */ }
+      }
+    }
     return config;
   },
   (error) => Promise.reject(error)
