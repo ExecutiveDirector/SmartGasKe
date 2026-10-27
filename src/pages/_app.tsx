@@ -4,6 +4,7 @@
 // ============================================================
 
 import '@/styles/globals.css';
+import '@/lib/sentryClient';
 import type { AppProps } from 'next/app';
 import { CartProvider } from '@/lib/context/CartContext';
 import { AuthProvider } from '@/lib/context/AuthContext';

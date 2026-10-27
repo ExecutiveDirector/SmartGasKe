@@ -5,6 +5,7 @@
 
 import { NextPageContext } from 'next';
 import Link from 'next/link';
+import * as Sentry from '@sentry/nextjs';
 
 interface ErrorProps {
   statusCode: number;
@@ -48,7 +49,10 @@ function Error({ statusCode }: ErrorProps) {
   );
 }
 
-Error.getInitialProps = ({ res, err }: NextPageContext) => {
+Error.getInitialProps = async (ctx: NextPageContext) => {
+  const { res, err } = ctx;
+  // Report errors thrown while rendering (not plain 404s).
+  await Sentry.captureUnderscoreErrorException(ctx);
   const statusCode = res ? res.statusCode : err ? err.statusCode : 404;
   return { statusCode };
 };
