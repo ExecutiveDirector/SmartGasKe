@@ -2,6 +2,7 @@
 // FILE: src/pages/shop/index.tsx
 // ============================================================
 
+import LogoLoader from '@/components/ui/LogoLoader';
 import React, { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -9,7 +10,6 @@ import { useRouter } from 'next/router';
 
 import {
   Search,
-  Loader,
   MapPin,
   SlidersHorizontal,
   Star,
@@ -401,7 +401,7 @@ export default function ShopPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <Loader className="animate-spin text-emerald-600" />
+        <LogoLoader size={140} />
       </div>
     );
   }

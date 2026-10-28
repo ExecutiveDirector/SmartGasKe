@@ -3,6 +3,7 @@
 // Profile Settings Page - Edit user profile
 // ============================================================
 
+import LogoLoader from '@/components/ui/LogoLoader';
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -172,7 +173,7 @@ export default function ProfilePage() {
   if (authLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader className="animate-spin text-blue-600" size={48} />
+        <LogoLoader size={140} />
       </div>
     );
   }

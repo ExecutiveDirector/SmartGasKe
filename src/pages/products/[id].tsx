@@ -7,6 +7,7 @@
 // "View Details" link (/products/[id]) was 404-ing.
 // ============================================================
 
+import LogoLoader from '@/components/ui/LogoLoader';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
@@ -18,7 +19,6 @@ import {
   Package,
   MapPin,
   Award,
-  Loader,
   AlertTriangle,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -66,7 +66,7 @@ export default function ProductDetailPage() {
   if (loading) {
     return (
       <div className="min-h-[70vh] flex items-center justify-center">
-        <Loader className="animate-spin text-teal-600" size={32} />
+        <LogoLoader size={120} />
       </div>
     );
   }

@@ -3,6 +3,7 @@
 // Login only — registration is at /account/register
 // ============================================================
 
+import LogoLoader from '@/components/ui/LogoLoader';
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -70,7 +71,7 @@ export default function LoginPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <Loader className="animate-spin text-teal-600" size={36} />
+        <LogoLoader size={140} />
       </div>
     );
   }

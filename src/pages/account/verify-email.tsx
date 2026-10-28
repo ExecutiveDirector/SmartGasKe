@@ -5,11 +5,12 @@
 // email_verification_token column was being written by the backend
 // but nothing ever consumed it.
 // ============================================================
+import LogoLoader from '@/components/ui/LogoLoader';
 import React, { useEffect, useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { CheckCircle, XCircle, Loader, Flame } from 'lucide-react';
+import { CheckCircle, XCircle, Flame } from 'lucide-react';
 import authService from '@/lib/services/authService';
 
 type Status = 'verifying' | 'success' | 'error';
@@ -59,7 +60,7 @@ export default function VerifyEmailPage() {
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 text-center space-y-4">
               {status === 'verifying' && (
                 <>
-                  <Loader className="animate-spin text-teal-600 mx-auto" size={32} />
+                  <div className="flex justify-center"><LogoLoader size={96} /></div>
                   <p className="text-sm text-slate-500">Verifying your email…</p>
                 </>
               )}
