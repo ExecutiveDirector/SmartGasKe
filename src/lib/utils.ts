@@ -85,3 +85,15 @@ export const isValidPhone = (phone: string): boolean => {
 export const generateOrderId = (): string => {
   return `ORD${Date.now()}${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 };
+
+/** Category can arrive as a plain string or as a {category_name} object; always return text. */
+export function categoryLabel(category: unknown): string {
+  if (!category) return '';
+  if (typeof category === 'string') return category;
+  if (typeof category === 'object') {
+    const c = category as { category_name?: unknown; name?: unknown };
+    const n = c.category_name ?? c.name;
+    return typeof n === 'string' ? n : '';
+  }
+  return String(category);
+}
