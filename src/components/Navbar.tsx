@@ -31,10 +31,7 @@ export default function Navbar() {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
-            <div className="font-bold text-2xl">
-              <span className="text-green-600">Aqua</span>
-              <span className="text-gray-800">Gas</span>
-            </div>
+            <img src="/logo.png" alt="AquaGas" className="h-10 w-auto" />
           </Link>
 
           {/* Desktop Navigation */}
