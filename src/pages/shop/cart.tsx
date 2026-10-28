@@ -3,6 +3,7 @@
 // ENHANCED: Professional green & blue design with image loading
 // ============================================================
 
+import LogoLoader from '@/components/ui/LogoLoader';
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -51,7 +52,7 @@ const ProductImage: React.FC<ProductImageProps> = ({ src, alt, emoji }) => {
     <div className="relative w-full h-full">
       {!loaded && (
         <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-emerald-100 via-teal-50 to-blue-100">
-          <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+          <LogoLoader size={44} />
         </div>
       )}
       <img

@@ -3,6 +3,7 @@
 // Orders List Page - View all user orders
 // ============================================================
 
+import LogoLoader from '@/components/ui/LogoLoader';
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -10,7 +11,6 @@ import { useRouter } from 'next/router';
 import {
   Package,
   ChevronRight,
-  Loader,
   Calendar,
   CheckCircle,
   Clock,
@@ -107,7 +107,7 @@ export default function OrdersPage() {
   if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader className="animate-spin text-blue-600" size={48} />
+        <LogoLoader size={140} />
       </div>
     );
   }

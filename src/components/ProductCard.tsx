@@ -3,6 +3,7 @@
 // Fully Featured — No Image Cropping Version
 // ============================================================
 
+import LogoLoader from '@/components/ui/LogoLoader';
 import { Product, Outlet } from '@/lib/types';
 import { useCart } from '@/lib/hooks/useCart';
 import {
@@ -49,7 +50,7 @@ function ProductImage({
     <>
       {!loaded && (
         <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-emerald-100 via-teal-50 to-sky-100">
-          <div className="w-6 h-6 border-2 border-teal-400 border-t-transparent rounded-full animate-spin" />
+          <LogoLoader size={44} />
         </div>
       )}
 

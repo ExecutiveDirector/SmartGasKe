@@ -3,6 +3,7 @@
 // Account Dashboard — Professional Enhanced (SAFE)
 // ============================================================
 
+import LogoLoader from '@/components/ui/LogoLoader';
 import React, { useEffect, useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -21,7 +22,6 @@ import {
   TrendingUp,
   Clock,
   CheckCircle,
-  Loader,
   ArrowUpRight,
   ArrowDownLeft,
   LayoutDashboard,
@@ -106,7 +106,7 @@ export default function AccountDashboard() {
   if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <Loader className="animate-spin text-teal-600" size={36} />
+        <LogoLoader size={140} />
       </div>
     );
   }

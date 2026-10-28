@@ -3,6 +3,7 @@
 // Vendor Specific Page — No footer, shared BottomNav
 // ============================================================
 
+import LogoLoader from '@/components/ui/LogoLoader';
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -14,7 +15,6 @@ import {
   Mail,
   Clock,
   ArrowLeft,
-  Loader,
   ChevronLeft,
   ChevronRight,
   Shield,
@@ -99,9 +99,7 @@ export default function VendorPage() {
         <Head><title>Loading... — AquaGas</title></Head>
         <div style={styles.loadingScreen}>
           <div style={styles.loadingCard}>
-            <div style={styles.loadingSpinner}>
-              <Loader size={28} style={{ animation: 'spin 1s linear infinite', color: '#10b981' }} />
-            </div>
+            <LogoLoader size={112} />
             <p style={styles.loadingText}>Fetching vendor details…</p>
             <p style={styles.loadingSubtext}>Just a moment</p>
           </div>

@@ -5,11 +5,12 @@
 //      directly from the backend instead of showing "Status Unknown".
 // ============================================================
 
+import LogoLoader from '@/components/ui/LogoLoader';
 import { useEffect, useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { Check, X, Loader, AlertCircle } from 'lucide-react';
+import { Check, X, AlertCircle } from 'lucide-react';
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
@@ -161,7 +162,7 @@ export default function PaymentCallbackPage() {
       <>
         <Head><title>Verifying Payment – AquaGas</title></Head>
         <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-          <Loader className="animate-spin text-blue-600" size={48} />
+          <LogoLoader size={120} />
           <p className="text-lg font-medium text-gray-700">{message}</p>
         </div>
       </>
