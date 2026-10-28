@@ -3,6 +3,7 @@
 // ENHANCED: Professional green & blue design with image loading
 // ============================================================
 
+import { categoryLabel } from '@/lib/utils';
 import LogoLoader from '@/components/ui/LogoLoader';
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
@@ -251,10 +252,10 @@ export default function CartPage() {
                                 <h4 className="text-lg font-bold text-gray-900 truncate">
                                   {item.name || item.title}
                                 </h4>
-                                {item.category && (
+                                {categoryLabel(item.category) && (
                                   <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full mt-1">
                                     <Tag size={10} />
-                                    {item.category}
+                                    {categoryLabel(item.category)}
                                   </span>
                                 )}
                               </div>

@@ -7,6 +7,7 @@
 // "View Details" link (/products/[id]) was 404-ing.
 // ============================================================
 
+import { categoryLabel } from '@/lib/utils';
 import LogoLoader from '@/components/ui/LogoLoader';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
@@ -244,7 +245,7 @@ export default function ProductDetailPage() {
                 <div className="flex flex-wrap gap-1.5 mb-2">
                   {typeof product.category === 'string' && product.category && (
                     <span className="bg-sky-50 text-sky-700 text-[11px] font-medium px-2.5 py-1 rounded-lg">
-                      {product.category}
+                      {categoryLabel(product.category)}
                     </span>
                   )}
                   {product.brand && (
