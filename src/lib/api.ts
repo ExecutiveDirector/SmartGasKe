@@ -54,6 +54,7 @@ import type {
   AvailabilityResponse,
   VendorLocation,
 } from './types';
+import { getOrderTokenStorageKey } from './utils/guestOrderAccess';
 
 // API Base URL from environment variable
 const API_BASE_URL = (
@@ -81,10 +82,10 @@ api.interceptors.request.use(
     }
     // Guest orders: send the per-order token (saved at checkout) for /orders/<id>[/...] calls.
     if (typeof window !== 'undefined') {
-      const m = /\/orders\/(\d{1,20})(?:\/|$|\?)/.exec(config.url || '');
+      const m = /\/orders\/([A-Za-z0-9_-]{1,80})(?:\/|$|\?)/.exec(config.url || '');
       if (m) {
         try {
-          const ot = sessionStorage.getItem(`order_token_${m[1]}`);
+          const ot = sessionStorage.getItem(getOrderTokenStorageKey(m[1]));
           if (ot) config.headers['x-order-token'] = ot;
         } catch { /* storage unavailable */ }
       }
