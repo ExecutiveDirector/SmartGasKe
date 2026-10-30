@@ -4,6 +4,7 @@
 // ============================================================
 
 import '@/styles/globals.css';
+import '@/styles/premium-ui.css';
 import '@/lib/sentryClient';
 import type { AppProps } from 'next/app';
 import { CartProvider } from '@/lib/context/CartContext';
@@ -49,7 +50,7 @@ export default function App({ Component, pageProps }: AppProps) {
     <>
       <Head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="theme-color" content="#2563eb" />
+        <meta name="theme-color" content="#07865d" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 

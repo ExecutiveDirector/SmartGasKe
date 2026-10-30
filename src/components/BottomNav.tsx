@@ -83,7 +83,13 @@ export default function BottomNav() {
               const Icon = item.icon;
 
               const isActive =
-                router.pathname === item.href;
+                item.href === '/'
+                  ? router.pathname === '/'
+                  : item.href === '/shop'
+                  ? (router.pathname === '/shop' || router.pathname.startsWith('/shop/')) && !router.pathname.startsWith('/shop/cart')
+                  : item.href === '/account/login'
+                  ? router.pathname.startsWith('/account')
+                  : router.pathname === item.href || router.pathname.startsWith(`${item.href}/`);
 
               return (
                 <Link
