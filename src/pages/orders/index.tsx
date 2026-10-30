@@ -75,7 +75,7 @@ export default function OrdersPage() {
       case 'delivered':
         return 'bg-green-100 text-green-800';
       case 'in_transit':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-emerald-100 text-emerald-800';
       case 'processing':
         return 'bg-yellow-100 text-yellow-800';
       case 'confirmed':
@@ -118,16 +118,16 @@ export default function OrdersPage() {
         <title>My Orders - AquaGas</title>
       </Head>
 
-      <div className="min-h-screen bg-gray-50 py-8">
+      <div className="min-h-screen bg-[#f6f8f6] py-6 sm:py-8">
         <div className="container mx-auto px-4">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-4xl font-bold text-gray-800 mb-2">My Orders</h1>
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900 mb-2">My Orders</h1>
             <p className="text-gray-600">View and track all your orders</p>
           </div>
 
           {/* Filter Tabs */}
-          <div className="mb-8 bg-white rounded-lg shadow-md p-4">
+          <div className="mb-8 bg-white rounded-[20px] border border-slate-200/80 shadow-[0_8px_24px_rgba(16,37,31,0.05)] p-4">
             <div className="flex items-center gap-2 overflow-x-auto">
               {[
                 { value: 'all', label: 'All Orders', count: orders.length },
@@ -146,7 +146,7 @@ export default function OrdersPage() {
                   }}
                   className={`px-4 py-2 rounded-lg font-semibold whitespace-nowrap transition ${
                     statusFilter === tab.value
-                      ? 'bg-blue-600 text-white shadow-md'
+                      ? 'bg-emerald-600 text-white shadow-md'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
@@ -168,7 +168,7 @@ export default function OrdersPage() {
               </p>
               <Link
                 href="/shop"
-                className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-semibold"
+                className="inline-block bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700 transition font-semibold"
               >
                 Start Shopping
               </Link>
@@ -185,8 +185,8 @@ export default function OrdersPage() {
                     {/* Order Header */}
                     <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
                       <div className="flex items-center gap-4">
-                        <div className="bg-blue-100 rounded-full p-3">
-                          <Package size={24} className="text-blue-600" />
+                        <div className="bg-emerald-100 rounded-full p-3">
+                          <Package size={24} className="text-emerald-600" />
                         </div>
                         <div>
                           <h3 className="text-xl font-bold text-gray-800">
@@ -221,7 +221,7 @@ export default function OrdersPage() {
                       </div>
                       <div>
                         <p className="text-sm text-gray-600 mb-1">Total Amount</p>
-                        <p className="font-semibold text-blue-600 text-lg">
+                        <p className="font-semibold text-emerald-600 text-lg">
                           {formatPrice(order.grand_total)}
                         </p>
                       </div>
