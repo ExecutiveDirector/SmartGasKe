@@ -154,9 +154,8 @@ export default function ProductDetailPage() {
 
   const handleAddToCart = () => {
     try {
-      for (let i = 0; i < quantity; i++) {
-        addToCart(product, outlet);
-      }
+      const added = addToCart(product, outlet, quantity);
+      if (!added) return;
       toast.success(`${displayName} added to cart!`, { icon: '🛒' });
     } catch (err) {
       console.error('Error adding to cart:', err);
