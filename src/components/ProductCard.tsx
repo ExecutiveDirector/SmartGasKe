@@ -112,7 +112,8 @@ export default function ProductCard({
     }
 
     try {
-      addToCart(product, outlet);
+      const added = addToCart(product, outlet);
+      if (!added) return;
 
       toast.success(`${productDisplayName} added to cart!`, {
         icon: '🛒',
