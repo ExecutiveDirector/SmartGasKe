@@ -7,6 +7,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Product, Outlet } from '../types';
 import toast from 'react-hot-toast';
+import { addProductToCart } from '../utils/cartRules';
 
 // CartItem extends Product and adds outlet + quantity
 export interface CartItem extends Product {
@@ -16,7 +17,7 @@ export interface CartItem extends Product {
 
 export interface CartContextType {
   cart: CartItem[];
-  addToCart: (product: Product, outlet: Outlet) => void;
+  addToCart: (product: Product, outlet: Outlet, quantity?: number) => boolean;
   removeFromCart: (productId: string, outletId: string) => void;
   updateQuantity: (productId: string, outletId: string, quantity: number) => void;
   clearCart: () => void;
@@ -63,111 +64,23 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   }, [cart, isClient]);
 
   /**
-   * Add product to cart with outlet validation
+   * Add products to the cart only after all validation passes.
+   * Returns false when the cart rejects the change so callers never show
+   * a success state for an item that was not added.
    */
-  const addToCart = (product: Product, outlet: Outlet) => {
-    // Validation checks
-    if (!product.id && !product.product_id) {
-      toast.error('Product ID is missing');
-      return;
+  const addToCart = (product: Product, outlet: Outlet, quantity = 1): boolean => {
+    const result = addProductToCart(cart, product, outlet, quantity);
+    if (!result.ok) {
+      toast.error(result.message || 'Unable to add this product to your cart');
+      return false;
     }
 
-    if (!product.name && !product.title && !product.product_name) {
-      toast.error('Product name is missing');
-      return;
+    if (result.priceChanged) {
+      toast(`Price updated to KES ${product.price.toLocaleString()}`, { icon: '💰' });
     }
 
-    if (!product.price || product.price <= 0) {
-      toast.error('Product price is invalid');
-      return;
-    }
-
-    if (!outlet.id && !outlet.outlet_id) {
-      toast.error('Outlet information is missing for this product');
-      return;
-    }
-
-    // Normalize IDs
-    const productId = (product.id || product.product_id)?.toString();
-    const outletId = (outlet.id || outlet.outlet_id)?.toString();
-
-    // Additional validation for IDs
-    if (!productId) {
-      toast.error('Product ID is missing');
-      return;
-    }
-
-    if (!outletId) {
-      toast.error('Outlet ID is missing');
-      return;
-    }
-
-    setCart((prevCart) => {
-      // Check if product from same outlet is already in cart
-      const existingItemIndex = prevCart.findIndex(
-        (item) => {
-          const itemProductId = (item.id || item.product_id)?.toString();
-          const itemOutletId = (item.outlet.id || item.outlet.outlet_id)?.toString();
-          return itemProductId === productId && itemOutletId === outletId;
-        }
-      );
-
-      if (existingItemIndex > -1) {
-        // Update quantity if item exists
-        const currentQuantity = prevCart[existingItemIndex].quantity;
-        const stockLimit = product.stock ?? Infinity;
-
-        if (currentQuantity >= stockLimit) {
-          toast.error(`Only ${product.stock} items available in stock`);
-          return prevCart;
-        }
-
-        // Refresh the item with whatever fresh product data was just passed in
-        // (price, stock, name, images, etc.) — not just the quantity. Without
-        // this, an item added earlier keeps its price frozen at whatever it
-        // was on the very first add, even after the vendor changes it and the
-        // user re-adds it from a page showing the updated price.
-        const priceChanged = prevCart[existingItemIndex].price !== product.price;
-        if (priceChanged) {
-          toast(`Price updated to KES ${product.price.toLocaleString()}`, { icon: '💰' });
-        }
-
-        return prevCart.map((item, index) =>
-          index === existingItemIndex
-            ? { ...item, ...product, id: productId, outlet: { ...outlet, id: outletId }, quantity: item.quantity + 1 }
-            : item
-        );
-      }
-
-      // Validate cart outlet consistency (all items must be from same outlet)
-      if (prevCart.length > 0) {
-        const firstCartOutletId = (prevCart[0].outlet.id || prevCart[0].outlet.outlet_id)?.toString();
-        
-        if (firstCartOutletId !== outletId) {
-          const firstOutletName = prevCart[0].outlet.name || prevCart[0].outlet.outlet_name || 'another outlet';
-          const currentOutletName = outlet.name || outlet.outlet_name || 'this outlet';
-          
-          toast.error(
-            `Your cart contains items from ${firstOutletName}. Please checkout or clear your cart before adding items from ${currentOutletName}.`,
-            { duration: 5000 }
-          );
-          return prevCart;
-        }
-      }
-
-      // Add new item - Create CartItem by merging product with outlet and quantity
-      const newCartItem: CartItem = {
-        ...product,
-        id: productId,
-        outlet: {
-          ...outlet,
-          id: outletId,
-        },
-        quantity: 1,
-      };
-
-      return [...prevCart, newCartItem];
-    });
+    setCart(result.cart);
+    return true;
   };
 
   /**
