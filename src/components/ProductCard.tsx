@@ -139,9 +139,9 @@ export default function ProductCard({
     return (
       <div
         className="
-          w-[220px] flex-shrink-0 bg-white rounded-2xl overflow-hidden
-          border border-slate-100 shadow-sm
-          hover:shadow-lg hover:border-teal-200 hover:-translate-y-0.5
+          w-[220px] flex-shrink-0 bg-white rounded-[22px] overflow-hidden
+          border border-slate-200/80 shadow-[0_5px_22px_rgba(16,37,31,0.045)]
+          hover:shadow-[0_16px_36px_rgba(16,37,31,0.11)] hover:border-emerald-200 hover:-translate-y-1
           transition-all duration-300 group flex flex-col
         "
       >
@@ -190,7 +190,7 @@ export default function ProductCard({
         {/* Body */}
         <div className="p-3 flex flex-col flex-1">
           {/* Name */}
-          <h3 className="text-sm font-bold text-slate-800 line-clamp-2 leading-snug group-hover:text-teal-700 transition-colors mb-1.5">
+          <h3 className="text-sm font-bold text-slate-800 line-clamp-2 leading-snug group-hover:text-emerald-800 transition-colors mb-1.5">
             {productDisplayName}
           </h3>
 
@@ -231,7 +231,7 @@ export default function ProductCard({
           {/* Price + Add to cart */}
           <div className="mt-auto flex items-center justify-between gap-2">
             <div>
-              <p className="text-teal-700 font-extrabold text-base leading-none">
+              <p className="text-emerald-800 font-extrabold text-base leading-none">
                 KES {product.price.toLocaleString()}
               </p>
 
@@ -246,8 +246,8 @@ export default function ProductCard({
               onClick={handleAddToCart}
               disabled={isOutOfStock}
               className="
-                bg-teal-600 text-white p-2 rounded-xl
-                hover:bg-teal-700 active:scale-95
+                bg-emerald-700 text-white p-2.5 rounded-xl
+                hover:bg-emerald-800 active:scale-95
                 disabled:bg-slate-200 disabled:cursor-not-allowed
                 transition-all duration-200 shadow-sm flex-shrink-0
               "
@@ -262,8 +262,8 @@ export default function ProductCard({
             href={`/products/${productId}`}
             className="
               mt-2 flex items-center justify-center gap-1
-              text-[11px] text-sky-600 font-semibold
-              hover:text-sky-700 transition-colors
+              text-[11px] text-emerald-700 font-semibold
+              hover:text-emerald-800 transition-colors
             "
           >
             View Details
@@ -278,9 +278,9 @@ export default function ProductCard({
   return (
     <div
       className="
-        bg-white rounded-2xl overflow-hidden
-        border border-slate-100 shadow-sm
-        hover:shadow-lg hover:border-teal-200 hover:-translate-y-0.5
+        bg-white rounded-[22px] overflow-hidden
+        border border-slate-200/80 shadow-[0_5px_22px_rgba(16,37,31,0.045)]
+        hover:shadow-[0_16px_36px_rgba(16,37,31,0.11)] hover:border-emerald-200 hover:-translate-y-1
         transition-all duration-300 group flex flex-col
       "
     >
@@ -386,7 +386,7 @@ export default function ProductCard({
         {/* Price + CTA */}
         <div className="mt-auto flex items-end justify-between gap-2">
           <div>
-            <p className="text-teal-700 font-extrabold text-2xl leading-none">
+            <p className="text-emerald-800 font-extrabold text-2xl leading-none">
               KES {product.price.toLocaleString()}
             </p>
 
@@ -402,9 +402,9 @@ export default function ProductCard({
             onClick={handleAddToCart}
             disabled={isOutOfStock}
             className="
-              flex items-center gap-2 bg-teal-600 text-white
+              flex items-center gap-2 bg-emerald-700 text-white
               px-4 py-2.5 rounded-xl font-semibold text-sm
-              hover:bg-teal-700 active:scale-95
+              hover:bg-emerald-800 active:scale-95
               disabled:bg-slate-300 disabled:cursor-not-allowed
               transition-all duration-200 shadow-md hover:shadow-teal-200
             "
@@ -419,8 +419,8 @@ export default function ProductCard({
           href={`/products/${productId}`}
           className="
             mt-3 flex items-center justify-center gap-1
-            text-sm text-sky-600 font-medium
-            hover:text-sky-700 hover:underline underline-offset-2
+            text-sm text-emerald-700 font-semibold
+            hover:text-emerald-800 hover:underline underline-offset-2
             transition-colors
           "
         >
