@@ -29,6 +29,7 @@ import { orderService } from '@/lib/api';
 import { Order, OrderStatus } from '@/lib/types';
 import { formatPrice, formatDateTime } from '@/lib/utils';
 import toast from 'react-hot-toast';
+import { canAccessOrderDetails, getOrderTokenStorageKey } from '@/lib/utils/guestOrderAccess';
 
 export default function OrderDetailPage() {
   const router = useRouter();
@@ -48,13 +49,13 @@ export default function OrderDetailPage() {
   useEffect(() => {
     if (!router.isReady || typeof orderId !== 'string') return;
     let token: string | null = null;
-    try { token = sessionStorage.getItem(`order_token_${orderId}`); } catch { /* storage unavailable */ }
+    try { token = sessionStorage.getItem(getOrderTokenStorageKey(orderId)); } catch { /* storage unavailable */ }
     setHasGuestAccess(Boolean(token));
     setGuestAccessChecked(true);
   }, [router.isReady, orderId]);
 
   useEffect(() => {
-    if (!authLoading && guestAccessChecked && !isAuthenticated && !hasGuestAccess) {
+    if (!authLoading && guestAccessChecked && !canAccessOrderDetails(isAuthenticated, hasGuestAccess)) {
       router.push('/account/login');
     }
   }, [isAuthenticated, authLoading, guestAccessChecked, hasGuestAccess, router]);
