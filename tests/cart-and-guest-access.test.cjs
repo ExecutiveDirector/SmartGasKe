@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { addProductToCart } = require('../src/lib/utils/cartRules');
-const { getOrderTokenStorageKey, canAccessOrderDetails } = require('../src/lib/utils/guestOrderAccess');
+const { getOrderTokenStorageKey, getValidCreatedOrderId, canAccessOrderDetails } = require('../src/lib/utils/guestOrderAccess');
 
 const outletA = { id: 'outlet-1', name: 'Rongai Gas' };
 const outletB = { id: 'outlet-2', name: 'Karen Gas' };
@@ -51,4 +51,11 @@ test('only authenticated customers or token-authorized guests can view order det
   assert.equal(canAccessOrderDetails(false, false), false);
   assert.equal(canAccessOrderDetails(false, true), true);
   assert.equal(canAccessOrderDetails(true, false), true);
+});
+
+test('created order IDs must be real numeric backend IDs', () => {
+  assert.equal(getValidCreatedOrderId({ order_id: 12345 }), '12345');
+  assert.equal(getValidCreatedOrderId({ order: { id: 42 } }), '42');
+  assert.equal(getValidCreatedOrderId({ order_id: 'ORD-123' }), null);
+  assert.equal(getValidCreatedOrderId({ success: true }), null);
 });
