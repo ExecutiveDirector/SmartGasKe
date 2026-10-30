@@ -36,24 +36,35 @@ export default function OrderDetailPage() {
   const { isAuthenticated, loading: authLoading } = useAuth();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const [guestAccessChecked, setGuestAccessChecked] = useState(false);
+  const [hasGuestAccess, setHasGuestAccess] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [rating, setRating] = useState(5);
   const [review, setReview] = useState('');
 
-  // Redirect if not authenticated
+  // A guest may view only the order for which checkout stored a scoped token.
+  // The API request interceptor sends that token as x-order-token.
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
+    if (!router.isReady || typeof orderId !== 'string') return;
+    let token: string | null = null;
+    try { token = sessionStorage.getItem(`order_token_${orderId}`); } catch { /* storage unavailable */ }
+    setHasGuestAccess(Boolean(token));
+    setGuestAccessChecked(true);
+  }, [router.isReady, orderId]);
+
+  useEffect(() => {
+    if (!authLoading && guestAccessChecked && !isAuthenticated && !hasGuestAccess) {
       router.push('/account/login');
     }
-  }, [isAuthenticated, authLoading, router]);
+  }, [isAuthenticated, authLoading, guestAccessChecked, hasGuestAccess, router]);
 
-  // Fetch order details
+  // Fetch order details for signed-in customers or token-authorized guests.
   useEffect(() => {
-    if (orderId && isAuthenticated) {
+    if (orderId && (isAuthenticated || hasGuestAccess)) {
       fetchOrderDetails();
     }
-  }, [orderId, isAuthenticated]);
+  }, [orderId, isAuthenticated, hasGuestAccess]);
 
   const fetchOrderDetails = async () => {
   try {
@@ -156,7 +167,7 @@ export default function OrderDetailPage() {
     return status === 'pending' || status === 'confirmed';
   };
 
-  if (authLoading || loading) {
+  if (authLoading || !guestAccessChecked || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <LogoLoader size={140} />
@@ -174,7 +185,7 @@ export default function OrderDetailPage() {
             href="/orders"
             className="inline-block bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700 transition"
           >
-            Back to Orders
+            {isAuthenticated ? 'Back to Orders' : 'Back to Shop'}
           </Link>
         </div>
       </div>
@@ -191,7 +202,7 @@ export default function OrderDetailPage() {
         <div className="container mx-auto px-4">
           {/* Back Button */}
           <Link
-            href="/orders"
+            href={isAuthenticated ? "/orders" : "/shop"}
             className="inline-flex items-center gap-2 text-emerald-600 hover:text-emerald-700 mb-6 font-semibold transition"
           >
             <ArrowLeft size={20} />
@@ -229,7 +240,7 @@ export default function OrderDetailPage() {
               </div>
             )}
 
-            {canCancelOrder(order.status) && (
+            {isAuthenticated && canCancelOrder(order.status) && (
               <div className="mt-4">
                 <button
                   onClick={handleCancelOrder}
@@ -251,7 +262,7 @@ export default function OrderDetailPage() {
               </div>
             )}
 
-            {order.status === 'delivered' && (
+            {isAuthenticated && order.status === 'delivered' && (
               <div className="mt-4">
                 <button
                   onClick={() => setShowRatingModal(true)}
