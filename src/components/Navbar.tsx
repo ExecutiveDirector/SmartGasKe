@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/router';
-import { ShoppingCart, User, Menu, X, ChevronDown } from 'lucide-react';
+import { ShoppingCart, User, Menu, X } from 'lucide-react';
 import { useCart } from '@/lib/hooks/useCart';
 import { useAuth } from '@/lib/hooks/useAuth';
 
