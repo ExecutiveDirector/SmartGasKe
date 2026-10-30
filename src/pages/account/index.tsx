@@ -166,14 +166,14 @@ export default function AccountDashboard() {
 
           {/* ACTIVE ORDERS */}
           {activeOrders > 0 && (
-            <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl flex justify-between">
+            <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-xl flex justify-between">
               <div>
-                <p className="font-semibold text-blue-800">
+                <p className="font-semibold text-emerald-800">
                   {activeOrders} active order{activeOrders > 1 ? 's' : ''}
                 </p>
-                <p className="text-xs text-blue-600">Track your deliveries</p>
+                <p className="text-xs text-emerald-600">Track your deliveries</p>
               </div>
-              <Link href="/orders" className="text-blue-700 font-semibold">Track →</Link>
+              <Link href="/orders" className="text-emerald-700 font-semibold">Track →</Link>
             </div>
           )}
 
