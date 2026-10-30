@@ -21,6 +21,7 @@ import { useAuth } from '@/lib/context/AuthContext';
 import toast from 'react-hot-toast';
 import { calculateCartPricing, fetchPricingConfig, FALLBACK_PRICING_CONFIG, PricingConfig } from '@/lib/utils/pricing';
 import { outletService } from '@/lib/api';
+import { getOrderTokenStorageKey } from '@/lib/utils/guestOrderAccess';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://aquagas-backend.onrender.com/api/v1';
 
@@ -581,7 +582,7 @@ export default function CheckoutPage() {
       // Guest orders get a per-order token from the backend; send it on every follow-up call.
       const orderToken: string | undefined = orderResult.order_access_token || orderResult.order?.order_access_token;
       if (orderToken) {
-        try { sessionStorage.setItem(`order_token_${createdOrderId}`, orderToken); } catch { /* private mode */ }
+        try { sessionStorage.setItem(getOrderTokenStorageKey(createdOrderId), orderToken); } catch { /* private mode */ }
       }
       setGuestTrackingAvailable(Boolean(orderToken) && !isAuthenticated);
       const jsonHeaders: HeadersInit = { ...headers, ...(orderToken && { 'x-order-token': orderToken }) };
