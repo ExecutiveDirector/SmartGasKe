@@ -16,16 +16,16 @@ export default function VendorCard({ outlet }: VendorCardProps) {
     <Link href={`/shop/${outlet.id}`} className="block group">
       <div
         className="
-          bg-white rounded-2xl overflow-hidden
-          border border-slate-100 shadow-sm
-          hover:shadow-lg hover:border-emerald-200 hover:-translate-y-0.5
+          bg-white rounded-[22px] overflow-hidden
+          border border-slate-200/80 shadow-[0_5px_22px_rgba(16,37,31,0.045)]
+          hover:shadow-[0_16px_36px_rgba(16,37,31,0.11)] hover:border-emerald-200 hover:-translate-y-1
           transition-all duration-300
         "
       >
         {/* ── Header banner ──────────────────────────────── */}
         <div className="relative h-44 overflow-hidden">
           {/* Gradient background */}
-          <div className="absolute inset-0 bg-gradient-to-br from-teal-600 via-teal-700 to-sky-800" />
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-700 via-emerald-800 to-teal-950" />
 
           {/* Subtle mesh overlay */}
           <div
@@ -64,11 +64,11 @@ export default function VendorCard({ outlet }: VendorCardProps) {
           )}
 
           {/* Outlet name on banner */}
-          <div className="absolute bottom-0 left-0 right-0 px-5 pb-4 pt-8 bg-gradient-to-t from-teal-900/60 to-transparent">
+          <div className="absolute bottom-0 left-0 right-0 px-5 pb-4 pt-8 bg-gradient-to-t from-emerald-950/70 to-transparent">
             <h3 className="text-white font-bold text-xl leading-tight truncate drop-shadow">
               {outlet.name}
             </h3>
-            <p className="text-teal-100 text-xs font-medium mt-0.5 truncate">{outlet.vendor}</p>
+            <p className="text-emerald-100 text-xs font-medium mt-0.5 truncate">{outlet.vendor}</p>
           </div>
         </div>
 
@@ -77,8 +77,8 @@ export default function VendorCard({ outlet }: VendorCardProps) {
 
           {/* Location */}
           <div className="flex items-start gap-3">
-            <div className="bg-sky-50 rounded-lg p-2 flex-shrink-0 group-hover:bg-sky-100 transition-colors">
-              <MapPin size={15} className="text-sky-600" />
+            <div className="bg-emerald-50 rounded-lg p-2 flex-shrink-0 group-hover:bg-emerald-100 transition-colors">
+              <MapPin size={15} className="text-emerald-700" />
             </div>
             <div className="min-w-0 pt-0.5">
               <p className="text-sm text-slate-700 leading-relaxed">{outlet.address}</p>
@@ -124,7 +124,7 @@ export default function VendorCard({ outlet }: VendorCardProps) {
           </div>
 
           {/* CTA */}
-          <div className="flex items-center gap-1 text-teal-600 font-semibold text-sm group-hover:text-teal-700 transition-colors">
+          <div className="flex items-center gap-1 text-emerald-700 font-semibold text-sm group-hover:text-emerald-800 transition-colors">
             View Shop
             <ChevronRight
               size={16}
@@ -134,7 +134,7 @@ export default function VendorCard({ outlet }: VendorCardProps) {
         </div>
 
         {/* Bottom accent line */}
-        <div className="h-[3px] bg-gradient-to-r from-emerald-400 via-teal-500 to-sky-500 group-hover:h-1 transition-all duration-300" />
+        <div className="h-[3px] bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-700 group-hover:h-1 transition-all duration-300" />
       </div>
     </Link>
   );
