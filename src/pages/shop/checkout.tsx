@@ -281,6 +281,7 @@ export default function CheckoutPage() {
   const [submitting, setSubmitting]   = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orderId, setOrderId]         = useState('');
+  const [guestTrackingAvailable, setGuestTrackingAvailable] = useState(false);
 
   // ── Payment method ─────────────────────────────────────────
   type PayMethod = 'pesapal' | 'sasapay' | 'cod' | 'wallet';
@@ -582,6 +583,7 @@ export default function CheckoutPage() {
       if (orderToken) {
         try { sessionStorage.setItem(`order_token_${createdOrderId}`, orderToken); } catch { /* private mode */ }
       }
+      setGuestTrackingAvailable(Boolean(orderToken) && !isAuthenticated);
       const jsonHeaders: HeadersInit = { ...headers, ...(orderToken && { 'x-order-token': orderToken }) };
       const post = async (url: string, body: unknown) => {
         const r = await fetch(url, { method: 'POST', headers: jsonHeaders, body: JSON.stringify(body) });
@@ -676,7 +678,13 @@ export default function CheckoutPage() {
               <p className="text-3xl font-bold text-emerald-600 font-mono">#{orderId.slice(0, 12).toUpperCase()}</p>
             </div>
             <div className="space-y-3">
-              <Link href="/orders" className="block w-full bg-gradient-to-r from-emerald-700 to-teal-700 text-white py-4 rounded-xl hover:from-emerald-700 hover:to-emerald-800 transition font-semibold shadow-lg">View My Orders</Link>
+              {guestTrackingAvailable ? (
+                <Link href={`/orders/${encodeURIComponent(orderId)}`} className="block w-full bg-gradient-to-r from-emerald-700 to-teal-700 text-white py-4 rounded-xl hover:from-emerald-700 hover:to-emerald-800 transition font-semibold shadow-lg">Track This Order</Link>
+              ) : isAuthenticated ? (
+                <Link href="/orders" className="block w-full bg-gradient-to-r from-emerald-700 to-teal-700 text-white py-4 rounded-xl hover:from-emerald-700 hover:to-emerald-800 transition font-semibold shadow-lg">View My Orders</Link>
+              ) : (
+                <p className="text-sm text-gray-500">Keep your order number for reference. Sign in to view your order history.</p>
+              )}
               <Link href="/shop" className="block w-full border-2 border-gray-300 text-gray-700 py-4 rounded-xl hover:border-emerald-600 hover:text-emerald-600 hover:bg-emerald-50 transition font-semibold">Continue Shopping</Link>
             </div>
           </div>
