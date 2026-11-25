@@ -188,12 +188,12 @@ export default function ProfilePage() {
         <title>Profile Settings - AquaGas</title>
       </Head>
 
-      <div className="min-h-screen bg-gray-50 py-8">
+      <div className="min-h-screen bg-[#f6f8f6] py-6 sm:py-8">
         <div className="container mx-auto px-4">
           {/* Back Button */}
           <Link
             href="/account"
-            className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-6 font-semibold"
+            className="inline-flex items-center gap-2 text-emerald-600 hover:text-emerald-700 mb-6 font-semibold"
           >
             <ArrowLeft size={20} />
             Back to Dashboard
@@ -201,19 +201,19 @@ export default function ProfilePage() {
 
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-4xl font-bold text-gray-800 mb-2">Profile Settings</h1>
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900 mb-2">Profile Settings</h1>
             <p className="text-gray-600">Manage your account information and security</p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             {/* Sidebar */}
             <div className="lg:col-span-1">
-              <div className="bg-white rounded-lg shadow-md p-4 space-y-2">
+              <div className="bg-white rounded-[20px] border border-slate-200/80 shadow-[0_8px_24px_rgba(16,37,31,0.05)] p-4 space-y-2">
                 <button
                   onClick={() => setActiveTab('profile')}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition ${
                     activeTab === 'profile'
-                      ? 'bg-blue-600 text-white'
+                      ? 'bg-emerald-600 text-white'
                       : 'hover:bg-gray-100 text-gray-700'
                   }`}
                 >
@@ -224,7 +224,7 @@ export default function ProfilePage() {
                   onClick={() => setActiveTab('password')}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition ${
                     activeTab === 'password'
-                      ? 'bg-blue-600 text-white'
+                      ? 'bg-emerald-600 text-white'
                       : 'hover:bg-gray-100 text-gray-700'
                   }`}
                 >
@@ -238,7 +238,7 @@ export default function ProfilePage() {
             <div className="lg:col-span-3">
               {activeTab === 'profile' ? (
                 /* Profile Form */
-                <div className="bg-white rounded-lg shadow-md p-8">
+                <div className="bg-white rounded-[24px] border border-slate-200/80 shadow-[0_10px_34px_rgba(16,37,31,0.06)] p-5 sm:p-7 md:p-8">
                   <h2 className="text-2xl font-bold text-gray-800 mb-6">Profile Information</h2>
 
                   <form onSubmit={handleProfileSubmit} className="space-y-6">
@@ -255,7 +255,7 @@ export default function ProfilePage() {
                           onChange={(e) =>
                             setProfileForm({ ...profileForm, name: e.target.value })
                           }
-                          className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
+                          className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition ${
                             errors.name ? 'border-red-500' : 'border-gray-300'
                           }`}
                           placeholder="John Doe"
@@ -279,7 +279,7 @@ export default function ProfilePage() {
                           onChange={(e) =>
                             setProfileForm({ ...profileForm, email: e.target.value })
                           }
-                          className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
+                          className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition ${
                             errors.email ? 'border-red-500' : 'border-gray-300'
                           }`}
                           placeholder="you@example.com"
@@ -303,7 +303,7 @@ export default function ProfilePage() {
                           onChange={(e) =>
                             setProfileForm({ ...profileForm, phone: e.target.value })
                           }
-                          className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
+                          className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition ${
                             errors.phone ? 'border-red-500' : 'border-gray-300'
                           }`}
                           placeholder="+254712345678"
@@ -327,7 +327,7 @@ export default function ProfilePage() {
                           onChange={(e) =>
                             setProfileForm({ ...profileForm, address: e.target.value })
                           }
-                          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
                           placeholder="123 Main Street, Nairobi"
                         />
                       </div>
@@ -338,7 +338,7 @@ export default function ProfilePage() {
                       <button
                         type="submit"
                         disabled={submitting}
-                        className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-semibold transition disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
+                        className="bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700 font-semibold transition disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
                       >
                         {submitting ? (
                           <>
@@ -381,7 +381,7 @@ export default function ProfilePage() {
                           onChange={(e) =>
                             setPasswordForm({ ...passwordForm, currentPassword: e.target.value })
                           }
-                          className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
+                          className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition ${
                             errors.currentPassword ? 'border-red-500' : 'border-gray-300'
                           }`}
                           placeholder="••••••••"
@@ -412,7 +412,7 @@ export default function ProfilePage() {
                           onChange={(e) =>
                             setPasswordForm({ ...passwordForm, newPassword: e.target.value })
                           }
-                          className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
+                          className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition ${
                             errors.newPassword ? 'border-red-500' : 'border-gray-300'
                           }`}
                           placeholder="••••••••"
@@ -443,7 +443,7 @@ export default function ProfilePage() {
                           onChange={(e) =>
                             setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })
                           }
-                          className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
+                          className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition ${
                             errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
                           }`}
                           placeholder="••••••••"
@@ -455,15 +455,15 @@ export default function ProfilePage() {
                     </div>
 
                     {/* Password Requirements */}
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
                       <h4 className="font-semibold text-gray-800 mb-2">Password Requirements:</h4>
                       <ul className="space-y-1 text-sm text-gray-600">
                         <li className="flex items-center gap-2">
-                          <CheckCircle size={16} className="text-blue-600" />
+                          <CheckCircle size={16} className="text-emerald-600" />
                           At least 6 characters long
                         </li>
                         <li className="flex items-center gap-2">
-                          <CheckCircle size={16} className="text-blue-600" />
+                          <CheckCircle size={16} className="text-emerald-600" />
                           Different from current password
                         </li>
                       </ul>
@@ -474,7 +474,7 @@ export default function ProfilePage() {
                       <button
                         type="submit"
                         disabled={submitting}
-                        className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-semibold transition disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
+                        className="bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700 font-semibold transition disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
                       >
                         {submitting ? (
                           <>

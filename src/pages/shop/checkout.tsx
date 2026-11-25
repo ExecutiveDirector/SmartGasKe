@@ -21,6 +21,7 @@ import { useAuth } from '@/lib/context/AuthContext';
 import toast from 'react-hot-toast';
 import { calculateCartPricing, fetchPricingConfig, FALLBACK_PRICING_CONFIG, PricingConfig } from '@/lib/utils/pricing';
 import { outletService } from '@/lib/api';
+import { getOrderTokenStorageKey } from '@/lib/utils/guestOrderAccess';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://aquagas-backend.onrender.com/api/v1';
 
@@ -172,24 +173,24 @@ const LocationEditor: React.FC<LocationEditorProps> = ({ isOpen, initialLat, ini
       <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col overflow-hidden" style={{ maxHeight: '92vh' }}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center flex-shrink-0"><Map size={18} className="text-white" /></div>
+            <div className="w-9 h-9 rounded-xl bg-emerald-600 flex items-center justify-center flex-shrink-0"><Map size={18} className="text-white" /></div>
             <div><h3 className="text-base font-bold text-gray-900">Pin your delivery location</h3><p className="text-xs text-gray-500">Drag the pin or tap the map to adjust</p></div>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-gray-100 transition"><X size={18} className="text-gray-500" /></button>
         </div>
         <div className="relative flex-1" style={{ minHeight: 320 }}>
           <div ref={mapContainerRef} className="absolute inset-0 w-full h-full" />
-          <button onClick={reacquireGPS} disabled={gpsLoading} title="Use my GPS" className="absolute bottom-4 right-4 z-[1000] w-10 h-10 bg-white rounded-xl shadow-lg flex items-center justify-center hover:bg-blue-50 border border-gray-200 transition disabled:opacity-60">
-            {gpsLoading ? <Loader size={16} className="animate-spin text-blue-600" /> : <Navigation size={16} className="text-blue-600" />}
+          <button onClick={reacquireGPS} disabled={gpsLoading} title="Use my GPS" className="absolute bottom-4 right-4 z-[1000] w-10 h-10 bg-white rounded-xl shadow-lg flex items-center justify-center hover:bg-emerald-50 border border-gray-200 transition disabled:opacity-60">
+            {gpsLoading ? <Loader size={16} className="animate-spin text-emerald-600" /> : <Navigation size={16} className="text-emerald-600" />}
           </button>
         </div>
         <div className="px-6 py-5 border-t border-gray-100 bg-gray-50 space-y-4">
-          <div className="bg-white rounded-xl border-2 border-blue-100 overflow-hidden">
+          <div className="bg-white rounded-xl border-2 border-emerald-100 overflow-hidden">
             {loading ? (
-              <div className="flex items-center gap-3 px-4 py-4"><Loader size={16} className="animate-spin text-blue-500 flex-shrink-0" /><span className="text-sm text-gray-500">Resolving address...</span></div>
+              <div className="flex items-center gap-3 px-4 py-4"><Loader size={16} className="animate-spin text-emerald-500 flex-shrink-0" /><span className="text-sm text-gray-500">Resolving address...</span></div>
             ) : parsedAddr ? (
               <div className="px-4 py-3 space-y-1">
-                {parsedAddr.primary && <div className="flex items-start gap-2"><Building2 size={14} className="text-blue-500 mt-0.5 flex-shrink-0" /><span className="text-sm font-semibold text-gray-900">{parsedAddr.primary}</span></div>}
+                {parsedAddr.primary && <div className="flex items-start gap-2"><Building2 size={14} className="text-emerald-500 mt-0.5 flex-shrink-0" /><span className="text-sm font-semibold text-gray-900">{parsedAddr.primary}</span></div>}
                 {parsedAddr.secondary && <div className="flex items-start gap-2"><MapPin size={13} className="text-gray-400 mt-0.5 flex-shrink-0" /><span className="text-sm text-gray-700">{parsedAddr.secondary}</span></div>}
                 {parsedAddr.city && <p className="text-xs text-gray-500 pl-5">{parsedAddr.city}</p>}
                 <div className="flex items-center justify-between pt-1 mt-1 border-t border-gray-100">
@@ -204,21 +205,21 @@ const LocationEditor: React.FC<LocationEditorProps> = ({ isOpen, initialLat, ini
             <div className="relative">
               <input type="text" value={manualOverride} onChange={(e) => setManualOverride(e.target.value)}
                 placeholder={parsedAddr?.full ? 'e.g. Apt 4B, 3rd Floor, Blue Gate...' : 'Type your full address here...'}
-                className="w-full px-3 py-2.5 text-sm border-2 border-gray-200 rounded-xl focus:border-blue-400 focus:outline-none transition placeholder-gray-300" />
+                className="w-full px-3 py-2.5 text-sm border-2 border-gray-200 rounded-xl focus:border-emerald-400 focus:outline-none transition placeholder-gray-300" />
               {manualOverride && <button onClick={() => setManualOverride('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><X size={14} /></button>}
             </div>
           </div>
           {finalAddress && (
-            <div className="flex items-start gap-2 px-3 py-2.5 bg-blue-50 rounded-xl border border-blue-100">
-              <CheckCircle2 size={14} className="text-blue-500 mt-0.5 flex-shrink-0" />
-              <p className="text-xs text-blue-800 font-medium">{finalAddress}</p>
+            <div className="flex items-start gap-2 px-3 py-2.5 bg-emerald-50 rounded-xl border border-emerald-100">
+              <CheckCircle2 size={14} className="text-emerald-500 mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-emerald-800 font-medium">{finalAddress}</p>
             </div>
           )}
           <div className="flex gap-3 pt-1">
             <button onClick={onClose} className="flex-1 py-2.5 text-sm font-semibold text-gray-600 border-2 border-gray-200 rounded-xl hover:border-gray-300 hover:bg-gray-50 transition">Cancel</button>
             <button onClick={() => { if (!finalAddress) return; onConfirm(selectedLat, selectedLng, finalAddress); }}
               disabled={loading || !finalAddress}
-              className="flex-1 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-xl hover:bg-blue-700 active:scale-[0.98] transition disabled:opacity-50 flex items-center justify-center gap-2">
+              className="flex-1 py-2.5 text-sm font-semibold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 active:scale-[0.98] transition disabled:opacity-50 flex items-center justify-center gap-2">
               {loading ? <><Loader size={15} className="animate-spin" /> Resolving...</> : <><CheckCircle2 size={15} /> Confirm Location</>}
             </button>
           </div>
@@ -242,7 +243,7 @@ const OutletCard: React.FC<OutletCardProps> = ({ outlet, selected, onSelect, pic
     onClick={onSelect}
     className={`w-full text-left p-4 rounded-2xl border-2 transition-all duration-200 ${
       selected
-        ? 'border-emerald-500 bg-emerald-50 shadow-md'
+        ? 'border-emerald-600 bg-emerald-50 shadow-[0_8px_22px_rgba(5,103,71,0.09)]'
         : 'border-gray-200 bg-white hover:border-emerald-300 hover:bg-emerald-50/40'
     }`}
   >
@@ -281,6 +282,7 @@ export default function CheckoutPage() {
   const [submitting, setSubmitting]   = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orderId, setOrderId]         = useState('');
+  const [guestTrackingAvailable, setGuestTrackingAvailable] = useState(false);
 
   // ── Payment method ─────────────────────────────────────────
   type PayMethod = 'pesapal' | 'sasapay' | 'cod' | 'wallet';
@@ -580,8 +582,9 @@ export default function CheckoutPage() {
       // Guest orders get a per-order token from the backend; send it on every follow-up call.
       const orderToken: string | undefined = orderResult.order_access_token || orderResult.order?.order_access_token;
       if (orderToken) {
-        try { sessionStorage.setItem(`order_token_${createdOrderId}`, orderToken); } catch { /* private mode */ }
+        try { sessionStorage.setItem(getOrderTokenStorageKey(createdOrderId), orderToken); } catch { /* private mode */ }
       }
+      setGuestTrackingAvailable(Boolean(orderToken) && !isAuthenticated);
       const jsonHeaders: HeadersInit = { ...headers, ...(orderToken && { 'x-order-token': orderToken }) };
       const post = async (url: string, body: unknown) => {
         const r = await fetch(url, { method: 'POST', headers: jsonHeaders, body: JSON.stringify(body) });
@@ -664,20 +667,26 @@ export default function CheckoutPage() {
     return (
       <>
         <Head><title>Order Confirmed - AquaGas</title></Head>
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-emerald-50 flex items-center justify-center py-12 px-4">
-          <div className="bg-white rounded-3xl shadow-2xl p-8 md:p-12 max-w-md w-full text-center border border-gray-100">
+        <div className="min-h-screen bg-[#f6f8f6] flex items-center justify-center py-12 px-4">
+          <div className="bg-white rounded-[28px] shadow-[0_20px_60px_rgba(16,37,31,0.12)] p-7 sm:p-9 md:p-12 max-w-md w-full text-center border border-gray-100">
             <div className="w-24 h-24 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-8 shadow-xl">
               <Check size={48} className="text-white" strokeWidth={3} />
             </div>
             <h2 className="text-4xl font-bold text-gray-900 mb-3">Order Confirmed!</h2>
             <p className="text-gray-600 mb-6 text-lg">Thank you for your order</p>
-            <div className="bg-gradient-to-r from-blue-50 to-blue-100 border-2 border-blue-200 rounded-2xl p-5 mb-8">
+            <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 border-2 border-emerald-200 rounded-2xl p-5 mb-8">
               <p className="text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wider">Order Number</p>
-              <p className="text-3xl font-bold text-blue-600 font-mono">#{orderId.slice(0, 12).toUpperCase()}</p>
+              <p className="text-3xl font-bold text-emerald-600 font-mono">#{orderId.slice(0, 12).toUpperCase()}</p>
             </div>
             <div className="space-y-3">
-              <Link href="/orders" className="block w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-4 rounded-xl hover:from-blue-700 hover:to-blue-800 transition font-semibold shadow-lg">View My Orders</Link>
-              <Link href="/shop" className="block w-full border-2 border-gray-300 text-gray-700 py-4 rounded-xl hover:border-blue-600 hover:text-blue-600 hover:bg-blue-50 transition font-semibold">Continue Shopping</Link>
+              {guestTrackingAvailable ? (
+                <Link href={`/orders/${encodeURIComponent(orderId)}`} className="block w-full bg-gradient-to-r from-emerald-700 to-teal-700 text-white py-4 rounded-xl hover:from-emerald-700 hover:to-emerald-800 transition font-semibold shadow-lg">Track This Order</Link>
+              ) : isAuthenticated ? (
+                <Link href="/orders" className="block w-full bg-gradient-to-r from-emerald-700 to-teal-700 text-white py-4 rounded-xl hover:from-emerald-700 hover:to-emerald-800 transition font-semibold shadow-lg">View My Orders</Link>
+              ) : (
+                <p className="text-sm text-gray-500">Keep your order number for reference. Sign in to view your order history.</p>
+              )}
+              <Link href="/shop" className="block w-full border-2 border-gray-300 text-gray-700 py-4 rounded-xl hover:border-emerald-600 hover:text-emerald-600 hover:bg-emerald-50 transition font-semibold">Continue Shopping</Link>
             </div>
           </div>
         </div>
@@ -703,16 +712,16 @@ export default function CheckoutPage() {
         onClose={() => setMapEditorOpen(false)}
       />
 
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-emerald-50 py-12">
-        <div className="container mx-auto px-4">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50 to-emerald-50 py-12">
+        <div className="container mx-auto px-4 sm:px-6">
 
           {/* Page header */}
           <div className="mb-10">
-            <Link href="/shop/cart" className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-6 font-semibold transition hover:gap-3">
+            <Link href="/shop/cart" className="inline-flex items-center gap-2 text-emerald-600 hover:text-emerald-700 mb-6 font-semibold transition hover:gap-3">
               <ArrowLeft size={20} />Back to Cart
             </Link>
-            <h1 className="text-5xl font-bold text-gray-900 mb-2">Checkout</h1>
-            <p className="text-gray-500 text-lg">Complete your order for fast, reliable delivery</p>
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900 mb-2">Checkout</h1>
+            <p className="text-gray-500 text-base sm:text-lg">Complete your order for fast, reliable delivery</p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -722,9 +731,9 @@ export default function CheckoutPage() {
               <form onSubmit={handleSubmit} className="space-y-6">
 
                 {/* ── STEP 1: Customer Information ── */}
-                <div className="bg-white rounded-3xl shadow-lg p-8 border border-gray-100">
+                <div className="bg-white rounded-[24px] shadow-[0_10px_34px_rgba(16,37,31,0.06)] p-5 sm:p-7 md:p-8 border border-slate-200/80">
                   <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center text-white text-sm font-bold">1</div>
+                    <div className="w-8 h-8 rounded-xl bg-emerald-600 flex items-center justify-center text-white text-sm font-bold">1</div>
                     Customer Information
                   </h2>
                   <div className="space-y-5">
@@ -734,7 +743,7 @@ export default function CheckoutPage() {
                       <div className="relative">
                         <User className="absolute left-4 top-3.5 text-gray-400" size={18} />
                         <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                          className={`w-full pl-11 pr-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${errors.name ? 'border-red-400' : 'border-gray-200'}`}
+                          className={`w-full pl-11 pr-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition ${errors.name ? 'border-red-400' : 'border-gray-200'}`}
                           placeholder="Jane Wanjiru" />
                       </div>
                       {errors.name && <p className="text-red-500 text-xs mt-1.5 flex items-center gap-1"><AlertCircle size={12} />{errors.name}</p>}
@@ -745,7 +754,7 @@ export default function CheckoutPage() {
                       <div className="relative">
                         <Mail className="absolute left-4 top-3.5 text-gray-400" size={18} />
                         <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                          className={`w-full pl-11 pr-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${errors.email ? 'border-red-400' : 'border-gray-200'}`}
+                          className={`w-full pl-11 pr-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition ${errors.email ? 'border-red-400' : 'border-gray-200'}`}
                           placeholder="you@example.com" />
                       </div>
                       {errors.email && <p className="text-red-500 text-xs mt-1.5 flex items-center gap-1"><AlertCircle size={12} />{errors.email}</p>}
@@ -756,7 +765,7 @@ export default function CheckoutPage() {
                       <div className="relative">
                         <Phone className="absolute left-4 top-3.5 text-gray-400" size={18} />
                         <input type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                          className={`w-full pl-11 pr-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${errors.phone ? 'border-red-400' : 'border-gray-200'}`}
+                          className={`w-full pl-11 pr-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition ${errors.phone ? 'border-red-400' : 'border-gray-200'}`}
                           placeholder="0712 345 678" />
                       </div>
                       {errors.phone && <p className="text-red-500 text-xs mt-1.5 flex items-center gap-1"><AlertCircle size={12} />{errors.phone}</p>}
@@ -768,7 +777,7 @@ export default function CheckoutPage() {
                 {/* ── STEP 2: Delivery Method ── */}
                 <div className="bg-white rounded-3xl shadow-lg p-8 border border-gray-100">
                   <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center text-white text-sm font-bold">2</div>
+                    <div className="w-8 h-8 rounded-xl bg-emerald-600 flex items-center justify-center text-white text-sm font-bold">2</div>
                     Delivery Method
                   </h2>
 
@@ -778,18 +787,18 @@ export default function CheckoutPage() {
                     <button
                       type="button"
                       onClick={() => setDeliveryMode('home_delivery')}
-                      className={`relative p-5 rounded-2xl border-2 text-left transition-all duration-200 ${
+                      className={`relative p-5 rounded-2xl border-2 text-left transition-all duration-200 min-h-[140px] ${
                         deliveryMode === 'home_delivery'
-                          ? 'border-blue-500 bg-blue-50 shadow-md'
-                          : 'border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/40'
+                          ? 'border-emerald-600 bg-emerald-50 shadow-[0_8px_22px_rgba(5,103,71,0.09)]'
+                          : 'border-gray-200 bg-white hover:border-emerald-300 hover:bg-emerald-50/40'
                       }`}
                     >
                       {deliveryMode === 'home_delivery' && (
-                        <span className="absolute top-3 right-3 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+                        <span className="absolute top-3 right-3 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center">
                           <Check size={12} className="text-white" strokeWidth={3} />
                         </span>
                       )}
-                      <div className={`w-11 h-11 rounded-xl flex items-center justify-center mb-3 ${deliveryMode === 'home_delivery' ? 'bg-blue-500' : 'bg-gray-100'}`}>
+                      <div className={`w-11 h-11 rounded-xl flex items-center justify-center mb-3 ${deliveryMode === 'home_delivery' ? 'bg-emerald-500' : 'bg-gray-100'}`}>
                         <Truck size={22} className={deliveryMode === 'home_delivery' ? 'text-white' : 'text-gray-500'} />
                       </div>
                       <p className="font-bold text-gray-900 text-sm">Home Delivery</p>
@@ -830,7 +839,7 @@ export default function CheckoutPage() {
                       {/* ASAP vs Scheduled toggle */}
                       <div>
                         <p className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
-                          <Clock size={15} className="text-blue-500" />When do you need it?
+                          <Clock size={15} className="text-emerald-500" />When do you need it?
                         </p>
                         <div className="grid grid-cols-2 gap-3">
                           {/* ASAP */}
@@ -839,14 +848,14 @@ export default function CheckoutPage() {
                             onClick={() => setScheduleType('asap')}
                             className={`p-4 rounded-2xl border-2 text-left transition-all duration-200 ${
                               scheduleType === 'asap'
-                                ? 'border-blue-500 bg-blue-50'
-                                : 'border-gray-200 hover:border-blue-300'
+                                ? 'border-emerald-500 bg-emerald-50'
+                                : 'border-gray-200 hover:border-emerald-300'
                             }`}
                           >
                             <div className="flex items-center gap-2 mb-1">
-                              <Zap size={16} className={scheduleType === 'asap' ? 'text-blue-500' : 'text-gray-400'} />
+                              <Zap size={16} className={scheduleType === 'asap' ? 'text-emerald-500' : 'text-gray-400'} />
                               <span className="font-bold text-sm text-gray-900">Deliver ASAP</span>
-                              {scheduleType === 'asap' && <CheckCircle2 size={14} className="text-blue-500 ml-auto" />}
+                              {scheduleType === 'asap' && <CheckCircle2 size={14} className="text-emerald-500 ml-auto" />}
                             </div>
                             <p className="text-xs text-gray-500 ml-6">30 – 60 minutes</p>
                           </button>
@@ -857,14 +866,14 @@ export default function CheckoutPage() {
                             onClick={() => setScheduleType('scheduled')}
                             className={`p-4 rounded-2xl border-2 text-left transition-all duration-200 ${
                               scheduleType === 'scheduled'
-                                ? 'border-blue-500 bg-blue-50'
-                                : 'border-gray-200 hover:border-blue-300'
+                                ? 'border-emerald-500 bg-emerald-50'
+                                : 'border-gray-200 hover:border-emerald-300'
                             }`}
                           >
                             <div className="flex items-center gap-2 mb-1">
-                              <CalendarClock size={16} className={scheduleType === 'scheduled' ? 'text-blue-500' : 'text-gray-400'} />
+                              <CalendarClock size={16} className={scheduleType === 'scheduled' ? 'text-emerald-500' : 'text-gray-400'} />
                               <span className="font-bold text-sm text-gray-900">Schedule</span>
-                              {scheduleType === 'scheduled' && <CheckCircle2 size={14} className="text-blue-500 ml-auto" />}
+                              {scheduleType === 'scheduled' && <CheckCircle2 size={14} className="text-emerald-500 ml-auto" />}
                             </div>
                             <p className="text-xs text-gray-500 ml-6">Pick date & time</p>
                           </button>
@@ -873,22 +882,22 @@ export default function CheckoutPage() {
 
                       {/* ASAP info badge */}
                       {scheduleType === 'asap' && (
-                        <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl">
-                          <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                            <Zap size={20} className="text-blue-600" />
+                        <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-emerald-50 to-indigo-50 border border-emerald-200 rounded-2xl">
+                          <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                            <Zap size={20} className="text-emerald-600" />
                           </div>
                           <div>
                             <p className="font-bold text-gray-900 text-sm">Express Delivery</p>
-                            <p className="text-xs text-gray-500 mt-0.5">Your order will be delivered within <span className="font-semibold text-blue-600">30 – 60 minutes</span> of confirmation</p>
+                            <p className="text-xs text-gray-500 mt-0.5">Your order will be delivered within <span className="font-semibold text-emerald-600">30 – 60 minutes</span> of confirmation</p>
                           </div>
                         </div>
                       )}
 
                       {/* Scheduling UI */}
                       {scheduleType === 'scheduled' && (
-                        <div className="space-y-5 p-5 bg-blue-50/50 rounded-2xl border border-blue-100">
+                        <div className="space-y-5 p-5 bg-emerald-50/50 rounded-2xl border border-emerald-100">
                           <p className="text-sm font-bold text-gray-800 flex items-center gap-2">
-                            <Calendar size={15} className="text-blue-500" />Choose delivery date
+                            <Calendar size={15} className="text-emerald-500" />Choose delivery date
                           </p>
 
                           {/* Date selector */}
@@ -900,12 +909,12 @@ export default function CheckoutPage() {
                                 onClick={() => setScheduledDate(d.value)}
                                 className={`flex-shrink-0 px-4 py-3 rounded-xl border-2 text-center transition-all duration-150 min-w-[80px] ${
                                   scheduledDate === d.value
-                                    ? 'border-blue-500 bg-blue-500 text-white shadow-md'
-                                    : 'border-gray-200 bg-white hover:border-blue-300 text-gray-700'
+                                    ? 'border-emerald-500 bg-emerald-500 text-white shadow-md'
+                                    : 'border-gray-200 bg-white hover:border-emerald-300 text-gray-700'
                                 }`}
                               >
                                 <p className="text-xs font-bold">{d.label}</p>
-                                <p className={`text-[11px] mt-0.5 ${scheduledDate === d.value ? 'text-blue-100' : 'text-gray-400'}`}>{d.sub}</p>
+                                <p className={`text-[11px] mt-0.5 ${scheduledDate === d.value ? 'text-emerald-100' : 'text-gray-400'}`}>{d.sub}</p>
                               </button>
                             ))}
                           </div>
@@ -915,7 +924,7 @@ export default function CheckoutPage() {
                           {scheduledDate && (
                             <div>
                               <p className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
-                                <Clock size={15} className="text-blue-500" />Choose time slot
+                                <Clock size={15} className="text-emerald-500" />Choose time slot
                               </p>
                               <div className="grid grid-cols-2 gap-2">
                                 {TIME_SLOTS.map((slot) => (
@@ -925,8 +934,8 @@ export default function CheckoutPage() {
                                     onClick={() => setScheduledSlot(slot)}
                                     className={`px-3 py-3 rounded-xl border-2 text-xs font-semibold transition-all duration-150 text-center ${
                                       scheduledSlot === slot
-                                        ? 'border-blue-500 bg-blue-500 text-white shadow-md'
-                                        : 'border-gray-200 bg-white hover:border-blue-300 text-gray-600'
+                                        ? 'border-emerald-500 bg-emerald-500 text-white shadow-md'
+                                        : 'border-gray-200 bg-white hover:border-emerald-300 text-gray-600'
                                     }`}
                                   >
                                     {slot}
@@ -939,7 +948,7 @@ export default function CheckoutPage() {
 
                           {/* Summary pill */}
                           {scheduledDate && scheduledSlot && (
-                            <div className="flex items-center gap-2 p-3 bg-blue-500 text-white rounded-xl">
+                            <div className="flex items-center gap-2 p-3 bg-emerald-500 text-white rounded-xl">
                               <CalendarClock size={16} />
                               <p className="text-xs font-semibold">
                                 Scheduled for {availableDates.find(d => d.value === scheduledDate)?.label} · {scheduledSlot}
@@ -952,12 +961,12 @@ export default function CheckoutPage() {
                       {/* Delivery address */}
                       <div>
                         <p className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
-                          <MapPin size={15} className="text-blue-500" />Delivery Address
+                          <MapPin size={15} className="text-emerald-500" />Delivery Address
                         </p>
 
                         {locationLoading ? (
-                          <div className="mb-4 p-4 bg-blue-50 border-2 border-blue-200 rounded-xl flex items-center gap-3">
-                            <Loader size={18} className="text-blue-600 animate-spin flex-shrink-0" />
+                          <div className="mb-4 p-4 bg-emerald-50 border-2 border-emerald-200 rounded-xl flex items-center gap-3">
+                            <Loader size={18} className="text-emerald-600 animate-spin flex-shrink-0" />
                             <span className="text-sm text-gray-700 font-medium">Detecting your location...</span>
                           </div>
                         ) : locationError ? (
@@ -965,7 +974,7 @@ export default function CheckoutPage() {
                             <AlertCircle size={18} className="text-amber-600 flex-shrink-0 mt-0.5" />
                             <div>
                               <p className="text-sm text-gray-700">{locationError}</p>
-                              <button type="button" onClick={() => setMapEditorOpen(true)} className="mt-1.5 text-xs font-semibold text-blue-600 hover:underline">Use map to set location →</button>
+                              <button type="button" onClick={() => setMapEditorOpen(true)} className="mt-1.5 text-xs font-semibold text-emerald-600 hover:underline">Use map to set location →</button>
                             </div>
                           </div>
                         ) : (
@@ -983,10 +992,10 @@ export default function CheckoutPage() {
                         <div className="relative">
                           <MapPin className="absolute left-4 top-4 text-gray-400" size={18} />
                           <textarea rows={3} value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                            className={`w-full pl-11 pr-14 py-4 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition resize-none ${errors.address ? 'border-red-400' : 'border-gray-200'}`}
+                            className={`w-full pl-11 pr-14 py-4 border-2 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition resize-none ${errors.address ? 'border-red-400' : 'border-gray-200'}`}
                             placeholder="Your delivery address..." />
                           <button type="button" onClick={() => setMapEditorOpen(true)}
-                            className="absolute right-3 top-3 p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-md" title="Edit on map">
+                            className="absolute right-3 top-3 p-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition shadow-md" title="Edit on map">
                             <Edit2 size={16} />
                           </button>
                         </div>
@@ -994,7 +1003,7 @@ export default function CheckoutPage() {
                         {formData.latitude !== 0 && (
                           <div className="flex items-center gap-2 mt-1.5">
                             <span className="text-[11px] font-mono text-gray-400">{formData.latitude.toFixed(6)}°, {formData.longitude.toFixed(6)}°</span>
-                            <button type="button" onClick={() => setMapEditorOpen(true)} className="text-[11px] text-blue-500 hover:underline">adjust →</button>
+                            <button type="button" onClick={() => setMapEditorOpen(true)} className="text-[11px] text-emerald-500 hover:underline">adjust →</button>
                           </div>
                         )}
                       </div>
@@ -1003,7 +1012,7 @@ export default function CheckoutPage() {
                       <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-2">Delivery Instructions <span className="text-gray-400 font-normal text-xs">(Optional)</span></label>
                         <textarea rows={2} value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition resize-none text-sm"
+                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition resize-none text-sm"
                           placeholder="e.g. Ring doorbell twice, Gate code: 1234, Call on arrival..." />
                       </div>
                     </div>
@@ -1056,9 +1065,9 @@ export default function CheckoutPage() {
                 </div>
 
                 {/* ── Payment method ── */}
-                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-3xl p-7">
+                <div className="bg-gradient-to-br from-emerald-50 to-indigo-50 border-2 border-emerald-200 rounded-3xl p-7">
                   <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <Shield size={22} className="text-blue-600" />Payment Method
+                    <Shield size={22} className="text-emerald-600" />Payment Method
                   </h3>
                   <div className="space-y-3">
                     {([
@@ -1082,16 +1091,16 @@ export default function CheckoutPage() {
                           onClick={() => setPaymentMethod(id)}
                           className={`w-full text-left flex items-center gap-4 p-4 rounded-2xl border-2 transition ${
                             disabled ? 'bg-gray-50 border-gray-200 opacity-60 cursor-not-allowed'
-                              : selected ? 'bg-white border-blue-600 shadow-md' : 'bg-white border-gray-200 hover:border-blue-300'}`}
+                              : selected ? 'bg-white border-emerald-600 shadow-md' : 'bg-white border-gray-200 hover:border-emerald-300'}`}
                         >
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${selected ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'}`}>
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${selected ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-500'}`}>
                             <Icon size={20} />
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="font-semibold text-gray-900 text-sm">{title}</p>
                             <p className="text-xs text-gray-500">{note || sub}</p>
                           </div>
-                          {selected && <CheckCircle2 size={20} className="text-blue-600 flex-shrink-0" />}
+                          {selected && <CheckCircle2 size={20} className="text-emerald-600 flex-shrink-0" />}
                         </button>
                       );
                     })}
@@ -1115,7 +1124,7 @@ export default function CheckoutPage() {
                 <button
                   type="submit"
                   disabled={submitting || locationLoading}
-                  className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-5 rounded-2xl hover:from-blue-700 hover:to-blue-800 font-bold text-lg transition disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-xl hover:shadow-2xl transform hover:scale-[1.01] active:scale-[0.99] duration-200"
+                  className="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 text-white py-5 rounded-2xl hover:from-emerald-700 hover:to-emerald-800 font-bold text-lg transition disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-xl hover:shadow-2xl transform hover:scale-[1.01] active:scale-[0.99] duration-200"
                 >
                   {submitting
                     ? <><Loader className="animate-spin" size={22} />{mpesaWaiting ? 'Waiting for payment...' : 'Processing...'}</>
@@ -1151,7 +1160,7 @@ export default function CheckoutPage() {
                 <div className="mb-5 p-3 rounded-2xl bg-gray-50 border border-gray-200">
                   <div className="flex items-center gap-2">
                     {deliveryMode === 'home_delivery'
-                      ? <><Truck size={14} className="text-blue-500" /><span className="text-xs font-semibold text-gray-700">Home Delivery</span></>
+                      ? <><Truck size={14} className="text-emerald-500" /><span className="text-xs font-semibold text-gray-700">Home Delivery</span></>
                       : <><Store size={14} className="text-emerald-500" /><span className="text-xs font-semibold text-gray-700">Pickup</span></>
                     }
                   </div>
@@ -1189,13 +1198,13 @@ export default function CheckoutPage() {
                 {/* Total */}
                 <div className="flex justify-between items-center mb-6">
                   <span className="text-lg font-bold text-gray-900">Total</span>
-                  <span className="text-2xl font-bold text-blue-600">KES {finalTotal.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</span>
+                  <span className="text-2xl font-bold text-emerald-600">KES {finalTotal.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</span>
                 </div>
 
                 {/* Trust badges */}
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="text-center p-3 bg-blue-50 rounded-xl border border-blue-100">
-                    <Package size={20} className="mx-auto text-blue-600 mb-1" />
+                  <div className="text-center p-3 bg-emerald-50 rounded-xl border border-emerald-100">
+                    <Package size={20} className="mx-auto text-emerald-600 mb-1" />
                     <p className="text-[11px] font-semibold text-gray-700">Quality</p>
                   </div>
                   <div className="text-center p-3 bg-emerald-50 rounded-xl border border-emerald-100">

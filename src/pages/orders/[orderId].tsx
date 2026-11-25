@@ -29,6 +29,7 @@ import { orderService } from '@/lib/api';
 import { Order, OrderStatus } from '@/lib/types';
 import { formatPrice, formatDateTime } from '@/lib/utils';
 import toast from 'react-hot-toast';
+import { canAccessOrderDetails, getOrderTokenStorageKey } from '@/lib/utils/guestOrderAccess';
 
 export default function OrderDetailPage() {
   const router = useRouter();
@@ -36,24 +37,35 @@ export default function OrderDetailPage() {
   const { isAuthenticated, loading: authLoading } = useAuth();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const [guestAccessChecked, setGuestAccessChecked] = useState(false);
+  const [hasGuestAccess, setHasGuestAccess] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [rating, setRating] = useState(5);
   const [review, setReview] = useState('');
 
-  // Redirect if not authenticated
+  // A guest may view only the order for which checkout stored a scoped token.
+  // The API request interceptor sends that token as x-order-token.
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
+    if (!router.isReady || typeof orderId !== 'string') return;
+    let token: string | null = null;
+    try { token = sessionStorage.getItem(getOrderTokenStorageKey(orderId)); } catch { /* storage unavailable */ }
+    setHasGuestAccess(Boolean(token));
+    setGuestAccessChecked(true);
+  }, [router.isReady, orderId]);
+
+  useEffect(() => {
+    if (!authLoading && guestAccessChecked && !canAccessOrderDetails(isAuthenticated, hasGuestAccess)) {
       router.push('/account/login');
     }
-  }, [isAuthenticated, authLoading, router]);
+  }, [isAuthenticated, authLoading, guestAccessChecked, hasGuestAccess, router]);
 
-  // Fetch order details
+  // Fetch order details for signed-in customers or token-authorized guests.
   useEffect(() => {
-    if (orderId && isAuthenticated) {
+    if (orderId && (isAuthenticated || hasGuestAccess)) {
       fetchOrderDetails();
     }
-  }, [orderId, isAuthenticated]);
+  }, [orderId, isAuthenticated, hasGuestAccess]);
 
   const fetchOrderDetails = async () => {
   try {
@@ -110,7 +122,7 @@ export default function OrderDetailPage() {
       case 'delivered':
         return 'bg-green-100 text-green-800 border-green-200';
       case 'in_transit':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+        return 'bg-emerald-100 text-emerald-800 border-emerald-200';
       case 'processing':
         return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'confirmed':
@@ -156,7 +168,7 @@ export default function OrderDetailPage() {
     return status === 'pending' || status === 'confirmed';
   };
 
-  if (authLoading || loading) {
+  if (authLoading || !guestAccessChecked || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <LogoLoader size={140} />
@@ -172,9 +184,9 @@ export default function OrderDetailPage() {
           <h2 className="text-2xl font-bold text-gray-800 mb-4">Order Not Found</h2>
           <Link
             href="/orders"
-            className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition"
+            className="inline-block bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700 transition"
           >
-            Back to Orders
+            {isAuthenticated ? 'Back to Orders' : 'Back to Shop'}
           </Link>
         </div>
       </div>
@@ -187,22 +199,22 @@ export default function OrderDetailPage() {
         <title>Order #{order.id.slice(0, 8)} - AquaGas</title>
       </Head>
 
-      <div className="min-h-screen bg-gray-50 py-8">
+      <div className="min-h-screen bg-[#f6f8f6] py-6 sm:py-8">
         <div className="container mx-auto px-4">
           {/* Back Button */}
           <Link
-            href="/orders"
-            className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-6 font-semibold transition"
+            href={isAuthenticated ? "/orders" : "/shop"}
+            className="inline-flex items-center gap-2 text-emerald-600 hover:text-emerald-700 mb-6 font-semibold transition"
           >
             <ArrowLeft size={20} />
             Back to Orders
           </Link>
 
           {/* Order Header */}
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <div className="bg-white rounded-[22px] border border-slate-200/80 shadow-[0_8px_28px_rgba(16,37,31,0.06)] p-5 sm:p-6 mb-6">
             <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
               <div>
-                <h1 className="text-3xl font-bold text-gray-800 mb-2">
+                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-gray-900 mb-2">
                   Order #{order.id.slice(0, 8)}
                 </h1>
                 <p className="text-gray-600 flex items-center gap-2">
@@ -221,7 +233,7 @@ export default function OrderDetailPage() {
             </div>
 
             {order.status === 'delivered' && order.delivered_at && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
+              <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-3">
                 <CheckCircle className="text-green-600" size={24} />
                 <p className="text-green-800">
                   Delivered on {formatDateTime(order.delivered_at)}
@@ -229,7 +241,7 @@ export default function OrderDetailPage() {
               </div>
             )}
 
-            {canCancelOrder(order.status) && (
+            {isAuthenticated && canCancelOrder(order.status) && (
               <div className="mt-4">
                 <button
                   onClick={handleCancelOrder}
@@ -251,7 +263,7 @@ export default function OrderDetailPage() {
               </div>
             )}
 
-            {order.status === 'delivered' && (
+            {isAuthenticated && order.status === 'delivered' && (
               <div className="mt-4">
                 <button
                   onClick={() => setShowRatingModal(true)}
@@ -268,7 +280,7 @@ export default function OrderDetailPage() {
             {/* Order Items */}
             <div className="lg:col-span-2 space-y-6">
               <div className="bg-white rounded-lg shadow-md p-6">
-                <h2 className="text-2xl font-bold text-gray-800 mb-6">Order Items</h2>
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-5">Order Items</h2>
                 <div className="space-y-4">
                   {order.items.map((item, index) => (
                     <div
@@ -284,7 +296,7 @@ export default function OrderDetailPage() {
                         <p className="text-sm text-gray-600 mb-1">
                           {formatPrice(item.price)} each
                         </p>
-                        <p className="text-xl font-bold text-blue-600">
+                        <p className="text-xl font-bold text-emerald-600">
                           {formatPrice(item.price * item.quantity)}
                         </p>
                       </div>
@@ -298,14 +310,14 @@ export default function OrderDetailPage() {
                 <h2 className="text-2xl font-bold text-gray-800 mb-6">Delivery Information</h2>
                 <div className="space-y-4">
                   <div className="flex items-start gap-3">
-                    <MapPin className="text-blue-600 mt-1 flex-shrink-0" size={20} />
+                    <MapPin className="text-emerald-600 mt-1 flex-shrink-0" size={20} />
                     <div>
                       <p className="font-semibold text-gray-800 mb-1">Delivery Address</p>
                       <p className="text-gray-600">{order.delivery_address}</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <Phone className="text-blue-600 mt-1 flex-shrink-0" size={20} />
+                    <Phone className="text-emerald-600 mt-1 flex-shrink-0" size={20} />
                     <div>
                       <p className="font-semibold text-gray-800 mb-1">Contact Number</p>
                       <p className="text-gray-600">{order.delivery_phone}</p>
@@ -313,7 +325,7 @@ export default function OrderDetailPage() {
                   </div>
                   {order.notes && (
                     <div className="flex items-start gap-3">
-                      <AlertCircle className="text-blue-600 mt-1 flex-shrink-0" size={20} />
+                      <AlertCircle className="text-emerald-600 mt-1 flex-shrink-0" size={20} />
                       <div>
                         <p className="font-semibold text-gray-800 mb-1">Order Notes</p>
                         <p className="text-gray-600">{order.notes}</p>
@@ -340,7 +352,7 @@ export default function OrderDetailPage() {
                   <div className="border-t pt-3">
                     <div className="flex justify-between">
                       <span className="text-xl font-bold text-gray-800">Total</span>
-                      <span className="text-2xl font-bold text-blue-600">
+                      <span className="text-2xl font-bold text-emerald-600">
                         {formatPrice(order.grand_total)}
                       </span>
                     </div>
@@ -352,7 +364,7 @@ export default function OrderDetailPage() {
                 <h2 className="text-2xl font-bold text-gray-800 mb-6">Payment Details</h2>
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
-                    <CreditCard className="text-blue-600" size={20} />
+                    <CreditCard className="text-emerald-600" size={20} />
                     <div>
                       <p className="font-semibold text-gray-800 mb-1">Payment Method</p>
                       <p className="text-gray-600 capitalize">
@@ -375,12 +387,12 @@ export default function OrderDetailPage() {
                 </div>
               </div>
 
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
                 <div className="flex items-start gap-3">
-                  <Truck className="text-blue-600 flex-shrink-0 mt-1" size={20} />
+                  <Truck className="text-emerald-600 flex-shrink-0 mt-1" size={20} />
                   <div>
-                    <p className="font-semibold text-blue-800 mb-1">Need Help?</p>
-                    <p className="text-sm text-blue-700">
+                    <p className="font-semibold text-emerald-800 mb-1">Need Help?</p>
+                    <p className="text-sm text-emerald-700">
                       Contact support at support@aquagas.com or call +254 700 000 000
                     </p>
                   </div>
@@ -427,7 +439,7 @@ export default function OrderDetailPage() {
                 rows={4}
                 value={review}
                 onChange={(e) => setReview(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                 placeholder="Tell us about your experience..."
               />
             </div>
@@ -436,7 +448,7 @@ export default function OrderDetailPage() {
             <div className="flex items-center gap-3">
               <button
                 onClick={handleSubmitRating}
-                className="flex-1 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition font-semibold"
+                className="flex-1 bg-emerald-600 text-white py-3 rounded-lg hover:bg-emerald-700 transition font-semibold"
               >
                 Submit Rating
               </button>

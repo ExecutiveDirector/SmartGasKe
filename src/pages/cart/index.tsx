@@ -121,12 +121,12 @@ const { subtotal, tax, deliveryFee, total } = calculateCartPricing(cartTotal);
           <meta name="description" content="Your AquaGas shopping cart" />
         </Head>
 
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 py-16">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50/50 py-16">
           <div className="container mx-auto px-4">
             <div className="max-w-2xl mx-auto">
-              <div className="bg-white rounded-3xl shadow-xl p-12 text-center">
-                <div className="bg-blue-50 rounded-full w-32 h-32 flex items-center justify-center mx-auto mb-6">
-                  <ShoppingBag size={64} className="text-blue-600" />
+              <div className="bg-white rounded-[28px] border border-slate-100 shadow-[0_18px_60px_rgba(16,37,31,0.08)] p-8 sm:p-12 text-center">
+                <div className="bg-emerald-50 rounded-full w-32 h-32 flex items-center justify-center mx-auto mb-6">
+                  <ShoppingBag size={64} className="text-emerald-600" />
                 </div>
                 
                 <h2 className="text-3xl font-bold text-gray-800 mb-4">
@@ -140,7 +140,7 @@ const { subtotal, tax, deliveryFee, total } = calculateCartPricing(cartTotal);
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Link
                     href="/shop"
-                    className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-8 py-4 rounded-xl hover:bg-blue-700 transition font-semibold shadow-lg hover:shadow-xl"
+                    className="inline-flex items-center justify-center gap-2 bg-emerald-600 text-white px-8 py-4 rounded-xl hover:bg-emerald-700 transition font-semibold shadow-lg hover:shadow-xl"
                   >
                     <ShoppingBag size={20} />
                     <span>Start Shopping</span>
@@ -164,8 +164,8 @@ const { subtotal, tax, deliveryFee, total } = calculateCartPricing(cartTotal);
                     <p className="text-sm text-gray-600 font-medium">Secure Payment</p>
                   </div>
                   <div className="text-center">
-                    <div className="bg-blue-50 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-2">
-                      <Truck size={24} className="text-blue-600" />
+                    <div className="bg-emerald-50 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-2">
+                      <Truck size={24} className="text-emerald-600" />
                     </div>
                     <p className="text-sm text-gray-600 font-medium">Fast Delivery</p>
                   </div>
@@ -191,14 +191,14 @@ const { subtotal, tax, deliveryFee, total } = calculateCartPricing(cartTotal);
         <meta name="description" content={`Review your ${itemCount} item(s) and checkout`} />
       </Head>
 
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 py-8">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-emerald-50 py-8">
         <div className="container mx-auto px-4">
           {/* Header */}
           <div className="mb-8">
             <div className="flex items-center gap-3 mb-4">
               <Link 
                 href="/shop"
-                className="text-blue-600 hover:text-blue-700 font-medium flex items-center gap-2 transition"
+                className="text-emerald-600 hover:text-emerald-700 font-medium flex items-center gap-2 transition"
               >
                 <ArrowLeft size={20} />
                 <span>Continue Shopping</span>
@@ -216,9 +216,9 @@ const { subtotal, tax, deliveryFee, total } = calculateCartPricing(cartTotal);
             <div className="lg:col-span-2 space-y-6">
               {/* Outlet Info Banner */}
               {cartOutlet && (
-                <div className="bg-gradient-to-r from-blue-50 to-blue-100 border-2 border-blue-200 rounded-2xl p-5 shadow-md">
+                <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 border-2 border-emerald-200 rounded-2xl p-5 shadow-md">
                   <div className="flex items-start gap-4">
-                    <div className="bg-blue-500 p-3 rounded-xl shadow-md">
+                    <div className="bg-emerald-500 p-3 rounded-xl shadow-md">
                       <Store size={24} className="text-white" />
                     </div>
                     <div className="flex-1">
@@ -229,7 +229,7 @@ const { subtotal, tax, deliveryFee, total } = calculateCartPricing(cartTotal);
                         {cartOutlet.vendor || cartOutlet.vendor_name}
                       </p>
                       {cartOutlet.distance !== undefined && cartOutlet.distance > 0 && (
-                        <p className="text-sm text-blue-700 font-semibold flex items-center gap-1">
+                        <p className="text-sm text-emerald-700 font-semibold flex items-center gap-1">
                           <MapPin size={16} />
                           {cartOutlet.distance.toFixed(1)} km away
                         </p>
@@ -274,7 +274,7 @@ const { subtotal, tax, deliveryFee, total } = calculateCartPricing(cartTotal);
                   return (
                     <div
                       key={itemKey}
-                      className={`bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden ${
+                      className={`bg-white rounded-[22px] border border-slate-200/80 shadow-[0_5px_22px_rgba(16,37,31,0.045)] hover:shadow-[0_12px_32px_rgba(16,37,31,0.09)] transition-all duration-300 overflow-hidden ${
                         isRemoving ? 'opacity-50 pointer-events-none' : ''
                       }`}
                     >
@@ -297,7 +297,7 @@ const { subtotal, tax, deliveryFee, total } = calculateCartPricing(cartTotal);
                             </div>
                             {item.brand && (
                               <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 z-10">
-                                <span className="bg-gradient-to-r from-blue-600 to-blue-700 text-white text-xs px-3 py-1 rounded-full font-semibold shadow-lg">
+                                <span className="bg-gradient-to-r from-emerald-700 to-teal-700 text-white text-xs px-3 py-1 rounded-full font-semibold shadow-lg">
                                   {item.brand}
                                 </span>
                               </div>
@@ -343,7 +343,7 @@ const { subtotal, tax, deliveryFee, total } = calculateCartPricing(cartTotal);
                               <div className="flex items-center gap-2 bg-gray-50 rounded-xl p-1 shadow-sm">
                                 <button
                                   onClick={() => handleUpdateQuantity(productId, outletId, item.quantity - 1)}
-                                  className="bg-white hover:bg-blue-50 text-gray-700 hover:text-blue-600 p-2.5 rounded-lg transition shadow-sm hover:shadow active:scale-95"
+                                  className="bg-white hover:bg-emerald-50 text-gray-700 hover:text-emerald-600 p-2.5 rounded-lg transition shadow-sm hover:shadow active:scale-95"
                                   aria-label="Decrease quantity"
                                 >
                                   <Minus size={16} />
@@ -356,7 +356,7 @@ const { subtotal, tax, deliveryFee, total } = calculateCartPricing(cartTotal);
                                 <button
                                   onClick={() => handleUpdateQuantity(productId, outletId, item.quantity + 1)}
                                   disabled={atMaxStock}
-                                  className="bg-white hover:bg-blue-50 text-gray-700 hover:text-blue-600 p-2.5 rounded-lg transition shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+                                  className="bg-white hover:bg-emerald-50 text-gray-700 hover:text-emerald-600 p-2.5 rounded-lg transition shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
                                   aria-label="Increase quantity"
                                 >
                                   <Plus size={16} />
@@ -365,7 +365,7 @@ const { subtotal, tax, deliveryFee, total } = calculateCartPricing(cartTotal);
 
                               {/* Price */}
                               <div className="text-right">
-                                <p className="text-blue-600 font-bold text-xl">
+                                <p className="text-emerald-600 font-bold text-xl">
                                   KES {(item.price * item.quantity).toLocaleString()}
                                 </p>
                                 <p className="text-sm text-gray-500 font-medium">
@@ -410,7 +410,7 @@ const { subtotal, tax, deliveryFee, total } = calculateCartPricing(cartTotal);
 
             {/* Order Summary */}
             <div className="lg:col-span-1">
-              <div className="bg-white rounded-2xl shadow-xl p-6 sticky top-24 border border-gray-100">
+              <div className="bg-white rounded-[24px] shadow-[0_12px_36px_rgba(16,37,31,0.08)] p-5 sm:p-6 sticky top-24 border border-slate-200/80">
                 <h2 className="text-2xl font-bold text-gray-900 mb-6 pb-4 border-b-2 border-gray-100">
                   Order Summary
                 </h2>
@@ -446,14 +446,14 @@ const { subtotal, tax, deliveryFee, total } = calculateCartPricing(cartTotal);
                   </div>
 
                   {subtotal < 5000 && subtotal > 0 && (
-                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-3 my-4">
-                      <p className="text-xs text-blue-800 font-semibold flex items-center gap-2 mb-2">
+                    <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border-2 border-emerald-200 rounded-xl p-3 my-4">
+                      <p className="text-xs text-emerald-800 font-semibold flex items-center gap-2 mb-2">
                         <Truck size={14} />
                         Add KES {(5000 - subtotal).toLocaleString()} more for free delivery!
                       </p>
                       <div className="bg-white rounded-full h-2 overflow-hidden">
                         <div 
-                          className="bg-gradient-to-r from-blue-500 to-indigo-500 h-full transition-all duration-300"
+                          className="bg-gradient-to-r from-emerald-500 to-teal-500 h-full transition-all duration-300"
                           style={{ width: `${(subtotal / 5000) * 100}%` }}
                         />
                       </div>
@@ -463,14 +463,14 @@ const { subtotal, tax, deliveryFee, total } = calculateCartPricing(cartTotal);
                   <div className="border-t-2 border-gray-200 pt-4 mt-4">
                     <div className="flex justify-between text-xl font-bold">
                       <span className="text-gray-900">Total</span>
-                      <span className="text-blue-600">KES {total.toFixed(0).toLocaleString()}</span>
+                      <span className="text-emerald-600">KES {total.toFixed(0).toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
 
                 <button
                   onClick={handleCheckout}
-                  className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-4 px-4 rounded-xl hover:from-blue-700 hover:to-blue-800 transition font-bold text-lg flex items-center justify-center gap-3 shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 active:scale-[0.98]"
+                  className="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 text-white py-4 px-4 rounded-xl hover:from-emerald-800 hover:to-teal-800 transition font-bold text-lg flex items-center justify-center gap-3 shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 active:scale-[0.98]"
                 >
                   <span>Proceed to Checkout</span>
                   <ArrowRight size={22} />
@@ -478,7 +478,7 @@ const { subtotal, tax, deliveryFee, total } = calculateCartPricing(cartTotal);
 
                 <Link
                   href="/shop"
-                  className="block w-full text-center text-blue-600 hover:text-blue-700 font-semibold mt-4 py-2.5 hover:bg-blue-50 rounded-lg transition"
+                  className="block w-full text-center text-emerald-600 hover:text-emerald-700 font-semibold mt-4 py-2.5 hover:bg-emerald-50 rounded-lg transition"
                 >
                   Continue Shopping
                 </Link>
@@ -492,8 +492,8 @@ const { subtotal, tax, deliveryFee, total } = calculateCartPricing(cartTotal);
                     <p className="text-xs text-gray-600 font-medium mt-1">Secure</p>
                   </div>
                   <div className="text-center group">
-                    <div className="bg-blue-50 rounded-lg p-2 mx-auto w-fit group-hover:bg-blue-100 transition">
-                      <Truck size={20} className="text-blue-600" />
+                    <div className="bg-emerald-50 rounded-lg p-2 mx-auto w-fit group-hover:bg-emerald-100 transition">
+                      <Truck size={20} className="text-emerald-600" />
                     </div>
                     <p className="text-xs text-gray-600 font-medium mt-1">Fast</p>
                   </div>

@@ -85,7 +85,7 @@ export default function ProductDetailPage() {
         </p>
         <Link
           href="/shop"
-          className="inline-flex items-center gap-1.5 bg-teal-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-teal-700 transition-colors"
+          className="inline-flex items-center gap-1.5 bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-emerald-800 transition-colors"
         >
           <ChevronLeft size={16} />
           Back to Shop
@@ -154,9 +154,8 @@ export default function ProductDetailPage() {
 
   const handleAddToCart = () => {
     try {
-      for (let i = 0; i < quantity; i++) {
-        addToCart(product, outlet);
-      }
+      const added = addToCart(product, outlet, quantity);
+      if (!added) return;
       toast.success(`${displayName} added to cart!`, { icon: '🛒' });
     } catch (err) {
       console.error('Error adding to cart:', err);
@@ -174,22 +173,22 @@ export default function ProductDetailPage() {
         />
       </Head>
 
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/20 to-blue-50/40 pb-16">
-        <div className="container mx-auto px-4 md:px-6 py-6 max-w-5xl">
+      <div className="min-h-screen bg-[#f6f8f6] pb-16">
+        <div className="container mx-auto px-4 sm:px-6 md:px-8 py-6 sm:py-8 max-w-6xl">
           {/* Back */}
           <button
             onClick={() => router.back()}
-            className="inline-flex items-center gap-1 text-sm font-semibold text-slate-500 hover:text-teal-700 transition-colors mb-5"
+            className="inline-flex items-center gap-1 text-sm font-semibold text-slate-500 hover:text-emerald-800 transition-colors mb-5"
           >
             <ChevronLeft size={16} />
             Back
           </button>
 
-          <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+          <div className="bg-white rounded-[28px] shadow-[0_14px_44px_rgba(16,37,31,0.07)] border border-slate-200/80 overflow-hidden">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
               {/* ── Images ───────────────────────────────── */}
-              <div className="p-4 md:p-6">
-                <div className="relative w-full aspect-square rounded-2xl overflow-hidden bg-slate-50 border border-slate-100">
+              <div className="p-4 sm:p-6 md:p-8">
+                <div className="relative w-full aspect-square rounded-2xl overflow-hidden bg-[#f7f9f7] border border-slate-200/70">
                   <img
                     src={images[activeImage]}
                     alt={displayName}
@@ -222,7 +221,7 @@ export default function ProductDetailPage() {
                         key={idx}
                         onClick={() => setActiveImage(idx)}
                         className={`relative w-16 h-16 flex-shrink-0 rounded-xl overflow-hidden border-2 transition-colors ${
-                          activeImage === idx ? 'border-teal-500' : 'border-slate-100'
+                          activeImage === idx ? 'border-emerald-600' : 'border-slate-100'
                         }`}
                       >
                         <img
@@ -244,7 +243,7 @@ export default function ProductDetailPage() {
                 {/* Category / brand tags */}
                 <div className="flex flex-wrap gap-1.5 mb-2">
                   {typeof product.category === 'string' && product.category && (
-                    <span className="bg-sky-50 text-sky-700 text-[11px] font-medium px-2.5 py-1 rounded-lg">
+                    <span className="bg-emerald-50 text-emerald-800 text-[11px] font-medium px-2.5 py-1 rounded-lg">
                       {categoryLabel(product.category)}
                     </span>
                   )}
@@ -262,7 +261,7 @@ export default function ProductDetailPage() {
                 </div>
 
                 {/* Name */}
-                <h1 className="text-2xl font-extrabold text-slate-800 leading-snug mb-2">
+                <h1 className="text-[26px] sm:text-3xl font-extrabold tracking-tight text-slate-900 leading-tight mb-3">
                   {displayName}
                 </h1>
 
@@ -308,8 +307,8 @@ export default function ProductDetailPage() {
                 {/* Outlet / vendor */}
                 {(product.outlet_name || product.vendor_name) && (
                   <div className="flex items-start gap-2.5 mb-5 pb-5 border-b border-slate-100">
-                    <div className="bg-sky-50 p-1.5 rounded-lg mt-0.5 flex-shrink-0">
-                      <MapPin size={14} className="text-sky-600" />
+                    <div className="bg-emerald-50 p-1.5 rounded-lg mt-0.5 flex-shrink-0">
+                      <MapPin size={14} className="text-emerald-700" />
                     </div>
                     <div className="min-w-0">
                       {product.outlet_name && (

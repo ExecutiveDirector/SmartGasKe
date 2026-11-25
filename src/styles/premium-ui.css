@@ -1,0 +1,79 @@
+/* AquaGas premium UI system — shared across customer journeys */
+:root {
+  --ag-ink: #10251f;
+  --ag-muted: #64766f;
+  --ag-green: #07865d;
+  --ag-green-dark: #056747;
+  --ag-green-soft: #e8f5ef;
+  --ag-line: #e5ece8;
+  --ag-canvas: #f6f8f6;
+  --ag-radius: 18px;
+  --ag-shadow: 0 12px 34px rgba(16, 37, 31, .08);
+}
+html { scroll-padding-top: 88px; }
+body { color: var(--ag-ink); background: var(--ag-canvas); }
+::selection { color: #fff; background: var(--ag-green); }
+:focus-visible { outline: 3px solid rgba(8, 145, 102, .35); outline-offset: 3px; }
+a, button, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+button, [role="button"] { touch-action: manipulation; }
+button:disabled { cursor: not-allowed; opacity: .58; }
+input, select, textarea {
+  min-height: 44px;
+  border-radius: 12px;
+  transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--ag-green) !important;
+  box-shadow: 0 0 0 4px rgba(8, 134, 93, .10) !important;
+}
+button, a { transition-timing-function: cubic-bezier(.2,.8,.2,1); }
+img { max-width: 100%; }
+#nprogress .bar { background: #079568 !important; height: 3px !important; }
+#nprogress .peg { box-shadow: 0 0 10px #079568, 0 0 5px #079568 !important; }
+#nprogress .spinner { display: none !important; }
+
+/* Shared cards, controls and content rhythm */
+.card, .bg-white.rounded-lg, .bg-white.rounded-xl, .bg-white.rounded-2xl {
+  border-color: var(--ag-line);
+}
+.shadow-md, .shadow-lg { box-shadow: var(--ag-shadow); }
+.btn-primary, .bg-blue-600 {
+  background: var(--ag-green) !important;
+}
+.btn-primary:hover, .bg-blue-600:hover { background: var(--ag-green-dark) !important; }
+.text-blue-600, .text-blue-700 { color: var(--ag-green) !important; }
+.border-blue-600 { border-color: var(--ag-green) !important; }
+.ring-blue-500 { --tw-ring-color: rgba(8, 134, 93, .35) !important; }
+
+/* Mobile-first comfort and navigation safety */
+@media (max-width: 767px) {
+  body { padding-bottom: env(safe-area-inset-bottom); }
+  main { min-width: 0; }
+  h1 { letter-spacing: -.035em; }
+  button, a[class*="btn"], a[class*="rounded"] { min-height: 42px; }
+  input, select, textarea { font-size: 16px !important; }
+  .container-custom { padding-left: 16px; padding-right: 16px; }
+  .section { padding-top: 42px; padding-bottom: 42px; }
+  .fixed.bottom-0 nav { padding-left: 8px; padding-right: 8px; }
+}
+
+/* Homepage: preserve the dark premium identity while tightening hierarchy */
+@media (max-width: 767px) {
+  .hero-visible { min-height: 650px !important; min-height: min(86svh, 760px) !important; }
+  .hero-visible h1 { font-size: clamp(39px, 11vw, 58px) !important; line-height: 1.02 !important; }
+  .hero-visible p { max-width: 34rem; }
+  .hero-visible .hero-ctas { display: grid !important; grid-template-columns: 1fr; width: 100%; }
+  .hero-visible .hero-ctas a { justify-content: center; width: 100%; padding: 15px 18px !important; }
+  .hero-visible [style*="marginTop: 56px"] { gap: 18px !important; margin-top: 34px !important; }
+  .hero-visible [style*="fontSize: 28"] { font-size: 23px !important; }
+  .outlet-section-dark { min-width: 0; }
+  .product-card-wrap, .vendor-card-wrap { min-width: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}

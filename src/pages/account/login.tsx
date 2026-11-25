@@ -83,12 +83,12 @@ export default function LoginPage() {
         <meta name="description" content="Login to your AquaGas account" />
       </Head>
 
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-teal-50/40 to-sky-50 flex flex-col">
+      <div className="min-h-screen bg-[#f6f8f6] flex flex-col">
 
         {/* Top bar */}
         <div className="flex items-center px-6 py-4">
-          <Link href="/" className="flex items-center gap-2 text-teal-700 font-bold text-lg">
-            <Flame size={20} className="text-teal-600" />
+          <Link href="/" className="flex items-center gap-2 text-emerald-700 font-bold text-lg">
+            <Flame size={20} className="text-emerald-600" />
             AquaGas
           </Link>
         </div>
@@ -96,11 +96,11 @@ export default function LoginPage() {
         {/* Card */}
         <div className="flex-1 flex items-center justify-center px-4 py-8">
           <div className="w-full max-w-sm">
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8">
+            <div className="bg-white rounded-[26px] shadow-[0_18px_50px_rgba(16,37,31,0.08)] border border-slate-200/80 p-6 sm:p-8">
 
               {/* Header */}
               <div className="mb-7">
-                <h1 className="text-2xl font-bold text-slate-900">Welcome back</h1>
+                <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Welcome back</h1>
                 <p className="text-sm text-slate-500 mt-1">
                   Log in to manage your orders and wallet.
                 </p>
@@ -121,7 +121,7 @@ export default function LoginPage() {
                       onChange={set('email')}
                       autoComplete="email"
                       placeholder="you@example.com"
-                      className={`w-full pl-10 pr-4 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition ${
+                      className={`w-full pl-10 pr-4 py-2.5 text-sm border rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition ${
                         errors.email ? 'border-red-400 bg-red-50' : 'border-slate-200'
                       }`}
                     />
@@ -139,7 +139,7 @@ export default function LoginPage() {
                     <label className="text-sm font-semibold text-slate-700">Password</label>
                     <Link
                       href="/account/forgot-password"
-                      className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+                      className="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
                     >
                       Forgot password?
                     </Link>
@@ -152,7 +152,7 @@ export default function LoginPage() {
                       onChange={set('password')}
                       autoComplete="current-password"
                       placeholder="••••••••"
-                      className={`w-full pl-10 pr-10 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition ${
+                      className={`w-full pl-10 pr-10 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition ${
                         errors.password ? 'border-red-400 bg-red-50' : 'border-slate-200'
                       }`}
                     />
@@ -176,7 +176,7 @@ export default function LoginPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full bg-teal-600 hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-2.5 rounded-lg transition flex items-center justify-center gap-2 shadow-sm mt-2"
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition shadow-sm flex items-center justify-center gap-2 shadow-sm mt-2"
                 >
                   {submitting ? (
                     <><Loader className="animate-spin" size={18} /> Logging in...</>
@@ -189,7 +189,7 @@ export default function LoginPage() {
               {/* Footer link */}
               <p className="text-center text-sm text-slate-500 mt-6">
                 Don&apos;t have an account?{' '}
-                <Link href="/account/register" className="text-teal-600 hover:text-teal-700 font-semibold">
+                <Link href="/account/register" className="text-emerald-600 hover:text-emerald-700 font-semibold">
                   Create one
                 </Link>
               </p>
